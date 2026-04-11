@@ -234,9 +234,10 @@ const fById=id=>FREQS.find(f=>f.id===id)||FREQS[5];
 const todayStr=()=>new Date().toISOString().split('T')[0];
 
 function cardColor(task){
-  if(task.special==='selfcare')  return '#d4688a';
-  if(task.special==='medical')   return '#c85a1a';
-  if(task.special==='financial') return '#2d7a3a';
+  if(task.special){
+    const sp=SPECIAL.find(s=>s.id===task.special);
+    if(sp) return sp.color;
+  }
   return FREQ_COLORS[task.freq]||'#9a8870';
 }
 
