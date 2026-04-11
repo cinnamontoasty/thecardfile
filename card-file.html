@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Card File"/>
+<meta name="theme-color" content="#3a3128"/>
+<title>The Card File</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg: #f5f0e8;
+  --card-bg: #fffdf7;
+  --border: #e0d4bc;
+  --brown: #3a3128;
+  --brown-mid: #5a4a38;
+  --brown-light: #9a8870;
+  --gold: #c8a96e;
+  --parchment-dark: #e8dfc8;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--brown);min-height:100vh;min-height:-webkit-fill-available;overflow-x:hidden;}
+
+.header{background:var(--brown);color:var(--bg);padding:calc(14px + var(--safe-top)) 18px 0;position:sticky;top:0;z-index:60;box-shadow:0 2px 12px rgba(0,0,0,0.25);}
+.header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+.eyebrow{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:3px;}
+.htitle{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;letter-spacing:-.01em;}
+.hright{text-align:right;}
+.hdate{font-size:10px;color:var(--brown-light);margin-bottom:2px;}
+.hdue{font-size:11px;color:var(--gold);font-weight:500;}
+.tabs{display:flex;}
+.tab{padding:9px 13px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brown-light);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.tab.active{color:var(--bg);border-bottom-color:var(--gold);}
+
+.body{padding:16px 13px calc(80px + var(--safe-bottom));max-width:680px;margin:0 auto;}
+
+.progress-card{background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:12px 15px;margin-bottom:15px;box-shadow:1px 2px 6px rgba(0,0,0,0.06);}
+.progress-row{display:flex;justify-content:space-between;margin-bottom:7px;}
+.progress-row span{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-light);}
+.pct{color:#4a9e5c!important;font-weight:700;}
+.progress-bar{height:3px;background:var(--parchment-dark);border-radius:2px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(to right,var(--gold),#4a9e5c);border-radius:2px;transition:width .5s ease;}
+
+/* INDEX CARD */
+.index-card{position:relative;border-radius:4px;margin-bottom:9px;box-shadow:2px 3px 10px rgba(0,0,0,0.13);transition:transform .15s;overflow:hidden;border:1px solid rgba(0,0,0,0.10);}
+.index-card:active{transform:scale(0.99);}
+.index-card.done-today{opacity:.5;}
+.index-card.is-mini{outline:3px solid #e8d800;outline-offset:-2px;}
+/* color bar is now just a darker left accent stripe over the colored background */
+.card-color-bar{position:absolute;left:0;top:0;bottom:0;width:6px;background:rgba(0,0,0,0.18);}
+/* card-inner uses transparent bg so card color shows through */
+.card-inner{background:transparent;padding:9px 12px 9px 20px;min-height:88px;display:flex;flex-direction:column;gap:3px;}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;}
+/* freq badge: white bg with colored text for contrast on colored card */
+.card-freq{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:12px;background:rgba(255,255,255,0.55);color:rgba(0,0,0,0.7);}
+.card-mini-icon{font-size:13px;color:rgba(0,0,0,0.55);visibility:hidden;}
+.is-mini .card-mini-icon{visibility:visible;}
+.card-time{font-size:10px;font-weight:700;color:rgba(0,0,0,0.6);font-family:'Playfair Display',serif;font-style:italic;}
+.card-special-label{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,0,0,0.55);margin-bottom:1px;}
+.card-task{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:rgba(0,0,0,0.82);line-height:1.3;flex:1;}
+.card-task.done-text{text-decoration:line-through;opacity:.5;}
+.card-area-sub{font-size:10px;font-weight:400;color:rgba(0,0,0,0.55);font-family:'Lato',sans-serif;display:block;margin-top:1px;}
+.card-supplies{font-size:10px;color:rgba(0,0,0,0.55);font-style:italic;line-height:1.4;border-top:1px dashed rgba(0,0,0,0.18);padding-top:4px;margin-top:3px;}
+.card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:4px;}
+.card-last{font-size:9px;color:rgba(0,0,0,0.5);letter-spacing:.03em;}
+.badge-due{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,0.7);color:#c0392b;padding:2px 6px;border-radius:10px;margin-left:5px;}
+.badge-missed{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,0.7);color:#c0720a;padding:2px 6px;border-radius:10px;margin-left:5px;}
+.card-actions{display:flex;gap:3px;align-items:center;}
+.icon-btn{background:none;border:none;cursor:pointer;padding:4px 5px;color:rgba(0,0,0,0.4);font-size:13px;line-height:1;-webkit-appearance:none;transition:color .15s;}
+.icon-btn:active{color:rgba(0,0,0,0.8);}
+.del-btn{color:rgba(180,60,60,0.5);}
+.check-btn{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,0.6);background:rgba(255,255,255,0.3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s;-webkit-appearance:none;flex-shrink:0;}
+.check-btn:active{transform:scale(.88);}
+.check-btn.done{background:rgba(255,255,255,0.85);border-color:rgba(255,255,255,0.9);color:#2d7a3a;}
+
+.section-head{display:flex;align-items:center;gap:8px;margin:18px 0 9px;}
+.sh-label{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;white-space:nowrap;}
+.sh-line{flex:1;height:1px;background:var(--border);}
+.sh-count{font-size:9px;color:var(--brown-light);}
+
+.filter-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:12px;scrollbar-width:none;}
+.filter-strip::-webkit-scrollbar{display:none;}
+.filter-btn{flex-shrink:0;font-size:9px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:5px 11px;border-radius:20px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;white-space:nowrap;-webkit-appearance:none;transition:all .15s;}
+.filter-btn:active{opacity:.7;}
+
+.browse-toggle{display:flex;gap:0;margin-bottom:13px;background:var(--parchment-dark);border-radius:20px;padding:3px;width:fit-content;}
+.browse-btn{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:6px 16px;border-radius:17px;border:none;cursor:pointer;background:transparent;color:var(--brown-light);transition:all .2s;-webkit-appearance:none;}
+.browse-btn.active{background:var(--brown);color:var(--bg);}
+
+.area-heading{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--brown-light);margin:18px 0 8px;font-weight:700;}
+
+.empty{text-align:center;padding:50px 20px;color:var(--brown-light);}
+.empty-icon{font-size:32px;margin-bottom:10px;}
+.empty-text{font-size:12px;letter-spacing:.05em;}
+
+.fab{position:fixed;bottom:calc(22px + var(--safe-bottom));right:18px;width:50px;height:50px;border-radius:50%;background:var(--brown);color:var(--bg);border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.28);display:flex;align-items:center;justify-content:center;z-index:50;transition:transform .15s;-webkit-appearance:none;}
+.fab:active{transform:scale(.92);}
+
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:flex-end;}
+.modal{background:var(--card-bg);border-radius:16px 16px 0 0;padding:22px 18px calc(22px + var(--safe-bottom));width:100%;max-height:92vh;overflow-y:auto;animation:slideUp .28s ease;}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:3px;}
+.modal-sub{font-size:11px;color:var(--brown-light);margin-bottom:18px;}
+.field{margin-bottom:13px;}
+.field label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brown-light);display:block;margin-bottom:5px;}
+.field input,.field select,.field textarea{font-family:'Lato',sans-serif;font-size:15px;border:1px solid var(--border);border-radius:8px;padding:11px 13px;background:var(--bg);color:var(--brown);outline:none;width:100%;-webkit-appearance:none;transition:border-color .15s;}
+.field textarea{resize:vertical;min-height:58px;font-size:13px;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,169,110,.15);}
+.checkbox-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;cursor:pointer;}
+.checkbox-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--brown);flex-shrink:0;}
+.checkbox-row span{font-size:13px;color:var(--brown);}
+.modal-btns{display:flex;gap:8px;margin-top:16px;}
+.btn{flex:1;font-family:'Lato',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:13px;border-radius:8px;border:none;cursor:pointer;-webkit-appearance:none;transition:opacity .15s;}
+.btn:active{opacity:.75;}
+.btn-primary{background:var(--brown);color:var(--bg);}
+.btn-ghost{background:var(--parchment-dark);color:var(--brown-light);}
+.btn-danger{background:#c0392b;color:#fff;}
+.freq-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+
+.notif{background:var(--card-bg);border-bottom:3px solid var(--gold);padding:12px 15px;display:flex;align-items:flex-start;gap:10px;}
+.notif-body{flex:1;}
+.notif-title{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;font-weight:700;}
+.notif-list{font-size:11px;color:var(--brown-mid);line-height:1.9;}
+.notif-close{background:none;border:none;font-size:20px;color:var(--brown-light);cursor:pointer;padding:0 4px;-webkit-appearance:none;}
+
+.install-hint{background:#f0e8d8;border-bottom:1px solid var(--border);padding:10px 15px;display:flex;align-items:center;gap:10px;}
+.install-hint-text{flex:1;font-size:11px;color:var(--brown-mid);line-height:1.5;}
+.install-hint-close{background:none;border:none;font-size:18px;color:var(--brown-light);cursor:pointer;-webkit-appearance:none;}
+
+.hist-card{background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:12px 14px;margin-bottom:8px;box-shadow:1px 2px 5px rgba(0,0,0,0.06);}
+.hist-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.hist-name{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;flex:1;}
+.hist-meta{font-size:10px;color:var(--brown-light);text-align:right;line-height:1.7;}
+
+.settings-section{margin-bottom:22px;}
+.settings-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;margin-bottom:11px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.settings-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px dashed var(--border);}
+.settings-row:last-child{border-bottom:none;}
+.settings-row-label{font-size:13px;color:var(--brown);}
+.settings-row-sub{font-size:10px;color:var(--brown-light);margin-top:2px;}
+.settings-btn{font-family:'Lato',sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown);cursor:pointer;-webkit-appearance:none;}
+.settings-btn:active{opacity:.7;}
+
+.legend{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;}
+.legend-item{display:flex;align-items:center;gap:5px;}
+.legend-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+.legend-label{font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--brown-light);}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ══════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════
+const FREQS=[
+  {id:'2d', label:'2/D', name:'Twice a Day',        days:0.5},
+  {id:'d',  label:'D',   name:'Daily',               days:1},
+  {id:'eod',label:'EOD', name:'Every Other Day',     days:2},
+  {id:'3w', label:'3/W', name:'Three Times a Week',  days:2.33},
+  {id:'2w', label:'2/W', name:'Twice a Week',        days:3.5},
+  {id:'w',  label:'W',   name:'Weekly',              days:7},
+  {id:'eow',label:'EOW', name:'Every Other Week',    days:14},
+  {id:'m',  label:'M',   name:'Monthly',             days:30},
+  {id:'eom',label:'EOM', name:'Every Other Month',   days:60},
+  {id:'s',  label:'S',   name:'Seasonal/Quarterly',  days:91},
+  {id:'2y', label:'2/Y', name:'Twice a Year',        days:182},
+  {id:'y',  label:'Y',   name:'Yearly',              days:365},
+];
+const FREQ_COLORS={
+  '2d':'#c49090', // soft coral rose, lightened
+  'd': '#afa8d4', // petal violet, lightened
+  'eod':'#d4b870', // soft golden amber, lightened
+  '3w':'#8ab898', // muted sage green, lightened
+  '2w':'#c4a080', // pale adobe/terracotta
+  'w': '#8dbdaa', // pale celadon
+  'eow':'#9aa0d0', // soft periwinkle, lightened
+  'm': '#8aaad4', // dusty cornflower blue, lightened
+  'eom':'#c098b0', // soft dusty mauve, lightened
+  's': '#a09060', // olive brown, lightened
+  '2y':'#6aaa9a', // soft deep teal, lightened
+  'y': '#c09898', // warm antique rose, lightened
+};
+const SPECIAL=[
+  {id:'selfcare', label:'Self-Care', color:'#d488a8'}, // rose pink, lightened
+  {id:'medical',  label:'Medical',   color:'#c89070'}, // soft burnt orange, lightened
+  {id:'financial',label:'Financial', color:'#72aa82'}, // soft kelly green, lightened
+];
+const AREAS=[
+  'Entryway','Living Room','Dining Area','Office','Kitchen',
+  'Downstairs Bath','Pantry','Stairway','Breezeway/Hall',
+  'Upstairs Office','Workout Room','Hall Bath','Master Bedroom',
+  'Storage Closet','Master Bathroom','Balcony','Patio',
+  'Garage','Side Yard','Front Path','Driveway'
+];
+const DEFAULT_TASKS=[
+  {id:1, name:'Wipe down stovetop',        area:'Kitchen',         freq:'d',   time:"5'",  supplies:'Degreaser, microfiber cloth', mini:false, special:''},
+  {id:2, name:'Sweep kitchen floor',       area:'Kitchen',         freq:'d',   time:"5'",  supplies:'Broom, dustpan',              mini:true,  special:''},
+  {id:3, name:'Clean kitchen sink',        area:'Kitchen',         freq:'2w',  time:"10'", supplies:'Soft scrub, sponge',          mini:true,  special:''},
+  {id:4, name:'Deep clean refrigerator',   area:'Kitchen',         freq:'m',   time:"30'", supplies:'All-purpose cleaner, cloths', mini:false, special:''},
+  {id:5, name:'Wipe bathroom mirror',      area:'Downstairs Bath', freq:'2w',  time:"5'",  supplies:'Glass cleaner, microfiber',   mini:true,  special:''},
+  {id:6, name:'Scrub toilet',              area:'Downstairs Bath', freq:'w',   time:"10'", supplies:'Toilet brush, bowl cleaner',  mini:false, special:''},
+  {id:7, name:'Vacuum living room',        area:'Living Room',     freq:'w',   time:"15'", supplies:'Vacuum',                      mini:false, special:''},
+  {id:8, name:'Dust ceiling fan',          area:'Living Room',     freq:'m',   time:"10'", supplies:'Duster, step stool',          mini:true,  special:''},
+  {id:9, name:'Morning skincare routine',  area:'Master Bathroom', freq:'2d',  time:"10'", supplies:'',                            mini:false, special:'selfcare'},
+  {id:10,name:'Schedule annual physical',  area:'Master Bedroom',  freq:'y',   time:"10'", supplies:'',                            mini:false, special:'medical'},
+  {id:11,name:'Review monthly budget',     area:'Office',          freq:'m',   time:"30'", supplies:'',                            mini:false, special:'financial'},
+  {id:12,name:'Sweep entryway',            area:'Entryway',        freq:'eod', time:"5'",  supplies:'Broom',                       mini:true,  special:''},
+  {id:13,name:'Wash windows',              area:'Living Room',     freq:'s',   time:'1hr', supplies:'Window cleaner, squeegee, ladder', mini:false, special:''},
+  {id:14,name:'Evening self-care routine', area:'Master Bathroom', freq:'d',   time:"15'", supplies:'',                            mini:false, special:'selfcare'},
+];
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let S={
+  tasks:[],completions:{},tab:'today',
+  browseMode:'area',freqFilter:'all',areaFilter:'all',
+  showAdd:false,editTask:null,notification:null,showInstall:false,
+  newTask:{name:'',area:'Kitchen',freq:'w',time:'',supplies:'',mini:false,special:''},
+  nextId:200,
+};
+
+// ══════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════
+const fById=id=>FREQS.find(f=>f.id===id)||FREQS[5];
+const todayStr=()=>new Date().toISOString().split('T')[0];
+
+function cardColor(task){
+  if(task.special==='selfcare')  return '#d4688a';
+  if(task.special==='medical')   return '#c85a1a';
+  if(task.special==='financial') return '#2d7a3a';
+  return FREQ_COLORS[task.freq]||'#9a8870';
+}
+
+function isTaskDue(task){
+  const h=S.completions[task.id]||[];
+  if(!h.length) return true;
+  return (Date.now()-new Date(h[h.length-1]))/86400000 >= fById(task.freq).days;
+}
+
+function isMissed(task){
+  const h=S.completions[task.id]||[];
+  if(!h.length||!isTaskDue(task)) return false;
+  return (Date.now()-new Date(h[h.length-1]))/86400000 >= fById(task.freq).days*1.1;
+}
+
+function daysSince(task){
+  const h=S.completions[task.id]||[];
+  if(!h.length) return null;
+  return Math.floor((Date.now()-new Date(h[h.length-1]))/86400000);
+}
+
+function isDoneToday(task){
+  return (S.completions[task.id]||[]).some(d=>d.startsWith(todayStr()));
+}
+
+function doneTodayCount(){
+  return S.tasks.filter(t=>(S.completions[t.id]||[]).some(d=>d.startsWith(todayStr()))).length;
+}
+
+function el(tag,cls){const e=document.createElement(tag);if(cls)e.className=cls;return e;}
+
+// ══════════════════════════════════════════
+// STORAGE
+// ══════════════════════════════════════════
+function load(){
+  try{S.tasks=JSON.parse(localStorage.getItem('cf3_tasks'))||DEFAULT_TASKS;}catch{S.tasks=DEFAULT_TASKS;}
+  try{S.completions=JSON.parse(localStorage.getItem('cf3_comp'))||{};}catch{S.completions={};}
+  try{S.nextId=parseInt(localStorage.getItem('cf3_nid'))||200;}catch{S.nextId=200;}
+  const ln=localStorage.getItem('cf3_lastNotif');
+  if(ln!==todayStr()){
+    const due=S.tasks.filter(t=>isTaskDue(t));
+    if(due.length){S.notification=due;localStorage.setItem('cf3_lastNotif',todayStr());}
+  }
+  S.showInstall=window.navigator.standalone!==true&&!localStorage.getItem('cf3_installOk');
+}
+
+function save(){
+  localStorage.setItem('cf3_tasks',JSON.stringify(S.tasks));
+  localStorage.setItem('cf3_comp',JSON.stringify(S.completions));
+  localStorage.setItem('cf3_nid',String(S.nextId));
+}
+
+// ══════════════════════════════════════════
+// EXPORT / IMPORT
+// ══════════════════════════════════════════
+function exportData(){
+  const data={tasks:S.tasks,completions:S.completions,nextId:S.nextId,exported:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  a.download='cardfile-backup-'+todayStr()+'.json';a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(){
+  const input=document.createElement('input');
+  input.type='file';input.accept='.json,application/json';
+  input.onchange=e=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        if(data.tasks&&data.completions){
+          S.tasks=data.tasks;S.completions=data.completions;S.nextId=data.nextId||200;
+          save();alert('✓ Card file restored successfully!');render();
+        }else{alert('Invalid backup file.');}
+      }catch{alert('Could not read backup file.');}
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ══════════════════════════════════════════
+// ACTIONS
+// ══════════════════════════════════════════
+function markDone(id){S.completions[id]=[...(S.completions[id]||[]),new Date().toISOString()];save();render();}
+function addTask(){
+  if(!S.newTask.name.trim())return;
+  S.tasks.push({...S.newTask,id:S.nextId++,name:S.newTask.name.trim(),supplies:S.newTask.supplies.trim()});
+  S.newTask={name:'',area:'Kitchen',freq:'w',time:'',supplies:'',mini:false,special:''};
+  S.showAdd=false;save();render();
+}
+function deleteTask(id){if(!confirm('Delete this card?'))return;S.tasks=S.tasks.filter(t=>t.id!==id);delete S.completions[id];save();render();}
+function saveEdit(){S.tasks=S.tasks.map(t=>t.id===S.editTask.id?{...S.editTask}:t);S.editTask=null;save();render();}
+
+// ══════════════════════════════════════════
+// CARD COMPONENT
+// ══════════════════════════════════════════
+function renderCard(task,showArea){
+  const color=cardColor(task);
+  const doneToday=isDoneToday(task);
+  const due=isTaskDue(task);
+  const missed=isMissed(task);
+  const ds=daysSince(task);
+  const freq=fById(task.freq);
+
+  const card=el('div','index-card'+(task.mini?' is-mini':'')+(doneToday?' done-today':''));
+  card.style.background=`linear-gradient(135deg, ${color}cc 0%, ${color}99 100%)`;
+  const bar=el('div','card-color-bar');card.appendChild(bar);
+
+  const inner=el('div','card-inner');
+
+  // Header: freq badge | mini icon | time
+  const header=el('div','card-header');
+  const fb=el('span','card-freq');fb.textContent=freq.label;fb.style.background=color;
+  const mi=el('span','card-mini-icon');mi.textContent='✦';
+  const ti=el('span','card-time');ti.textContent=task.time||'';
+  header.append(fb,mi,ti);inner.appendChild(header);
+
+  // Special label
+  if(task.special){
+    const sp=SPECIAL.find(s=>s.id===task.special);
+    if(sp){const sl=el('div','card-special-label');sl.textContent=sp.label;sl.style.color='rgba(255,255,255,0.85)';inner.appendChild(sl);}
+  }
+
+  // Task name
+  const tn=el('div','card-task'+(doneToday?' done-text':''));
+  tn.textContent=task.name;
+  if(showArea&&task.area){const as=el('span','card-area-sub');as.textContent=task.area;tn.appendChild(as);}
+  inner.appendChild(tn);
+
+  // Supplies
+  if(task.supplies){const sup=el('div','card-supplies');sup.textContent=task.supplies;inner.appendChild(sup);}
+
+  // Footer
+  const footer=el('div','card-footer');
+  const lfoot=el('div');lfoot.style.display='flex';lfoot.style.alignItems='center';lfoot.style.flexWrap='wrap';
+  const lastEl=el('span','card-last');lastEl.textContent=ds===null?'Never done':ds===0?'Done today':`${ds}d ago`;
+  lfoot.appendChild(lastEl);
+  if(due&&!doneToday){const b=el('span',missed?'badge-missed':'badge-due');b.textContent=missed?'Missed':'Due';lfoot.appendChild(b);}
+
+  const actions=el('div','card-actions');
+  const editBtn=el('button','icon-btn');editBtn.textContent='✎';editBtn.onclick=()=>{S.editTask={...task};render();};
+  const delBtn=el('button','icon-btn del-btn');delBtn.textContent='✕';delBtn.onclick=()=>deleteTask(task.id);
+  const chk=el('button','check-btn'+(doneToday?' done':''));
+  chk.textContent=doneToday?'✓':'';chk.onclick=()=>{if(!doneToday)markDone(task.id);};
+  actions.append(editBtn,delBtn,chk);
+  footer.append(lfoot,actions);inner.appendChild(footer);
+  card.appendChild(inner);
+  return card;
+}
+
+function sectionHead(label,color,count){
+  const sh=el('div','section-head');
+  const lb=el('span','sh-label');lb.textContent=label;lb.style.color=color||'var(--brown-light)';
+  const ln=el('div','sh-line');
+  const ct=el('span','sh-count');ct.textContent=count!=null?`(${count})`:'';
+  sh.append(lb,ln,ct);return sh;
+}
+
+// ══════════════════════════════════════════
+// TAB: TODAY
+// ══════════════════════════════════════════
+function renderToday(body){
+  const total=S.tasks.length,doneCount=doneTodayCount();
+  if(total>0){
+    const pc=el('div','progress-card');
+    const pr=el('div','progress-row');
+    const l=el('span');l.textContent='Completed today';
+    const r=el('span','pct');r.textContent=`${doneCount} / ${total}`;
+    pr.append(l,r);
+    const pb=el('div','progress-bar');
+    const pf=el('div','progress-fill');pf.style.width=`${Math.round(doneCount/total*100)}%`;
+    pb.appendChild(pf);pc.append(pr,pb);body.appendChild(pc);
+  }
+  const due=S.tasks.filter(t=>isTaskDue(t));
+  if(!due.length){
+    const emp=el('div','empty');
+    const ic=el('div','empty-icon');ic.textContent='✓';
+    const tx=el('div','empty-text');tx.textContent='All caught up! Nothing due right now.';
+    emp.append(ic,tx);body.appendChild(emp);return;
+  }
+  FREQS.forEach(freq=>{
+    const ft=due.filter(t=>t.freq===freq.id);
+    if(!ft.length)return;
+    body.appendChild(sectionHead(`${freq.label} — ${freq.name}`,FREQ_COLORS[freq.id],ft.length));
+    ft.forEach(task=>body.appendChild(renderCard(task,true)));
+  });
+}
+
+// ══════════════════════════════════════════
+// TAB: BROWSE
+// ══════════════════════════════════════════
+function renderBrowse(body){
+  const toggle=el('div','browse-toggle');
+  ['area','freq'].forEach(mode=>{
+    const b=el('button','browse-btn'+(S.browseMode===mode?' active':''));
+    b.textContent=mode==='area'?'By Area':'By Frequency';
+    b.onclick=()=>{S.browseMode=mode;render();};
+    toggle.appendChild(b);
+  });
+  body.appendChild(toggle);
+
+  if(S.browseMode==='freq'){
+    const strip=el('div','filter-strip');
+    const allBtn=el('button','filter-btn'+(S.freqFilter==='all'?' active':''));
+    allBtn.textContent='All';
+    if(S.freqFilter==='all'){allBtn.style.background='var(--brown)';allBtn.style.color='var(--bg)';allBtn.style.borderColor='var(--brown)';}
+    allBtn.onclick=()=>{S.freqFilter='all';render();};
+    strip.appendChild(allBtn);
+    FREQS.forEach(f=>{
+      const b=el('button','filter-btn'+(S.freqFilter===f.id?' active':''));
+      b.textContent=f.label;
+      if(S.freqFilter===f.id){b.style.background=FREQ_COLORS[f.id];b.style.color='#fff';b.style.borderColor=FREQ_COLORS[f.id];}
+      b.onclick=()=>{S.freqFilter=f.id;render();};strip.appendChild(b);
+    });
+    SPECIAL.forEach(sp=>{
+      const b=el('button','filter-btn'+(S.freqFilter===sp.id?' active':''));
+      b.textContent=sp.label;
+      if(S.freqFilter===sp.id){b.style.background=sp.color;b.style.color='#fff';b.style.borderColor=sp.color;}
+      b.onclick=()=>{S.freqFilter=sp.id;render();};strip.appendChild(b);
+    });
+    body.appendChild(strip);
+    let filtered=S.freqFilter==='all'?S.tasks:
+      SPECIAL.find(s=>s.id===S.freqFilter)?S.tasks.filter(t=>t.special===S.freqFilter):
+      S.tasks.filter(t=>t.freq===S.freqFilter);
+    if(!filtered.length){const emp=el('div','empty');const tx=el('div','empty-text');tx.textContent='No cards here yet.';emp.appendChild(tx);body.appendChild(emp);return;}
+    filtered.forEach(task=>body.appendChild(renderCard(task,true)));
+  }else{
+    const strip=el('div','filter-strip');
+    const allBtn=el('button','filter-btn'+(S.areaFilter==='all'?' active':''));
+    allBtn.textContent='All';
+    if(S.areaFilter==='all'){allBtn.style.background='var(--brown)';allBtn.style.color='var(--bg)';allBtn.style.borderColor='var(--brown)';}
+    allBtn.onclick=()=>{S.areaFilter='all';render();};strip.appendChild(allBtn);
+    const usedAreas=[...new Set(S.tasks.map(t=>t.area))].sort();
+    usedAreas.forEach(a=>{
+      const b=el('button','filter-btn'+(S.areaFilter===a?' active':''));
+      b.textContent=a;
+      if(S.areaFilter===a){b.style.background='var(--brown)';b.style.color='var(--bg)';b.style.borderColor='var(--brown)';}
+      b.onclick=()=>{S.areaFilter=a;render();};strip.appendChild(b);
+    });
+    body.appendChild(strip);
+    const areas=S.areaFilter==='all'?usedAreas:[S.areaFilter];
+    areas.forEach(area=>{
+      const tasks=S.tasks.filter(t=>t.area===area);if(!tasks.length)return;
+      const ah=el('div','area-heading');ah.textContent=area;body.appendChild(ah);
+      tasks.forEach(task=>body.appendChild(renderCard(task,false)));
+    });
+  }
+}
+
+// ══════════════════════════════════════════
+// TAB: HISTORY
+// ══════════════════════════════════════════
+function renderHistory(body){
+  const withHist=S.tasks.filter(t=>(S.completions[t.id]||[]).length>0)
+    .sort((a,b)=>((S.completions[b.id]||[]).at(-1)||'').localeCompare((S.completions[a.id]||[]).at(-1)||''));
+  if(!withHist.length){
+    const emp=el('div','empty');const ic=el('div','empty-icon');ic.textContent='📋';
+    const tx=el('div','empty-text');tx.textContent='No completed tasks yet.';
+    emp.append(ic,tx);body.appendChild(emp);return;
+  }
+  withHist.forEach(task=>{
+    const color=cardColor(task);
+    const hist=S.completions[task.id]||[];
+    const last=new Date(hist.at(-1));
+    const hc=el('div','hist-card');hc.style.borderLeft=`4px solid ${color}`;
+    const top=el('div','hist-top');
+    const left=el('div');
+    const nm=el('div','hist-name');nm.textContent=task.name;
+    const sub=el('div');sub.style.cssText='font-size:10px;color:var(--brown-light);margin-top:2px;';sub.textContent=task.area;
+    left.append(nm,sub);
+    const right=el('div','hist-meta');
+    const fb=el('span');fb.style.cssText=`font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:10px;background:${color}22;color:${color};`;
+    fb.textContent=fById(task.freq).label;
+    const ld=el('div');ld.textContent='Last: '+last.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const tc=el('div');tc.textContent=`${hist.length} completion${hist.length!==1?'s':''}`;
+    right.append(fb,ld,tc);top.append(left,right);hc.appendChild(top);body.appendChild(hc);
+  });
+}
+
+// ══════════════════════════════════════════
+// TAB: SETTINGS
+// ══════════════════════════════════════════
+function renderSettings(body){
+  // Legend
+  const ls=el('div','settings-section');
+  const lt=el('div','settings-title');lt.textContent='Color Legend';ls.appendChild(lt);
+  const leg=el('div','legend');
+  FREQS.forEach(f=>{
+    const li=el('div','legend-item');
+    const dot=el('div','legend-dot');dot.style.background=FREQ_COLORS[f.id];
+    const lbl=el('span','legend-label');lbl.textContent=`${f.label} — ${f.name}`;
+    li.append(dot,lbl);leg.appendChild(li);
+  });
+  SPECIAL.forEach(sp=>{
+    const li=el('div','legend-item');
+    const dot=el('div','legend-dot');dot.style.background=sp.color;
+    const lbl=el('span','legend-label');lbl.textContent=sp.label;
+    li.append(dot,lbl);leg.appendChild(li);
+  });
+  const mli=el('div','legend-item');
+  const mdot=el('div','legend-dot');mdot.style.cssText='background:#f5e642;border:1px solid #ccc;';
+  const mlbl=el('span','legend-label');mlbl.textContent='✦ Mini task — pale yellow border';
+  mli.append(mdot,mlbl);leg.appendChild(mli);
+  ls.appendChild(leg);body.appendChild(ls);
+
+  // Backup
+  const bs=el('div','settings-section');
+  const bt=el('div','settings-title');bt.textContent='Backup & Restore';bs.appendChild(bt);
+  [[exportData,'Export Backup','Download a .json backup file'],
+   [importData,'Import Backup','Restore from a .json backup file']].forEach(([fn,label,sub])=>{
+    const row=el('div','settings-row');
+    const d=el('div');
+    const l=el('div','settings-row-label');l.textContent=label;
+    const s=el('div','settings-row-sub');s.textContent=sub;
+    d.append(l,s);
+    const b=el('button','settings-btn');b.textContent=label.split(' ')[0];b.onclick=fn;
+    row.append(d,b);bs.appendChild(row);
+  });
+  body.appendChild(bs);
+
+  // Stats
+  const ss=el('div','settings-section');
+  const st=el('div','settings-title');st.textContent='Stats';ss.appendChild(st);
+  const totalDone=Object.values(S.completions).reduce((a,b)=>a+b.length,0);
+  [[`${S.tasks.length} cards total`,'In your card file'],
+   [`${S.tasks.filter(t=>t.mini).length} mini tasks`,'Quick pick-up tasks'],
+   [`${totalDone} completions`,'All time'],
+   [`${S.tasks.filter(t=>isTaskDue(t)).length} due now`,'Need attention'],
+  ].forEach(([val,sub])=>{
+    const row=el('div','settings-row');
+    const d=el('div');
+    const l=el('div','settings-row-label');l.textContent=val;
+    const s=el('div','settings-row-sub');s.textContent=sub;
+    d.append(l,s);row.appendChild(d);ss.appendChild(row);
+  });
+  body.appendChild(ss);
+}
+
+// ══════════════════════════════════════════
+// MODAL: ADD / EDIT TASK
+// ══════════════════════════════════════════
+function buildModal(data,isEdit){
+  const bd=el('div','backdrop');
+  bd.onclick=e=>{if(e.target===bd){isEdit?S.editTask=null:S.showAdd=false;render();}};
+  const modal=el('div','modal');
+  const title=el('div','modal-title');title.textContent=isEdit?'Edit Card':'New Card';
+  const sub=el('div','modal-sub');sub.textContent=isEdit?'Modify this task':'Add a task to your card file';
+  modal.append(title,sub);
+
+  // Name
+  const f1=el('div','field');const l1=el('label');l1.textContent='Task Name';
+  const i1=el('input');i1.type='text';i1.value=data.name||'';i1.placeholder='e.g., Wipe stovetop';
+  i1.oninput=e=>data.name=e.target.value;
+  f1.append(l1,i1);modal.appendChild(f1);
+
+  // Area
+  const f2=el('div','field');const l2=el('label');l2.textContent='Area / Room';
+  const sel2=el('select');
+  const allAreas=[...new Set([...AREAS,...S.tasks.map(t=>t.area)])].sort();
+  allAreas.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;if(a===data.area)o.selected=true;sel2.appendChild(o);});
+  sel2.onchange=e=>data.area=e.target.value;
+  f2.append(l2,sel2);modal.appendChild(f2);
+
+  // Frequency
+  const f3=el('div','field');const l3=el('label');l3.textContent='Frequency';
+  const sel3=el('select');
+  FREQS.forEach(f=>{const o=document.createElement('option');o.value=f.id;o.textContent=`${f.label} — ${f.name}`;if(f.id===data.freq)o.selected=true;sel3.appendChild(o);});
+  sel3.onchange=e=>data.freq=e.target.value;
+  f3.append(l3,sel3);modal.appendChild(f3);
+
+  // Time
+  const f4=el('div','field');const l4=el('label');l4.textContent="Time (e.g., 5', 30', 1hr)";
+  const i4=el('input');i4.type='text';i4.value=data.time||'';i4.placeholder="10'";
+  i4.oninput=e=>data.time=e.target.value;
+  f4.append(l4,i4);modal.appendChild(f4);
+
+  // Supplies
+  const f5=el('div','field');const l5=el('label');l5.textContent='Equipment / Supplies';
+  const ta=el('textarea');ta.value=data.supplies||'';ta.placeholder='e.g., Broom, dustpan, cleaner';
+  ta.oninput=e=>data.supplies=e.target.value;
+  f5.append(l5,ta);modal.appendChild(f5);
+
+  // Card type
+  const f6=el('div','field');const l6=el('label');l6.textContent='Card Type';
+  const sel6=el('select');
+  [['','Standard (frequency color)'],...SPECIAL.map(s=>[s.id,s.label])].forEach(([val,txt])=>{
+    const o=document.createElement('option');o.value=val;o.textContent=txt;if(val===data.special)o.selected=true;sel6.appendChild(o);
+  });
+  sel6.onchange=e=>data.special=e.target.value;
+  f6.append(l6,sel6);modal.appendChild(f6);
+
+  // Mini checkbox
+  const cr=el('div','checkbox-row');
+  const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!data.mini;
+  cb.onchange=e=>data.mini=e.target.checked;
+  const cl=el('span');cl.textContent='✦ Mini task (5–10 min, pick up anytime)';
+  cr.append(cb,cl);cr.onclick=()=>{cb.checked=!cb.checked;data.mini=cb.checked;};
+  modal.appendChild(cr);
+
+  // Buttons
+  const btns=el('div','modal-btns');
+  const cancel=el('button','btn btn-ghost');cancel.textContent='Cancel';
+  cancel.onclick=()=>{isEdit?S.editTask=null:S.showAdd=false;render();};
+  const save=el('button','btn btn-primary');save.textContent=isEdit?'Save Changes':'Add Card';
+  save.onclick=()=>isEdit?saveEdit():addTask();
+  if(isEdit){
+    const del=el('button','btn btn-danger');del.textContent='Delete';del.onclick=()=>deleteTask(data.id);
+    btns.append(cancel,del,save);
+  }else{btns.append(cancel,save);}
+  modal.appendChild(btns);
+  bd.appendChild(modal);
+  setTimeout(()=>i1.focus(),60);
+  return bd;
+}
+
+// ══════════════════════════════════════════
+// MAIN RENDER
+// ══════════════════════════════════════════
+function render(){
+  const app=document.getElementById('app');app.innerHTML='';
+
+  // Install hint
+  if(S.showInstall){
+    const bar=el('div','install-hint');
+    const txt=el('div','install-hint-text');
+    txt.innerHTML='📌 <strong>Save to Home Screen:</strong> Open in Safari → tap Share → <em>Add to Home Screen</em>';
+    const x=el('button','install-hint-close');x.textContent='×';
+    x.onclick=()=>{S.showInstall=false;localStorage.setItem('cf3_installOk','1');render();};
+    bar.append(txt,x);app.appendChild(bar);
+  }
+
+  // Notification banner
+  if(S.notification){
+    const nb=el('div','notif');
+    const bd2=el('div','notif-body');
+    const t=el('div','notif-title');t.textContent='Tasks due today — '+new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    const list=el('div','notif-list');
+    S.notification.slice(0,6).forEach(task=>{
+      const d=el('div');const color=cardColor(task);
+      d.innerHTML=`<span style="color:${color};font-weight:700;">${fById(task.freq).label}</span> ${task.name}${task.area?` <span style="color:var(--brown-light);font-size:10px;">— ${task.area}</span>`:''}`;
+      list.appendChild(d);
+    });
+    if(S.notification.length>6){const m=el('div');m.style.color='var(--brown-light)';m.textContent=`…and ${S.notification.length-6} more`;list.appendChild(m);}
+    bd2.append(t,list);
+    const x=el('button','notif-close');x.textContent='×';x.onclick=()=>{S.notification=null;render();};
+    nb.append(bd2,x);app.appendChild(nb);
+  }
+
+  // Header
+  const header=el('div','header');
+  const htop=el('div','header-top');
+  const hleft=el('div');
+  const ey=el('div','eyebrow');ey.textContent='Household Management';
+  const ht=el('div','htitle');ht.textContent='The Card File';
+  hleft.append(ey,ht);
+  const hr=el('div','hright');
+  const hd=el('div','hdate');hd.textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const dueCount=S.tasks.filter(t=>isTaskDue(t)).length;
+  const hdu=el('div','hdue');hdu.textContent=`${dueCount} task${dueCount!==1?'s':''} due`;
+  hr.append(hd,hdu);htop.append(hleft,hr);
+  const tabs=el('div','tabs');
+  [['today','Today'],['browse','Browse'],['history','History'],['settings','⚙']].forEach(([id,label])=>{
+    const tab=el('div','tab'+(S.tab===id?' active':''));
+    tab.textContent=label;tab.onclick=()=>{S.tab=id;render();};
+    tabs.appendChild(tab);
+  });
+  header.append(htop,tabs);app.appendChild(header);
+
+  // Body
+  const body=el('div','body');
+  if(S.tab==='today') renderToday(body);
+  else if(S.tab==='browse') renderBrowse(body);
+  else if(S.tab==='history') renderHistory(body);
+  else renderSettings(body);
+  app.appendChild(body);
+
+  // FAB
+  if(S.tab==='browse'){
+    const fab=el('button','fab');fab.textContent='+';fab.title='Add card';
+    fab.onclick=()=>{S.showAdd=true;render();};
+    app.appendChild(fab);
+  }
+
+  // Modals
+  if(S.showAdd) app.appendChild(buildModal(S.newTask,false));
+  if(S.editTask) app.appendChild(buildModal(S.editTask,true));
+}
+
+load();render();
+</script>
+</body>
+</html>
