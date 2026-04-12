@@ -11,6 +11,7 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;500;700&display=swap');
 
+/* ── LIGHT MODE ── */
 :root {
   --bg: #f5f0e8;
   --card-bg: #fffdf7;
@@ -20,137 +21,238 @@
   --brown-light: #9a8870;
   --gold: #c8a96e;
   --parchment-dark: #e8dfc8;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --text: #3a3128;
+  --card-text: rgba(0,0,0,0.82);
+  --card-sub: rgba(0,0,0,0.55);
+  --card-border-color: rgba(0,0,0,0.10);
+  --card-alpha1: cc;
+  --card-alpha2: 99;
+  --card-bar: rgba(0,0,0,0.18);
+  --section-line: #e0d4bc;
+  --safe-top: env(safe-area-inset-top,0px);
+  --safe-bottom: env(safe-area-inset-bottom,0px);
+}
+
+/* ── DARK MODE ── */
+body.dark {
+  --bg: #2a1f18;
+  --card-bg: #352820;
+  --border: #4a3828;
+  --brown: #f0e8d8;
+  --brown-mid: #d4c4a8;
+  --brown-light: #a08870;
+  --gold: #c8a96e;
+  --parchment-dark: #3a2a1e;
+  --text: #f0e8d8;
+  --card-text: rgba(255,240,220,0.90);
+  --card-sub: rgba(255,240,220,0.60);
+  --card-border-color: rgba(0,0,0,0.30);
+  --card-alpha1: 88;
+  --card-alpha2: 66;
+  --card-bar: rgba(0,0,0,0.35);
+  --section-line: #4a3828;
 }
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--brown);min-height:100vh;min-height:-webkit-fill-available;overflow-x:hidden;}
+body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:-webkit-fill-available;overflow-x:hidden;transition:background .3s,color .3s;}
 
-.header{background:var(--brown);color:var(--bg);padding:calc(14px + var(--safe-top)) 18px 0;position:sticky;top:0;z-index:60;box-shadow:0 2px 12px rgba(0,0,0,0.25);}
-.header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+/* ── HEADER ── */
+.header{background:var(--brown);color:var(--bg);padding:calc(12px + var(--safe-top)) 16px 0;position:sticky;top:0;z-index:60;box-shadow:0 2px 12px rgba(0,0,0,0.25);}
+body.dark .header{background:#1a1008;}
+.header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
 .eyebrow{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:3px;}
-.htitle{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;letter-spacing:-.01em;}
+.htitle{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;letter-spacing:-.01em;}
 .hright{text-align:right;}
 .hdate{font-size:10px;color:var(--brown-light);margin-bottom:2px;}
 .hdue{font-size:11px;color:var(--gold);font-weight:500;}
-.tabs{display:flex;}
-.tab{padding:9px 13px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brown-light);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.tabs{display:flex;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;}
 .tab.active{color:var(--bg);border-bottom-color:var(--gold);}
+body.dark .tab.active{color:var(--gold);}
 
-.body{padding:16px 13px calc(80px + var(--safe-bottom));max-width:680px;margin:0 auto;}
+/* ── SETTINGS BUTTON ── */
+.settings-tab{padding:8px 14px;background:rgba(200,169,110,0.15);border-radius:6px 6px 0 0;margin-left:4px;border:1px solid rgba(200,169,110,0.3);border-bottom:none;}
+.settings-tab.active{background:var(--gold);color:var(--brown)!important;}
 
-.progress-card{background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:12px 15px;margin-bottom:15px;box-shadow:1px 2px 6px rgba(0,0,0,0.06);}
+/* ── BODY ── */
+.body{padding:16px 13px calc(90px + var(--safe-bottom));max-width:700px;margin:0 auto;}
+
+/* ── PROGRESS ── */
+.progress-card{background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:12px 15px;margin-bottom:14px;box-shadow:1px 2px 6px rgba(0,0,0,0.06);}
 .progress-row{display:flex;justify-content:space-between;margin-bottom:7px;}
-.progress-row span{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-light);}
+.progress-row span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--brown-light);}
 .pct{color:#4a9e5c!important;font-weight:700;}
-.progress-bar{height:3px;background:var(--parchment-dark);border-radius:2px;overflow:hidden;}
+.progress-bar{height:4px;background:var(--parchment-dark);border-radius:2px;overflow:hidden;}
 .progress-fill{height:100%;background:linear-gradient(to right,var(--gold),#4a9e5c);border-radius:2px;transition:width .5s ease;}
 
-/* INDEX CARD */
-.index-card{position:relative;border-radius:4px;margin-bottom:9px;box-shadow:2px 3px 10px rgba(0,0,0,0.13);transition:transform .15s;overflow:hidden;border:1px solid rgba(0,0,0,0.10);}
+/* ── INDEX CARD ── */
+.index-card{position:relative;border-radius:4px;margin-bottom:9px;box-shadow:2px 3px 10px rgba(0,0,0,0.13);transition:transform .15s;overflow:hidden;border:1px solid var(--card-border-color);}
 .index-card:active{transform:scale(0.99);}
 .index-card.done-today{opacity:.5;}
 .index-card.is-mini{outline:3px solid #e8d800;outline-offset:-2px;}
-/* color bar is now just a darker left accent stripe over the colored background */
-.card-color-bar{position:absolute;left:0;top:0;bottom:0;width:6px;background:rgba(0,0,0,0.18);}
-/* card-inner uses transparent bg so card color shows through */
-.card-inner{background:transparent;padding:9px 12px 9px 20px;min-height:88px;display:flex;flex-direction:column;gap:3px;}
-.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;}
-/* freq badge: white bg with colored text for contrast on colored card */
-.card-freq{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:12px;background:rgba(255,255,255,0.55);color:rgba(0,0,0,0.7);}
-.card-mini-icon{font-size:13px;color:rgba(0,0,0,0.55);visibility:hidden;}
+.card-color-bar{position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--card-bar);}
+.card-inner{background:transparent;padding:10px 13px 10px 20px;min-height:92px;display:flex;flex-direction:column;gap:4px;}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
+.card-freq{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:12px;background:rgba(255,255,255,0.55);color:rgba(0,0,0,0.72);}
+body.dark .card-freq{background:rgba(0,0,0,0.25);color:rgba(255,240,220,0.85);}
+.card-mini-icon{font-size:14px;color:rgba(0,0,0,0.55);visibility:hidden;}
+body.dark .card-mini-icon{color:rgba(255,240,220,0.6);}
 .is-mini .card-mini-icon{visibility:visible;}
-.card-time{font-size:10px;font-weight:700;color:rgba(0,0,0,0.6);font-family:'Playfair Display',serif;font-style:italic;}
-.card-special-label{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,0,0,0.55);margin-bottom:1px;}
-.card-task{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:rgba(0,0,0,0.82);line-height:1.3;flex:1;}
+.card-time{font-size:12px;font-weight:700;color:rgba(0,0,0,0.62);font-family:'Playfair Display',serif;font-style:italic;}
+body.dark .card-time{color:rgba(255,240,220,0.7);}
+.card-special-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.85);margin-bottom:1px;}
+.card-task{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--card-text);line-height:1.3;flex:1;}
 .card-task.done-text{text-decoration:line-through;opacity:.5;}
-.card-area-sub{font-size:10px;font-weight:400;color:rgba(0,0,0,0.55);font-family:'Lato',sans-serif;display:block;margin-top:1px;}
-.card-supplies{font-size:10px;color:rgba(0,0,0,0.55);font-style:italic;line-height:1.4;border-top:1px dashed rgba(0,0,0,0.18);padding-top:4px;margin-top:3px;}
-.card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:4px;}
-.card-last{font-size:9px;color:rgba(0,0,0,0.5);letter-spacing:.03em;}
-.badge-due{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,0.7);color:#c0392b;padding:2px 6px;border-radius:10px;margin-left:5px;}
-.badge-missed{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,0.7);color:#c0720a;padding:2px 6px;border-radius:10px;margin-left:5px;}
-.card-actions{display:flex;gap:3px;align-items:center;}
-.icon-btn{background:none;border:none;cursor:pointer;padding:4px 5px;color:rgba(0,0,0,0.4);font-size:13px;line-height:1;-webkit-appearance:none;transition:color .15s;}
-.icon-btn:active{color:rgba(0,0,0,0.8);}
-.del-btn{color:rgba(180,60,60,0.5);}
-.check-btn{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,0.6);background:rgba(255,255,255,0.3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s;-webkit-appearance:none;flex-shrink:0;}
+.card-area-sub{font-size:12px;font-weight:400;color:var(--card-sub);font-family:'Lato',sans-serif;display:block;margin-top:2px;}
+.card-supplies{font-size:11px;color:var(--card-sub);font-style:italic;line-height:1.4;border-top:1px dashed rgba(0,0,0,0.18);padding-top:5px;margin-top:4px;}
+body.dark .card-supplies{border-top-color:rgba(255,255,255,0.15);}
+.card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:5px;}
+.card-last{font-size:11px;color:var(--card-sub);letter-spacing:.02em;}
+.badge-due{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,0.7);color:#c0392b;padding:2px 7px;border-radius:10px;margin-left:5px;}
+.badge-missed{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,0.7);color:#c0720a;padding:2px 7px;border-radius:10px;margin-left:5px;}
+.badge-carryover{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,0.7);color:#5048a8;padding:2px 7px;border-radius:10px;margin-left:5px;}
+.card-actions{display:flex;gap:4px;align-items:center;}
+.icon-btn{background:none;border:none;cursor:pointer;padding:5px 6px;color:rgba(0,0,0,0.45);font-size:15px;line-height:1;-webkit-appearance:none;transition:color .15s;}
+body.dark .icon-btn{color:rgba(255,240,220,0.5);}
+.icon-btn:active{color:rgba(0,0,0,0.85);}
+.del-btn{color:rgba(180,60,60,0.55);}
+.check-btn{width:32px;height:32px;border-radius:50%;border:2px solid rgba(255,255,255,0.6);background:rgba(255,255,255,0.3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .2s;-webkit-appearance:none;flex-shrink:0;}
 .check-btn:active{transform:scale(.88);}
 .check-btn.done{background:rgba(255,255,255,0.85);border-color:rgba(255,255,255,0.9);color:#2d7a3a;}
 
-.section-head{display:flex;align-items:center;gap:8px;margin:18px 0 9px;}
-.sh-label{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;white-space:nowrap;}
-.sh-line{flex:1;height:1px;background:var(--border);}
-.sh-count{font-size:9px;color:var(--brown-light);}
+/* ── SECTION HEADS ── */
+.section-head{display:flex;align-items:center;gap:8px;margin:18px 0 10px;}
+.sh-label{font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;white-space:nowrap;padding:3px 10px;border-radius:12px;color:#fff;}
+.sh-line{flex:1;height:1px;background:var(--section-line);}
+.sh-count{font-size:10px;color:var(--brown-light);}
 
+/* ── FILTER STRIPS ── */
 .filter-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:12px;scrollbar-width:none;}
 .filter-strip::-webkit-scrollbar{display:none;}
-.filter-btn{flex-shrink:0;font-size:9px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:5px 11px;border-radius:20px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;white-space:nowrap;-webkit-appearance:none;transition:all .15s;}
+.filter-btn{flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;white-space:nowrap;-webkit-appearance:none;transition:all .15s;}
 .filter-btn:active{opacity:.7;}
 
-.browse-toggle{display:flex;gap:0;margin-bottom:13px;background:var(--parchment-dark);border-radius:20px;padding:3px;width:fit-content;}
-.browse-btn{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:6px 16px;border-radius:17px;border:none;cursor:pointer;background:transparent;color:var(--brown-light);transition:all .2s;-webkit-appearance:none;}
+/* ── BROWSE TOGGLE ── */
+.browse-toggle{display:flex;margin-bottom:13px;background:var(--parchment-dark);border-radius:20px;padding:3px;width:fit-content;}
+.browse-btn{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:7px 18px;border-radius:17px;border:none;cursor:pointer;background:transparent;color:var(--brown-light);transition:all .2s;-webkit-appearance:none;}
 .browse-btn.active{background:var(--brown);color:var(--bg);}
+body.dark .browse-btn.active{background:var(--gold);color:#2a1f18;}
 
-.area-heading{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--brown-light);margin:18px 0 8px;font-weight:700;}
+/* ── AREA HEADING ── */
+.area-heading{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--brown-light);margin:18px 0 8px;font-weight:700;}
 
+/* ── EMPTY ── */
 .empty{text-align:center;padding:50px 20px;color:var(--brown-light);}
-.empty-icon{font-size:32px;margin-bottom:10px;}
-.empty-text{font-size:12px;letter-spacing:.05em;}
+.empty-icon{font-size:36px;margin-bottom:12px;}
+.empty-text{font-size:13px;letter-spacing:.05em;}
 
-.fab{position:fixed;bottom:calc(22px + var(--safe-bottom));right:18px;width:50px;height:50px;border-radius:50%;background:var(--brown);color:var(--bg);border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.28);display:flex;align-items:center;justify-content:center;z-index:50;transition:transform .15s;-webkit-appearance:none;}
+/* ── FAB ── */
+.fab{position:fixed;bottom:calc(22px + var(--safe-bottom));right:18px;width:52px;height:52px;border-radius:50%;background:var(--brown);color:var(--bg);border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.28);display:flex;align-items:center;justify-content:center;z-index:50;transition:transform .15s;-webkit-appearance:none;}
+body.dark .fab{background:var(--gold);color:#2a1f18;}
 .fab:active{transform:scale(.92);}
 
+/* ── MODALS ── */
 .backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:flex-end;}
 .modal{background:var(--card-bg);border-radius:16px 16px 0 0;padding:22px 18px calc(22px + var(--safe-bottom));width:100%;max-height:92vh;overflow-y:auto;animation:slideUp .28s ease;}
 @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
-.modal-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:3px;}
-.modal-sub{font-size:11px;color:var(--brown-light);margin-bottom:18px;}
-.field{margin-bottom:13px;}
-.field label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brown-light);display:block;margin-bottom:5px;}
-.field input,.field select,.field textarea{font-family:'Lato',sans-serif;font-size:15px;border:1px solid var(--border);border-radius:8px;padding:11px 13px;background:var(--bg);color:var(--brown);outline:none;width:100%;-webkit-appearance:none;transition:border-color .15s;}
-.field textarea{resize:vertical;min-height:58px;font-size:13px;}
+.modal-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:3px;color:var(--text);}
+.modal-sub{font-size:12px;color:var(--brown-light);margin-bottom:18px;}
+.field{margin-bottom:14px;}
+.field label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brown-light);display:block;margin-bottom:5px;}
+.field input,.field select,.field textarea{font-family:'Lato',sans-serif;font-size:15px;border:1px solid var(--border);border-radius:8px;padding:12px 13px;background:var(--bg);color:var(--text);outline:none;width:100%;-webkit-appearance:none;transition:border-color .15s;}
+.field textarea{resize:vertical;min-height:60px;font-size:13px;}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,169,110,.15);}
 .checkbox-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;cursor:pointer;}
-.checkbox-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--brown);flex-shrink:0;}
-.checkbox-row span{font-size:13px;color:var(--brown);}
-.modal-btns{display:flex;gap:8px;margin-top:16px;}
-.btn{flex:1;font-family:'Lato',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:13px;border-radius:8px;border:none;cursor:pointer;-webkit-appearance:none;transition:opacity .15s;}
+.checkbox-row input[type=checkbox]{width:20px;height:20px;accent-color:var(--brown);flex-shrink:0;}
+.checkbox-row span{font-size:14px;color:var(--text);}
+.modal-btns{display:flex;gap:8px;margin-top:18px;}
+.btn{flex:1;font-family:'Lato',sans-serif;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:14px;border-radius:8px;border:none;cursor:pointer;-webkit-appearance:none;transition:opacity .15s;}
 .btn:active{opacity:.75;}
 .btn-primary{background:var(--brown);color:var(--bg);}
+body.dark .btn-primary{background:var(--gold);color:#2a1f18;}
 .btn-ghost{background:var(--parchment-dark);color:var(--brown-light);}
 .btn-danger{background:#c0392b;color:#fff;}
-.freq-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;}
 
+/* ── NOTIFICATIONS ── */
 .notif{background:var(--card-bg);border-bottom:3px solid var(--gold);padding:12px 15px;display:flex;align-items:flex-start;gap:10px;}
 .notif-body{flex:1;}
 .notif-title{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;font-weight:700;}
-.notif-list{font-size:11px;color:var(--brown-mid);line-height:1.9;}
+.notif-list{font-size:12px;color:var(--brown-mid);line-height:1.9;}
 .notif-close{background:none;border:none;font-size:20px;color:var(--brown-light);cursor:pointer;padding:0 4px;-webkit-appearance:none;}
-
-.install-hint{background:#f0e8d8;border-bottom:1px solid var(--border);padding:10px 15px;display:flex;align-items:center;gap:10px;}
-.install-hint-text{flex:1;font-size:11px;color:var(--brown-mid);line-height:1.5;}
+.install-hint{background:var(--parchment-dark);border-bottom:1px solid var(--border);padding:11px 15px;display:flex;align-items:center;gap:10px;}
+.install-hint-text{flex:1;font-size:12px;color:var(--brown-mid);line-height:1.5;}
 .install-hint-close{background:none;border:none;font-size:18px;color:var(--brown-light);cursor:pointer;-webkit-appearance:none;}
 
-.hist-card{background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:12px 14px;margin-bottom:8px;box-shadow:1px 2px 5px rgba(0,0,0,0.06);}
-.hist-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
-.hist-name{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;flex:1;}
-.hist-meta{font-size:10px;color:var(--brown-light);text-align:right;line-height:1.7;}
-
-.settings-section{margin-bottom:22px;}
-.settings-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;margin-bottom:11px;padding-bottom:6px;border-bottom:1px solid var(--border);}
-.settings-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px dashed var(--border);}
+/* ── SETTINGS ── */
+.settings-section{margin-bottom:24px;}
+.settings-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:600;margin-bottom:12px;padding-bottom:7px;border-bottom:1px solid var(--border);color:var(--text);}
+.settings-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px dashed var(--border);}
 .settings-row:last-child{border-bottom:none;}
-.settings-row-label{font-size:13px;color:var(--brown);}
-.settings-row-sub{font-size:10px;color:var(--brown-light);margin-top:2px;}
-.settings-btn{font-family:'Lato',sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown);cursor:pointer;-webkit-appearance:none;}
+.settings-row-label{font-size:14px;color:var(--text);}
+.settings-row-sub{font-size:11px;color:var(--brown-light);margin-top:2px;}
+.settings-btn{font-family:'Lato',sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:9px 16px;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);cursor:pointer;-webkit-appearance:none;}
 .settings-btn:active{opacity:.7;}
 
-.legend{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;}
-.legend-item{display:flex;align-items:center;gap:5px;}
-.legend-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
-.legend-label{font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--brown-light);}
+/* ── LEGEND ── */
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.legend-item{display:flex;align-items:center;gap:6px;}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.legend-label{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--brown-light);}
+
+/* ── SCHEDULE VIEWS ── */
+.schedule-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;}
+.nav-arrow{background:none;border:none;font-size:20px;color:var(--brown-light);cursor:pointer;padding:4px 10px;-webkit-appearance:none;transition:color .15s;}
+.nav-arrow:active{color:var(--text);}
+.nav-label{font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:var(--text);}
+.schedule-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.schedule-tab{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;transition:all .15s;}
+.schedule-tab.active{background:var(--brown);color:var(--bg);border-color:var(--brown);}
+body.dark .schedule-tab.active{background:var(--gold);color:#2a1f18;border-color:var(--gold);}
+
+/* ── MONTH GRID ── */
+.month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:16px;}
+.month-day-header{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light);text-align:center;padding:4px 0;}
+.month-cell{background:var(--card-bg);border:1px solid var(--border);border-radius:3px;min-height:52px;padding:4px;cursor:pointer;transition:background .15s;}
+.month-cell:active{background:var(--parchment-dark);}
+.month-cell.today{border-color:var(--gold);border-width:2px;}
+.month-cell.other-month{opacity:.4;}
+.month-cell-date{font-size:11px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.month-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin:1px;}
+.month-count{font-size:9px;color:var(--brown-light);}
+
+/* ── WEEK GRID ── */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px;}
+.week-col-header{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-light);text-align:center;padding:6px 2px;background:var(--card-bg);border-radius:4px;border:1px solid var(--border);}
+.week-col-header.today{color:var(--gold);border-color:var(--gold);}
+.week-col{display:flex;flex-direction:column;gap:4px;}
+.week-mini-card{border-radius:3px;padding:5px 6px;font-size:10px;font-weight:700;color:rgba(0,0,0,0.75);cursor:pointer;line-height:1.3;}
+body.dark .week-mini-card{color:rgba(255,240,220,0.85);}
+
+/* ── YEAR VIEW ── */
+.year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.year-month{background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:8px;}
+.year-month-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:6px;text-align:center;}
+.year-mini-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;}
+.year-cell{height:10px;border-radius:1px;background:var(--parchment-dark);cursor:pointer;transition:opacity .15s;}
+.year-cell:active{opacity:.7;}
+.year-cell.has-tasks{opacity:1;}
+.year-cell.is-today{outline:1px solid var(--gold);}
+
+/* ── COLOR PICKER ── */
+.color-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.color-swatch{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .15s;}
+.color-swatch.selected{border-color:var(--text);transform:scale(1.15);}
+.color-swatch:active{transform:scale(.9);}
+
+/* ── TOGGLE SWITCH ── */
+.toggle-wrap{display:flex;align-items:center;gap:10px;}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:24px;cursor:pointer;transition:.3s;}
+.toggle-slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s;}
+.toggle input:checked+.toggle-slider{background:var(--gold);}
+.toggle input:checked+.toggle-slider:before{transform:translateX(20px);}
 </style>
 </head>
 <body>
@@ -173,146 +275,212 @@ const FREQS=[
   {id:'2y', label:'2/Y', name:'Twice a Year',        days:182},
   {id:'y',  label:'Y',   name:'Yearly',              days:365},
 ];
-const FREQ_COLORS={
-  '2d':'#f5c4a0', // pale melon
-  'd': '#f5e87a', // lemon yellow
-  'eod':'#d4b870', // soft golden amber
-  '3w':'#afa8d4', // soft lavender
-  '2w':'#4ab8d4', // blue turquoise
-  'w': '#6a9fd4', // medium cornflower blue
-  'eow':'#7878cc', // saturated periwinkle
-  'm': '#8dbdaa', // pale celadon
-  'eom':'#c4a882', // soft mocha
-  's': '#a09060', // olive brown
-  '2y':'#e8c4a0', // pale adobe
-  'y': '#c07050', // warm terracotta
+
+const DEFAULT_FREQ_COLORS={
+  '2d':'#f5c4a0','d':'#f5f080','eod':'#d4b870',
+  '3w':'#afa8d4','2w':'#4ab8d4','w':'#6a9fd4',
+  'eow':'#7878cc','m':'#8dbdaa','eom':'#c4a882',
+  's':'#a09060','2y':'#e8c4a0','y':'#c07050',
 };
-const SPECIAL=[
-  {id:'selfcare', label:'Self-Care', color:'#d488a8'}, // rose pink
-  {id:'medical',  label:'Medical',   color:'#e8843a'}, // brighter orange
-  {id:'financial',label:'Financial', color:'#72aa82'}, // soft kelly green
+
+const DEFAULT_SPECIAL=[
+  {id:'selfcare', label:'Self-Care', color:'#d488a8'},
+  {id:'medical',  label:'Medical',   color:'#e8843a'},
+  {id:'financial',label:'Financial', color:'#72aa82'},
 ];
-const AREAS=[
+
+const DEFAULT_AREAS=[
   'Entryway','Living Room','Dining Area','Office','Kitchen',
   'Downstairs Bath','Pantry','Stairway','Breezeway/Hall',
   'Upstairs Office','Workout Room','Hall Bath','Master Bedroom',
   'Storage Closet','Master Bathroom','Balcony','Patio',
   'Garage','Side Yard','Front Path','Driveway'
 ];
+
+const COLOR_PALETTE=[
+  '#f5c4a0','#f5f080','#f5e87a','#d4b870','#f0b0c0','#e8843a','#c07050',
+  '#e8c4a0','#c4a882','#a09060','#7a6a3a','#d488a8','#c06888','#b05880',
+  '#afa8d4','#7878cc','#5a6bbf','#6a9fd4','#4ab8d4','#8aaad4','#3a86c8',
+  '#8dbdaa','#6ab898','#4a9e5c','#72aa82','#2d7a3a','#1a7a6a','#2a9d8f',
+  '#c49090','#c0392b','#d4688a','#b07898','#c8b0e4','#9a8870','#888888',
+];
+
+const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
 const DEFAULT_TASKS=[
-  {id:1, name:'Wipe down stovetop',        area:'Kitchen',         freq:'d',   time:"5'",  supplies:'Degreaser, microfiber cloth', mini:false, special:''},
-  {id:2, name:'Sweep kitchen floor',       area:'Kitchen',         freq:'d',   time:"5'",  supplies:'Broom, dustpan',              mini:true,  special:''},
-  {id:3, name:'Clean kitchen sink',        area:'Kitchen',         freq:'2w',  time:"10'", supplies:'Soft scrub, sponge',          mini:true,  special:''},
-  {id:4, name:'Deep clean refrigerator',   area:'Kitchen',         freq:'m',   time:"30'", supplies:'All-purpose cleaner, cloths', mini:false, special:''},
-  {id:5, name:'Wipe bathroom mirror',      area:'Downstairs Bath', freq:'2w',  time:"5'",  supplies:'Glass cleaner, microfiber',   mini:true,  special:''},
-  {id:6, name:'Scrub toilet',              area:'Downstairs Bath', freq:'w',   time:"10'", supplies:'Toilet brush, bowl cleaner',  mini:false, special:''},
-  {id:7, name:'Vacuum living room',        area:'Living Room',     freq:'w',   time:"15'", supplies:'Vacuum',                      mini:false, special:''},
-  {id:8, name:'Dust ceiling fan',          area:'Living Room',     freq:'m',   time:"10'", supplies:'Duster, step stool',          mini:true,  special:''},
-  {id:9, name:'Morning skincare routine',  area:'Master Bathroom', freq:'2d',  time:"10'", supplies:'',                            mini:false, special:'selfcare'},
-  {id:10,name:'Schedule annual physical',  area:'Master Bedroom',  freq:'y',   time:"10'", supplies:'',                            mini:false, special:'medical'},
-  {id:11,name:'Review monthly budget',     area:'Office',          freq:'m',   time:"30'", supplies:'',                            mini:false, special:'financial'},
-  {id:12,name:'Sweep entryway',            area:'Entryway',        freq:'eod', time:"5'",  supplies:'Broom',                       mini:true,  special:''},
-  {id:13,name:'Wash windows',              area:'Living Room',     freq:'s',   time:'1hr', supplies:'Window cleaner, squeegee, ladder', mini:false, special:''},
-  {id:14,name:'Evening self-care routine', area:'Master Bathroom', freq:'d',   time:"15'", supplies:'',                            mini:false, special:'selfcare'},
+  {id:1,name:'Wipe down stovetop',area:'Kitchen',freq:'d',time:"5'",supplies:'Degreaser, microfiber',mini:false,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
+  {id:2,name:'Sweep kitchen floor',area:'Kitchen',freq:'d',time:"5'",supplies:'Broom, dustpan',mini:true,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
+  {id:3,name:'Clean kitchen sink',area:'Kitchen',freq:'2w',time:"10'",supplies:'Soft scrub, sponge',mini:true,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
+  {id:4,name:'Deep clean refrigerator',area:'Kitchen',freq:'m',time:"30'",supplies:'All-purpose cleaner',mini:false,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
+  {id:5,name:'Scrub toilet',area:'Downstairs Bath',freq:'w',time:"10'",supplies:'Toilet brush, cleaner',mini:false,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
+  {id:6,name:'Vacuum living room',area:'Living Room',freq:'w',time:"15'",supplies:'Vacuum',mini:false,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
+  {id:7,name:'Morning skincare routine',area:'Master Bathroom',freq:'2d',time:"10'",supplies:'',mini:false,special:'selfcare',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
+  {id:8,name:'Schedule annual physical',area:'Master Bedroom',freq:'y',time:"10'",supplies:'',mini:false,special:'medical',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
+  {id:9,name:'Review monthly budget',area:'Office',freq:'m',time:"30'",supplies:'',mini:false,special:'financial',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
+  {id:10,name:'Dust ceiling fan',area:'Living Room',freq:'m',time:"10'",supplies:'Duster, step stool',mini:true,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
 ];
 
 // ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
 let S={
-  tasks:[],completions:{},tab:'today',
+  tasks:[],tab:'today',
+  freqColors:{...DEFAULT_FREQ_COLORS},
+  specialTypes:[...DEFAULT_SPECIAL.map(s=>({...s}))],
+  areas:[...DEFAULT_AREAS],
+  darkMode:false,
   browseMode:'area',freqFilter:'all',areaFilter:'all',
-  showAdd:false,editTask:null,notification:null,showInstall:false,
-  newTask:{name:'',area:'Kitchen',freq:'w',time:'',supplies:'',mini:false,special:''},
+  scheduleView:'day',
+  scheduleDate:new Date(),
+  showAdd:false,editTask:null,showWelcome:false,showInstall:false,
+  newTask:{name:'',area:'Kitchen',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:''},
   nextId:200,
 };
 
 // ══════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════
-const fById=id=>FREQS.find(f=>f.id===id)||FREQS[5];
-const todayStr=()=>new Date().toISOString().split('T')[0];
+function todayStr(){return new Date().toISOString().split('T')[0];}
+function dateStr(d){return d instanceof Date?d.toISOString().split('T')[0]:d;}
+function parseDate(s){if(!s)return null;const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
+function sameDay(a,b){return dateStr(a)===dateStr(b);}
+function fById(id){return FREQS.find(f=>f.id===id)||FREQS[5];}
+function el(tag,cls){const e=document.createElement(tag);if(cls)e.className=cls;return e;}
 
 function cardColor(task){
-  if(task.special){
-    const sp=SPECIAL.find(s=>s.id===task.special);
-    if(sp) return sp.color;
+  const sp=S.specialTypes.find(s=>s.id===task.special);
+  if(sp) return sp.color;
+  return S.freqColors[task.freq]||'#9a8870';
+}
+
+function cardBg(task){
+  const c=cardColor(task);
+  const a1=S.darkMode?'88':'cc';
+  const a2=S.darkMode?'66':'99';
+  return `linear-gradient(135deg,${c}${a1} 0%,${c}${a2} 100%)`;
+}
+
+// Rolling due date calculation
+function calcNextDueDate(task,fromDate){
+  const f=fById(task.freq);
+  const d=parseDate(fromDate)||new Date();
+  if(f.days<1){
+    return dateStr(addDays(d,1));
   }
-  return FREQ_COLORS[task.freq]||'#9a8870';
+  return dateStr(addDays(d,Math.ceil(f.days)));
 }
 
-function isTaskDue(task){
-  const h=S.completions[task.id]||[];
-  if(!h.length) return true;
-  return (Date.now()-new Date(h[h.length-1]))/86400000 >= fById(task.freq).days;
+function isActiveTask(task){
+  if(!task.startDate) return false;
+  return task.startDate<=todayStr();
 }
 
-function isMissed(task){
-  const h=S.completions[task.id]||[];
-  if(!h.length||!isTaskDue(task)) return false;
-  return (Date.now()-new Date(h[h.length-1]))/86400000 >= fById(task.freq).days*1.1;
+function isPendingTask(task){
+  return !task.startDate;
 }
+
+function isFutureTask(task){
+  return task.startDate && task.startDate>todayStr();
+}
+
+function isDueOn(task,dateS){
+  if(!isActiveTask(task)) return false;
+  if(!task.nextDueDate) return false;
+  // Check carry-overs
+  if((task.carryOvers||[]).includes(dateS)) return true;
+  return task.nextDueDate===dateS;
+}
+
+function isDueToday(task){
+  return isDueOn(task,todayStr());
+}
+
+function isDoneOn(task,dateS){
+  return (task.completions||[]).some(c=>c.startsWith(dateS));
+}
+
+function isDoneToday(task){return isDoneOn(task,todayStr());}
 
 function daysSince(task){
-  const h=S.completions[task.id]||[];
+  const h=task.completions||[];
   if(!h.length) return null;
   return Math.floor((Date.now()-new Date(h[h.length-1]))/86400000);
 }
 
-function isDoneToday(task){
-  return (S.completions[task.id]||[]).some(d=>d.startsWith(todayStr()));
+// Get all active tasks due on a given date (for schedule views)
+function tasksDueOn(dateS){
+  return S.tasks.filter(t=>{
+    if(!isActiveTask(t)) return false;
+    if((t.carryOvers||[]).includes(dateS)) return true;
+    if(t.nextDueDate===dateS) return true;
+    // Predict future occurrences
+    if(t.nextDueDate && t.nextDueDate<=dateS){
+      const f=fById(t.freq);
+      const start=parseDate(t.nextDueDate);
+      const target=parseDate(dateS);
+      const diff=(target-start)/86400000;
+      const cycles=Math.floor(diff/f.days);
+      const predicted=addDays(start,cycles*Math.ceil(f.days));
+      return dateStr(predicted)===dateS;
+    }
+    return false;
+  });
 }
-
-function doneTodayCount(){
-  return S.tasks.filter(t=>(S.completions[t.id]||[]).some(d=>d.startsWith(todayStr()))).length;
-}
-
-function el(tag,cls){const e=document.createElement(tag);if(cls)e.className=cls;return e;}
 
 // ══════════════════════════════════════════
 // STORAGE
 // ══════════════════════════════════════════
 function load(){
-  try{S.tasks=JSON.parse(localStorage.getItem('cf3_tasks'))||DEFAULT_TASKS;}catch{S.tasks=DEFAULT_TASKS;}
-  try{S.completions=JSON.parse(localStorage.getItem('cf3_comp'))||{};}catch{S.completions={};}
-  try{S.nextId=parseInt(localStorage.getItem('cf3_nid'))||200;}catch{S.nextId=200;}
-  const ln=localStorage.getItem('cf3_lastNotif');
+  try{S.tasks=JSON.parse(localStorage.getItem('cf4_tasks'))||DEFAULT_TASKS;}catch{S.tasks=DEFAULT_TASKS;}
+  try{const fc=localStorage.getItem('cf4_freqColors');if(fc)S.freqColors={...DEFAULT_FREQ_COLORS,...JSON.parse(fc)};}catch{}
+  try{const sp=localStorage.getItem('cf4_special');if(sp)S.specialTypes=JSON.parse(sp);}catch{}
+  try{const ar=localStorage.getItem('cf4_areas');if(ar)S.areas=JSON.parse(ar);}catch{}
+  try{S.darkMode=localStorage.getItem('cf4_dark')==='1';}catch{}
+  try{S.nextId=parseInt(localStorage.getItem('cf4_nid'))||200;}catch{}
+  if(S.darkMode)document.body.classList.add('dark');
+  const ln=localStorage.getItem('cf4_lastNotif');
   if(ln!==todayStr()){
-    const due=S.tasks.filter(t=>isTaskDue(t));
-    if(due.length){S.notification=due;localStorage.setItem('cf3_lastNotif',todayStr());}
+    const due=S.tasks.filter(t=>isDueToday(t));
+    if(due.length){S._notification=due;localStorage.setItem('cf4_lastNotif',todayStr());}
   }
-  S.showInstall=window.navigator.standalone!==true&&!localStorage.getItem('cf3_installOk');
+  S.showInstall=window.navigator.standalone!==true&&!localStorage.getItem('cf4_installOk');
+  S.showWelcome=!localStorage.getItem('cf4_welcomeSeen');
 }
 
 function save(){
-  localStorage.setItem('cf3_tasks',JSON.stringify(S.tasks));
-  localStorage.setItem('cf3_comp',JSON.stringify(S.completions));
-  localStorage.setItem('cf3_nid',String(S.nextId));
+  localStorage.setItem('cf4_tasks',JSON.stringify(S.tasks));
+  localStorage.setItem('cf4_freqColors',JSON.stringify(S.freqColors));
+  localStorage.setItem('cf4_special',JSON.stringify(S.specialTypes));
+  localStorage.setItem('cf4_areas',JSON.stringify(S.areas));
+  localStorage.setItem('cf4_dark',S.darkMode?'1':'0');
+  localStorage.setItem('cf4_nid',String(S.nextId));
 }
 
 // ══════════════════════════════════════════
 // EXPORT / IMPORT
 // ══════════════════════════════════════════
 function exportData(){
-  const data={tasks:S.tasks,completions:S.completions,nextId:S.nextId,exported:new Date().toISOString()};
+  const data={tasks:S.tasks,freqColors:S.freqColors,specialTypes:S.specialTypes,areas:S.areas,nextId:S.nextId,exported:new Date().toISOString(),version:4};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;
-  a.download='cardfile-backup-'+todayStr()+'.json';a.click();
-  URL.revokeObjectURL(url);
+  const a=document.createElement('a');a.href=url;a.download='cardfile-backup-'+todayStr()+'.json';a.click();URL.revokeObjectURL(url);
 }
 
 function importData(){
-  const input=document.createElement('input');
-  input.type='file';input.accept='.json,application/json';
+  const input=document.createElement('input');input.type='file';input.accept='.json,application/json';
   input.onchange=e=>{
     const file=e.target.files[0];if(!file)return;
     const reader=new FileReader();
     reader.onload=ev=>{
       try{
         const data=JSON.parse(ev.target.result);
-        if(data.tasks&&data.completions){
-          S.tasks=data.tasks;S.completions=data.completions;S.nextId=data.nextId||200;
+        if(data.tasks){
+          S.tasks=data.tasks;S.nextId=data.nextId||200;
+          if(data.freqColors)S.freqColors={...DEFAULT_FREQ_COLORS,...data.freqColors};
+          if(data.specialTypes)S.specialTypes=data.specialTypes;
+          if(data.areas)S.areas=data.areas;
           save();alert('✓ Card file restored successfully!');render();
         }else{alert('Invalid backup file.');}
       }catch{alert('Could not read backup file.');}
@@ -325,44 +493,86 @@ function importData(){
 // ══════════════════════════════════════════
 // ACTIONS
 // ══════════════════════════════════════════
-function markDone(id){S.completions[id]=[...(S.completions[id]||[]),new Date().toISOString()];save();render();}
+function markDone(id){
+  const task=S.tasks.find(t=>t.id===id);if(!task)return;
+  const now=new Date().toISOString();
+  task.completions=[...(task.completions||[]),now];
+  // Remove any carry-overs for today
+  task.carryOvers=(task.carryOvers||[]).filter(d=>d!==todayStr());
+  // Roll to next due date
+  task.nextDueDate=calcNextDueDate(task,todayStr());
+  save();render();
+}
+
+function carryOver(id){
+  const task=S.tasks.find(t=>t.id===id);if(!task)return;
+  const tomorrow=dateStr(addDays(new Date(),1));
+  task.carryOvers=[...(task.carryOvers||[]).filter(d=>d!==todayStr()),tomorrow];
+  // Advance nextDueDate past tomorrow so it doesn't double-show
+  if(task.nextDueDate===todayStr()) task.nextDueDate=tomorrow;
+  save();render();
+}
+
 function addTask(){
   if(!S.newTask.name.trim())return;
-  S.tasks.push({...S.newTask,id:S.nextId++,name:S.newTask.name.trim(),supplies:S.newTask.supplies.trim()});
-  S.newTask={name:'',area:'Kitchen',freq:'w',time:'',supplies:'',mini:false,special:''};
+  const t={...S.newTask,id:S.nextId++,name:S.newTask.name.trim(),supplies:S.newTask.supplies.trim(),completions:[],carryOvers:[]};
+  // If startDate set, calculate first nextDueDate = startDate; else leave blank (pending)
+  if(t.startDate){t.nextDueDate=t.startDate;}
+  else{t.nextDueDate='';}
+  S.tasks.push(t);
+  S.newTask={name:'',area:S.areas[0]||'General',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:''};
   S.showAdd=false;save();render();
 }
-function deleteTask(id){if(!confirm('Delete this card?'))return;S.tasks=S.tasks.filter(t=>t.id!==id);delete S.completions[id];save();render();}
-function saveEdit(){S.tasks=S.tasks.map(t=>t.id===S.editTask.id?{...S.editTask}:t);S.editTask=null;save();render();}
+
+function deleteTask(id){
+  if(!confirm('Delete this card?'))return;
+  S.tasks=S.tasks.filter(t=>t.id!==id);save();render();
+}
+
+function saveEdit(){
+  const idx=S.tasks.findIndex(t=>t.id===S.editTask.id);
+  if(idx>=0){
+    S.tasks[idx]={...S.editTask};
+    if(S.tasks[idx].startDate&&!S.tasks[idx].nextDueDate){
+      S.tasks[idx].nextDueDate=S.tasks[idx].startDate;
+    }
+  }
+  S.editTask=null;save();render();
+}
+
+function toggleDark(){
+  S.darkMode=!S.darkMode;
+  document.body.classList.toggle('dark',S.darkMode);
+  save();render();
+}
 
 // ══════════════════════════════════════════
 // CARD COMPONENT
 // ══════════════════════════════════════════
-function renderCard(task,showArea){
-  const color=cardColor(task);
+function renderCard(task,showArea,opts={}){
   const doneToday=isDoneToday(task);
-  const due=isTaskDue(task);
-  const missed=isMissed(task);
+  const dueToday=isDueToday(task);
   const ds=daysSince(task);
   const freq=fById(task.freq);
+  const color=cardColor(task);
 
   const card=el('div','index-card'+(task.mini?' is-mini':'')+(doneToday?' done-today':''));
-  card.style.background=`linear-gradient(135deg, ${color}cc 0%, ${color}99 100%)`;
-  const bar=el('div','card-color-bar');card.appendChild(bar);
+  card.style.background=cardBg(task);
 
+  const bar=el('div','card-color-bar');card.appendChild(bar);
   const inner=el('div','card-inner');
 
-  // Header: freq badge | mini icon | time
+  // Header
   const header=el('div','card-header');
-  const fb=el('span','card-freq');fb.textContent=freq.label;fb.style.background=color;
+  const fb=el('span','card-freq');fb.textContent=freq.label;
   const mi=el('span','card-mini-icon');mi.textContent='✦';
   const ti=el('span','card-time');ti.textContent=task.time||'';
   header.append(fb,mi,ti);inner.appendChild(header);
 
   // Special label
   if(task.special){
-    const sp=SPECIAL.find(s=>s.id===task.special);
-    if(sp){const sl=el('div','card-special-label');sl.textContent=sp.label;sl.style.color='rgba(255,255,255,0.85)';inner.appendChild(sl);}
+    const sp=S.specialTypes.find(s=>s.id===task.special);
+    if(sp){const sl=el('div','card-special-label');sl.textContent=sp.label;inner.appendChild(sl);}
   }
 
   // Task name
@@ -376,13 +586,23 @@ function renderCard(task,showArea){
 
   // Footer
   const footer=el('div','card-footer');
-  const lfoot=el('div');lfoot.style.display='flex';lfoot.style.alignItems='center';lfoot.style.flexWrap='wrap';
-  const lastEl=el('span','card-last');lastEl.textContent=ds===null?'Never done':ds===0?'Done today':`${ds}d ago`;
+  const lfoot=el('div');lfoot.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:3px;';
+  const lastEl=el('span','card-last');
+  lastEl.textContent=ds===null?'Never done':ds===0?'Done today':`${ds}d ago`;
   lfoot.appendChild(lastEl);
-  if(due&&!doneToday){const b=el('span',missed?'badge-missed':'badge-due');b.textContent=missed?'Missed':'Due';lfoot.appendChild(b);}
+  if(dueToday&&!doneToday){
+    const missed=(task.carryOvers||[]).includes(todayStr());
+    if(missed){const b=el('span','badge-carryover');b.textContent='Carried over';lfoot.appendChild(b);}
+    else{const b=el('span','badge-due');b.textContent='Due';lfoot.appendChild(b);}
+  }
 
   const actions=el('div','card-actions');
-  const editBtn=el('button','icon-btn');editBtn.textContent='✎';editBtn.onclick=()=>{S.editTask={...task};render();};
+  // Carry-over button (only on today tab for due tasks)
+  if(opts.showCarryOver&&dueToday&&!doneToday){
+    const co=el('button','icon-btn');co.textContent='→';co.title='Carry over to tomorrow';
+    co.onclick=()=>carryOver(task.id);actions.appendChild(co);
+  }
+  const editBtn=el('button','icon-btn');editBtn.textContent='✎';editBtn.onclick=()=>{S.editTask={...task,completions:[...(task.completions||[])],carryOvers:[...(task.carryOvers||[])]};render();};
   const delBtn=el('button','icon-btn del-btn');delBtn.textContent='✕';delBtn.onclick=()=>deleteTask(task.id);
   const chk=el('button','check-btn'+(doneToday?' done':''));
   chk.textContent=doneToday?'✓':'';chk.onclick=()=>{if(!doneToday)markDone(task.id);};
@@ -394,7 +614,12 @@ function renderCard(task,showArea){
 
 function sectionHead(label,color,count){
   const sh=el('div','section-head');
-  const lb=el('span','sh-label');lb.textContent=label;lb.style.color=color||'var(--brown-light)';
+  const lb=el('span','sh-label');lb.textContent=label;
+  // Ensure label is readable — use dark text if color is very light
+  const r=parseInt(color.slice(1,3),16),g=parseInt(color.slice(3,5),16),b=parseInt(color.slice(5,7),16);
+  const lum=(r*0.299+g*0.587+b*0.114)/255;
+  lb.style.background=color;
+  lb.style.color=lum>0.65?'rgba(0,0,0,0.75)':'#fff';
   const ln=el('div','sh-line');
   const ct=el('span','sh-count');ct.textContent=count!=null?`(${count})`:'';
   sh.append(lb,ln,ct);return sh;
@@ -404,7 +629,10 @@ function sectionHead(label,color,count){
 // TAB: TODAY
 // ══════════════════════════════════════════
 function renderToday(body){
-  const total=S.tasks.length,doneCount=doneTodayCount();
+  const dueTasks=S.tasks.filter(t=>isActiveTask(t)&&isDueToday(t));
+  const total=S.tasks.filter(t=>isActiveTask(t)).length;
+  const doneCount=S.tasks.filter(t=>isActiveTask(t)&&isDoneToday(t)).length;
+
   if(total>0){
     const pc=el('div','progress-card');
     const pr=el('div','progress-row');
@@ -415,19 +643,198 @@ function renderToday(body){
     const pf=el('div','progress-fill');pf.style.width=`${Math.round(doneCount/total*100)}%`;
     pb.appendChild(pf);pc.append(pr,pb);body.appendChild(pc);
   }
-  const due=S.tasks.filter(t=>isTaskDue(t));
-  if(!due.length){
+
+  if(!dueTasks.length){
     const emp=el('div','empty');
     const ic=el('div','empty-icon');ic.textContent='✓';
-    const tx=el('div','empty-text');tx.textContent='All caught up! Nothing due right now.';
+    const tx=el('div','empty-text');tx.textContent='All caught up! Nothing due today.';
     emp.append(ic,tx);body.appendChild(emp);return;
   }
+
   FREQS.forEach(freq=>{
-    const ft=due.filter(t=>t.freq===freq.id);
+    const ft=dueTasks.filter(t=>t.freq===freq.id);
     if(!ft.length)return;
-    body.appendChild(sectionHead(`${freq.label} — ${freq.name}`,FREQ_COLORS[freq.id],ft.length));
-    ft.forEach(task=>body.appendChild(renderCard(task,true)));
+    body.appendChild(sectionHead(`${freq.label} — ${freq.name}`,S.freqColors[freq.id],ft.length));
+    ft.forEach(task=>body.appendChild(renderCard(task,true,{showCarryOver:true})));
   });
+}
+
+// ══════════════════════════════════════════
+// TAB: SCHEDULE
+// ══════════════════════════════════════════
+function renderSchedule(body){
+  // View selector
+  const stabs=el('div','schedule-tabs');
+  ['day','week','month','year'].forEach(v=>{
+    const b=el('button','schedule-tab'+(S.scheduleView===v?' active':''));
+    b.textContent=v.charAt(0).toUpperCase()+v.slice(1);
+    b.onclick=()=>{S.scheduleView=v;render();};
+    stabs.appendChild(b);
+  });
+  body.appendChild(stabs);
+
+  const d=S.scheduleDate instanceof Date?S.scheduleDate:new Date();
+
+  if(S.scheduleView==='day') renderDayView(body,d);
+  else if(S.scheduleView==='week') renderWeekView(body,d);
+  else if(S.scheduleView==='month') renderMonthView(body,d);
+  else renderYearView(body,d);
+}
+
+function navBar(label){
+  const nav=el('div','schedule-nav');
+  const prev=el('button','nav-arrow');prev.textContent='‹';
+  const lbl=el('span','nav-label');lbl.textContent=label;
+  const next=el('button','nav-arrow');next.textContent='›';
+  nav.append(prev,lbl,next);
+  return{nav,prev,next};
+}
+
+function renderDayView(body,d){
+  const ds=dateStr(d);
+  const isToday=ds===todayStr();
+  const label=isToday?'Today — '+d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}):d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const{nav,prev,next}=navBar(label);
+  prev.onclick=()=>{S.scheduleDate=addDays(d,-1);render();};
+  next.onclick=()=>{S.scheduleDate=addDays(d,1);render();};
+  body.appendChild(nav);
+  const tasks=tasksDueOn(ds);
+  if(!tasks.length){
+    const emp=el('div','empty');const tx=el('div','empty-text');tx.textContent='No tasks scheduled for this day.';emp.appendChild(tx);body.appendChild(emp);return;
+  }
+  FREQS.forEach(freq=>{
+    const ft=tasks.filter(t=>t.freq===freq.id);
+    if(!ft.length)return;
+    body.appendChild(sectionHead(`${freq.label} — ${freq.name}`,S.freqColors[freq.id],ft.length));
+    ft.forEach(task=>body.appendChild(renderCard(task,true,{showCarryOver:isToday})));
+  });
+}
+
+function renderWeekView(body,d){
+  // Find Sunday of the week
+  const dow=d.getDay();
+  const sunday=addDays(d,-dow);
+  const days=Array.from({length:7},(_,i)=>addDays(sunday,i));
+  const label=days[0].toLocaleDateString('en-US',{month:'short',day:'numeric'})+' – '+days[6].toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const{nav,prev,next}=navBar(label);
+  prev.onclick=()=>{S.scheduleDate=addDays(sunday,-7);render();};
+  next.onclick=()=>{S.scheduleDate=addDays(sunday,7);render();};
+  body.appendChild(nav);
+
+  const grid=el('div','week-grid');
+  days.forEach((day,i)=>{
+    const ds=dateStr(day);
+    const isToday=ds===todayStr();
+    const hdr=el('div','week-col-header'+(isToday?' today':''));
+    hdr.innerHTML=`<div>${DAY_NAMES[i]}</div><div style="font-size:12px;">${day.getDate()}</div>`;
+    grid.appendChild(hdr);
+  });
+  body.appendChild(grid);
+
+  const cols=el('div','week-grid');
+  days.forEach(day=>{
+    const ds=dateStr(day);
+    const col=el('div','week-col');
+    const tasks=tasksDueOn(ds);
+    tasks.forEach(task=>{
+      const color=cardColor(task);
+      const mc=el('div','week-mini-card');
+      mc.style.background=cardBg(task);
+      mc.textContent=task.name;
+      mc.title=task.name+' ('+fById(task.freq).label+')';
+      mc.onclick=()=>{S.scheduleDate=day;S.scheduleView='day';render();};
+      col.appendChild(mc);
+    });
+    if(!tasks.length){const empty=el('div');empty.style.cssText='font-size:10px;color:var(--brown-light);text-align:center;padding:8px 0;';empty.textContent='·';col.appendChild(empty);}
+    cols.appendChild(col);
+  });
+  body.appendChild(cols);
+}
+
+function renderMonthView(body,d){
+  const year=d.getFullYear(),month=d.getMonth();
+  const label=MONTH_NAMES[month]+' '+year;
+  const{nav,prev,next}=navBar(label);
+  prev.onclick=()=>{S.scheduleDate=new Date(year,month-1,1);render();};
+  next.onclick=()=>{S.scheduleDate=new Date(year,month+1,1);render();};
+  body.appendChild(nav);
+
+  const grid=el('div','month-grid');
+  DAY_NAMES.forEach(n=>{const h=el('div','month-day-header');h.textContent=n[0];grid.appendChild(h);});
+
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const daysInPrev=new Date(year,month,0).getDate();
+
+  // Prev month padding
+  for(let i=firstDay-1;i>=0;i--){
+    const cell=el('div','month-cell other-month');
+    const dn=el('div','month-cell-date');dn.textContent=daysInPrev-i;
+    cell.appendChild(dn);grid.appendChild(cell);
+  }
+
+  for(let day=1;day<=daysInMonth;day++){
+    const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isToday=ds===todayStr();
+    const cell=el('div','month-cell'+(isToday?' today':''));
+    const dn=el('div','month-cell-date');dn.textContent=day;cell.appendChild(dn);
+    const tasks=tasksDueOn(ds);
+    if(tasks.length){
+      const dotRow=el('div');
+      tasks.slice(0,5).forEach(t=>{
+        const dot=el('span','month-dot');dot.style.background=cardColor(t);dotRow.appendChild(dot);
+      });
+      if(tasks.length>5){const more=el('span','month-count');more.textContent=`+${tasks.length-5}`;dotRow.appendChild(more);}
+      cell.appendChild(dotRow);
+    }
+    cell.onclick=()=>{S.scheduleDate=parseDate(ds);S.scheduleView='day';render();};
+    grid.appendChild(cell);
+  }
+
+  // Next month padding
+  const totalCells=firstDay+daysInMonth;
+  const remainder=totalCells%7===0?0:7-(totalCells%7);
+  for(let i=1;i<=remainder;i++){
+    const cell=el('div','month-cell other-month');
+    const dn=el('div','month-cell-date');dn.textContent=i;cell.appendChild(dn);grid.appendChild(cell);
+  }
+  body.appendChild(grid);
+}
+
+function renderYearView(body,d){
+  const year=d.getFullYear();
+  const{nav,prev,next}=navBar(String(year));
+  prev.onclick=()=>{S.scheduleDate=new Date(year-1,0,1);render();};
+  next.onclick=()=>{S.scheduleDate=new Date(year+1,0,1);render();};
+  body.appendChild(nav);
+
+  const grid=el('div','year-grid');
+  for(let m=0;m<12;m++){
+    const mCard=el('div','year-month');
+    const mt=el('div','year-month-title');mt.textContent=MONTH_NAMES[m].slice(0,3);mCard.appendChild(mt);
+    const daysInMonth=new Date(year,m+1,0).getDate();
+    const firstDow=new Date(year,m,1).getDay();
+    const miniGrid=el('div','year-mini-grid');
+    // Padding
+    for(let p=0;p<firstDow;p++){const c=el('div');c.style.height='10px';miniGrid.appendChild(c);}
+    for(let day=1;day<=daysInMonth;day++){
+      const ds=`${year}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      const tasks=tasksDueOn(ds);
+      const isToday=ds===todayStr();
+      const cell=el('div','year-cell'+(tasks.length?' has-tasks':'')+(isToday?' is-today':''));
+      if(tasks.length){
+        // Use the color of the most frequent task type
+        cell.style.background=cardColor(tasks[0]);
+        cell.style.opacity='0.75';
+      }
+      cell.title=`${MONTH_NAMES[m]} ${day}: ${tasks.length} task${tasks.length!==1?'s':''}`;
+      cell.onclick=()=>{S.scheduleDate=parseDate(ds);S.scheduleView='day';render();};
+      miniGrid.appendChild(cell);
+    }
+    mCard.appendChild(miniGrid);
+    grid.appendChild(mCard);
+  }
+  body.appendChild(grid);
 }
 
 // ══════════════════════════════════════════
@@ -443,29 +850,30 @@ function renderBrowse(body){
   });
   body.appendChild(toggle);
 
+  const activeTasks=S.tasks.filter(t=>isActiveTask(t)||isFutureTask(t));
+
   if(S.browseMode==='freq'){
     const strip=el('div','filter-strip');
     const allBtn=el('button','filter-btn'+(S.freqFilter==='all'?' active':''));
     allBtn.textContent='All';
     if(S.freqFilter==='all'){allBtn.style.background='var(--brown)';allBtn.style.color='var(--bg)';allBtn.style.borderColor='var(--brown)';}
-    allBtn.onclick=()=>{S.freqFilter='all';render();};
-    strip.appendChild(allBtn);
+    allBtn.onclick=()=>{S.freqFilter='all';render();};strip.appendChild(allBtn);
     FREQS.forEach(f=>{
       const b=el('button','filter-btn'+(S.freqFilter===f.id?' active':''));
       b.textContent=f.label;
-      if(S.freqFilter===f.id){b.style.background=FREQ_COLORS[f.id];b.style.color='#fff';b.style.borderColor=FREQ_COLORS[f.id];}
+      if(S.freqFilter===f.id){b.style.background=S.freqColors[f.id];b.style.color=S.darkMode?'#2a1f18':'#fff';b.style.borderColor=S.freqColors[f.id];}
       b.onclick=()=>{S.freqFilter=f.id;render();};strip.appendChild(b);
     });
-    SPECIAL.forEach(sp=>{
+    S.specialTypes.forEach(sp=>{
       const b=el('button','filter-btn'+(S.freqFilter===sp.id?' active':''));
       b.textContent=sp.label;
       if(S.freqFilter===sp.id){b.style.background=sp.color;b.style.color='#fff';b.style.borderColor=sp.color;}
       b.onclick=()=>{S.freqFilter=sp.id;render();};strip.appendChild(b);
     });
     body.appendChild(strip);
-    let filtered=S.freqFilter==='all'?S.tasks:
-      SPECIAL.find(s=>s.id===S.freqFilter)?S.tasks.filter(t=>t.special===S.freqFilter):
-      S.tasks.filter(t=>t.freq===S.freqFilter);
+    let filtered=S.freqFilter==='all'?activeTasks:
+      S.specialTypes.find(s=>s.id===S.freqFilter)?activeTasks.filter(t=>t.special===S.freqFilter):
+      activeTasks.filter(t=>t.freq===S.freqFilter);
     if(!filtered.length){const emp=el('div','empty');const tx=el('div','empty-text');tx.textContent='No cards here yet.';emp.appendChild(tx);body.appendChild(emp);return;}
     filtered.forEach(task=>body.appendChild(renderCard(task,true)));
   }else{
@@ -474,7 +882,7 @@ function renderBrowse(body){
     allBtn.textContent='All';
     if(S.areaFilter==='all'){allBtn.style.background='var(--brown)';allBtn.style.color='var(--bg)';allBtn.style.borderColor='var(--brown)';}
     allBtn.onclick=()=>{S.areaFilter='all';render();};strip.appendChild(allBtn);
-    const usedAreas=[...new Set(S.tasks.map(t=>t.area))].sort();
+    const usedAreas=[...new Set(activeTasks.map(t=>t.area))].sort();
     usedAreas.forEach(a=>{
       const b=el('button','filter-btn'+(S.areaFilter===a?' active':''));
       b.textContent=a;
@@ -484,7 +892,7 @@ function renderBrowse(body){
     body.appendChild(strip);
     const areas=S.areaFilter==='all'?usedAreas:[S.areaFilter];
     areas.forEach(area=>{
-      const tasks=S.tasks.filter(t=>t.area===area);if(!tasks.length)return;
+      const tasks=activeTasks.filter(t=>t.area===area);if(!tasks.length)return;
       const ah=el('div','area-heading');ah.textContent=area;body.appendChild(ah);
       tasks.forEach(task=>body.appendChild(renderCard(task,false)));
     });
@@ -492,71 +900,144 @@ function renderBrowse(body){
 }
 
 // ══════════════════════════════════════════
-// TAB: HISTORY
+// TAB: PENDING
 // ══════════════════════════════════════════
-function renderHistory(body){
-  const withHist=S.tasks.filter(t=>(S.completions[t.id]||[]).length>0)
-    .sort((a,b)=>((S.completions[b.id]||[]).at(-1)||'').localeCompare((S.completions[a.id]||[]).at(-1)||''));
-  if(!withHist.length){
-    const emp=el('div','empty');const ic=el('div','empty-icon');ic.textContent='📋';
-    const tx=el('div','empty-text');tx.textContent='No completed tasks yet.';
+function renderPending(body){
+  const pending=S.tasks.filter(t=>isPendingTask(t));
+  const future=S.tasks.filter(t=>isFutureTask(t));
+
+  if(!pending.length&&!future.length){
+    const emp=el('div','empty');
+    const ic=el('div','empty-icon');ic.textContent='📋';
+    const tx=el('div','empty-text');tx.textContent='No pending cards. All tasks are scheduled!';
     emp.append(ic,tx);body.appendChild(emp);return;
   }
-  withHist.forEach(task=>{
-    const color=cardColor(task);
-    const hist=S.completions[task.id]||[];
-    const last=new Date(hist.at(-1));
-    const hc=el('div','hist-card');hc.style.borderLeft=`4px solid ${color}`;
-    const top=el('div','hist-top');
-    const left=el('div');
-    const nm=el('div','hist-name');nm.textContent=task.name;
-    const sub=el('div');sub.style.cssText='font-size:10px;color:var(--brown-light);margin-top:2px;';sub.textContent=task.area;
-    left.append(nm,sub);
-    const right=el('div','hist-meta');
-    const fb=el('span');fb.style.cssText=`font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:10px;background:${color}22;color:${color};`;
-    fb.textContent=fById(task.freq).label;
-    const ld=el('div');ld.textContent='Last: '+last.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-    const tc=el('div');tc.textContent=`${hist.length} completion${hist.length!==1?'s':''}`;
-    right.append(fb,ld,tc);top.append(left,right);hc.appendChild(top);body.appendChild(hc);
-  });
+
+  if(pending.length){
+    body.appendChild(sectionHead('Unscheduled','#9a8870',pending.length));
+    const note=el('div');note.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
+    note.textContent='These cards have no start date. Edit them to schedule.';
+    body.appendChild(note);
+    pending.forEach(task=>body.appendChild(renderCard(task,true)));
+  }
+
+  if(future.length){
+    body.appendChild(sectionHead('Scheduled — Not Yet Active','#6a9fd4',future.length));
+    const note=el('div');note.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
+    note.textContent='These cards will become active on their start date.';
+    body.appendChild(note);
+    future.sort((a,b)=>a.startDate.localeCompare(b.startDate));
+    future.forEach(task=>{
+      const card=renderCard(task,true);
+      // Add start date label
+      const sd=el('div');sd.style.cssText='font-size:10px;color:rgba(0,0,0,0.55);padding:4px 20px 6px;font-family:"Lato",sans-serif;font-style:italic;';
+      sd.textContent='Starts: '+parseDate(task.startDate).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+      card.appendChild(sd);
+      body.appendChild(card);
+    });
+  }
 }
 
 // ══════════════════════════════════════════
 // TAB: SETTINGS
 // ══════════════════════════════════════════
 function renderSettings(body){
-  // Legend
-  const ls=el('div','settings-section');
-  const lt=el('div','settings-title');lt.textContent='Color Legend';ls.appendChild(lt);
-  const leg=el('div','legend');
+  // About
+  const as=el('div','settings-section');
+  const at=el('div','settings-title');at.textContent='About & Help';as.appendChild(at);
+  [['Welcome & About','View credits and privacy info',()=>{S.showWelcome=true;render();}],
+   ['How To Install','Step-by-step guide for phone & computer',()=>{S.tab='howto';render();}],
+   ['Getting Started','How to use The Card File',()=>{S.tab='walkthrough';render();}],
+  ].forEach(([label,sub,fn])=>{
+    const row=el('div','settings-row');
+    const d=el('div');const l=el('div','settings-row-label');l.textContent=label;
+    const s=el('div','settings-row-sub');s.textContent=sub;d.append(l,s);
+    const b=el('button','settings-btn');b.textContent='View';b.onclick=fn;
+    row.append(d,b);as.appendChild(row);
+  });
+  body.appendChild(as);
+
+  // Appearance
+  const apps=el('div','settings-section');
+  const appt=el('div','settings-title');appt.textContent='Appearance';apps.appendChild(appt);
+
+  // Dark mode toggle
+  const dmRow=el('div','settings-row');
+  const dmd=el('div');const dml=el('div','settings-row-label');dml.textContent='Dark Mode';
+  const dms=el('div','settings-row-sub');dms.textContent='Warm walnut theme, easier on the eyes';
+  dmd.append(dml,dms);
+  const dmToggle=el('label','toggle');
+  const dmInput=document.createElement('input');dmInput.type='checkbox';dmInput.checked=S.darkMode;
+  dmInput.onchange=toggleDark;
+  const dmSlider=el('span','toggle-slider');
+  dmToggle.append(dmInput,dmSlider);
+  dmRow.append(dmd,dmToggle);apps.appendChild(dmRow);
+  body.appendChild(apps);
+
+  // Card Colors
+  const cs=el('div','settings-section');
+  const ct=el('div','settings-title');ct.textContent='Card Colors';cs.appendChild(ct);
+  const cnote=el('div');cnote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:14px;';
+  cnote.textContent='Tap a frequency to change its color.';cs.appendChild(cnote);
   FREQS.forEach(f=>{
-    const li=el('div','legend-item');
-    const dot=el('div','legend-dot');dot.style.background=FREQ_COLORS[f.id];
-    const lbl=el('span','legend-label');lbl.textContent=`${f.label} — ${f.name}`;
-    li.append(dot,lbl);leg.appendChild(li);
+    const row=el('div','settings-row');
+    const d=el('div','settings-row-label');d.textContent=`${f.label} — ${f.name}`;
+    const swatch=el('div');swatch.style.cssText=`width:28px;height:28px;border-radius:50%;background:${S.freqColors[f.id]};border:2px solid var(--border);cursor:pointer;flex-shrink:0;`;
+    swatch.onclick=()=>showColorPicker('freq',f.id,S.freqColors[f.id]);
+    row.append(d,swatch);cs.appendChild(row);
   });
-  SPECIAL.forEach(sp=>{
-    const li=el('div','legend-item');
-    const dot=el('div','legend-dot');dot.style.background=sp.color;
-    const lbl=el('span','legend-label');lbl.textContent=sp.label;
-    li.append(dot,lbl);leg.appendChild(li);
+  S.specialTypes.forEach(sp=>{
+    const row=el('div','settings-row');
+    const d=el('div','settings-row-label');d.textContent=sp.label+' cards';
+    const swatch=el('div');swatch.style.cssText=`width:28px;height:28px;border-radius:50%;background:${sp.color};border:2px solid var(--border);cursor:pointer;flex-shrink:0;`;
+    swatch.onclick=()=>showColorPicker('special',sp.id,sp.color);
+    row.append(d,swatch);cs.appendChild(row);
   });
-  const mli=el('div','legend-item');
-  const mdot=el('div','legend-dot');mdot.style.cssText='background:#f5e642;border:1px solid #ccc;';
-  const mlbl=el('span','legend-label');mlbl.textContent='✦ Mini task — pale yellow border';
-  mli.append(mdot,mlbl);leg.appendChild(mli);
-  ls.appendChild(leg);body.appendChild(ls);
+  const resetRow=el('div','settings-row');
+  const rd=el('div');const rl=el('div','settings-row-label');rl.textContent='Reset All Colors';
+  const rs=el('div','settings-row-sub');rs.textContent='Restore default color scheme';
+  rd.append(rl,rs);
+  const rb=el('button','settings-btn');rb.textContent='Reset';
+  rb.onclick=()=>{if(confirm('Reset all colors to defaults?')){S.freqColors={...DEFAULT_FREQ_COLORS};S.specialTypes=DEFAULT_SPECIAL.map(s=>({...s}));save();render();}};
+  resetRow.append(rd,rb);cs.appendChild(resetRow);
+  body.appendChild(cs);
+
+  // Areas
+  const arSection=el('div','settings-section');
+  const arTitle=el('div','settings-title');arTitle.textContent='Rooms & Areas';arSection.appendChild(arTitle);
+  const arNote=el('div');arNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:12px;';
+  arNote.textContent='Customize the list of rooms and areas for your home.';arSection.appendChild(arNote);
+  S.areas.forEach((area,i)=>{
+    const row=el('div','settings-row');
+    const l=el('div','settings-row-label');l.textContent=area;
+    const actions=el('div');actions.style.display='flex';actions.style.gap='8px';
+    const delA=el('button','settings-btn');delA.textContent='✕';delA.style.color='#c0392b';delA.style.padding='6px 10px';
+    delA.onclick=()=>{if(confirm(`Remove "${area}"?`)){S.areas.splice(i,1);save();render();}};
+    actions.appendChild(delA);row.append(l,actions);arSection.appendChild(row);
+  });
+  // Add new area
+  const addAreaRow=el('div');addAreaRow.style.cssText='display:flex;gap:8px;margin-top:12px;';
+  const areaInput=el('input');areaInput.placeholder='Add new room or area...';areaInput.style.cssText='flex:1;font-family:"Lato",sans-serif;font-size:14px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:var(--bg);color:var(--text);outline:none;';
+  const addAreaBtn=el('button','settings-btn');addAreaBtn.textContent='Add';addAreaBtn.style.background='var(--brown)';addAreaBtn.style.color='var(--bg)';addAreaBtn.style.border='none';
+  addAreaBtn.onclick=()=>{
+    const val=areaInput.value.trim();
+    if(val&&!S.areas.includes(val)){S.areas.push(val);save();render();}
+  };
+  areaInput.addEventListener('keydown',e=>{if(e.key==='Enter')addAreaBtn.click();});
+  addAreaRow.append(areaInput,addAreaBtn);arSection.appendChild(addAreaRow);
+  body.appendChild(arSection);
 
   // Backup
   const bs=el('div','settings-section');
   const bt=el('div','settings-title');bt.textContent='Backup & Restore';bs.appendChild(bt);
-  [[exportData,'Export Backup','Download a .json backup file'],
-   [importData,'Import Backup','Restore from a .json backup file']].forEach(([fn,label,sub])=>{
+  const bwarn=el('div');bwarn.style.cssText='font-size:12px;color:#c0720a;background:rgba(200,100,0,0.08);border:1px solid rgba(200,100,0,0.2);border-radius:6px;padding:10px 12px;margin-bottom:14px;line-height:1.6;';
+  bwarn.textContent='⚠️ Important: Clearing your browser cache or deleting browsing history will erase your cards. Always export a backup first before doing this!';
+  bs.appendChild(bwarn);
+  [[exportData,'Export Backup','Download a .json file to save your cards'],
+   [importData,'Import Backup','Restore cards from a .json backup file']].forEach(([fn,label,sub])=>{
     const row=el('div','settings-row');
-    const d=el('div');
-    const l=el('div','settings-row-label');l.textContent=label;
-    const s=el('div','settings-row-sub');s.textContent=sub;
-    d.append(l,s);
+    const d=el('div');const l=el('div','settings-row-label');l.textContent=label;
+    const s=el('div','settings-row-sub');s.textContent=sub;d.append(l,s);
     const b=el('button','settings-btn');b.textContent=label.split(' ')[0];b.onclick=fn;
     row.append(d,b);bs.appendChild(row);
   });
@@ -565,23 +1046,282 @@ function renderSettings(body){
   // Stats
   const ss=el('div','settings-section');
   const st=el('div','settings-title');st.textContent='Stats';ss.appendChild(st);
-  const totalDone=Object.values(S.completions).reduce((a,b)=>a+b.length,0);
+  const totalDone=S.tasks.reduce((a,t)=>a+(t.completions||[]).length,0);
   [[`${S.tasks.length} cards total`,'In your card file'],
+   [`${S.tasks.filter(t=>isActiveTask(t)).length} active cards`,'Currently scheduled'],
+   [`${S.tasks.filter(t=>isPendingTask(t)).length} pending cards`,'Awaiting a start date'],
    [`${S.tasks.filter(t=>t.mini).length} mini tasks`,'Quick pick-up tasks'],
    [`${totalDone} completions`,'All time'],
-   [`${S.tasks.filter(t=>isTaskDue(t)).length} due now`,'Need attention'],
   ].forEach(([val,sub])=>{
     const row=el('div','settings-row');
-    const d=el('div');
-    const l=el('div','settings-row-label');l.textContent=val;
-    const s=el('div','settings-row-sub');s.textContent=sub;
-    d.append(l,s);row.appendChild(d);ss.appendChild(row);
+    const d=el('div');const l=el('div','settings-row-label');l.textContent=val;
+    const s=el('div','settings-row-sub');s.textContent=sub;d.append(l,s);row.appendChild(d);ss.appendChild(row);
   });
   body.appendChild(ss);
 }
 
+// Color picker modal
+function showColorPicker(type,id,currentColor){
+  const bd=el('div','backdrop');
+  bd.onclick=e=>{if(e.target===bd)bd.remove();};
+  const modal=el('div','modal');
+  const title=el('div','modal-title');title.textContent='Choose Color';
+  const sub=el('div','modal-sub');
+  if(type==='freq'){const f=FREQS.find(f=>f.id===id);sub.textContent=f?`${f.label} — ${f.name}`:'Frequency';}
+  else{const sp=S.specialTypes.find(s=>s.id===id);sub.textContent=sp?sp.label+' cards':'Special';}
+  const grid=el('div','color-grid');
+  COLOR_PALETTE.forEach(c=>{
+    const sw=el('div','color-swatch'+(c===currentColor?' selected':''));
+    sw.style.background=c;
+    sw.onclick=()=>{
+      if(type==='freq'){S.freqColors[id]=c;}
+      else{const sp=S.specialTypes.find(s=>s.id===id);if(sp)sp.color=c;}
+      save();bd.remove();render();
+    };
+    grid.appendChild(sw);
+  });
+  modal.append(title,sub,grid);bd.appendChild(modal);document.body.appendChild(bd);
+}
+
 // ══════════════════════════════════════════
-// MODAL: ADD / EDIT TASK
+// TAB: HOW TO
+// ══════════════════════════════════════════
+function renderHowTo(body){
+  const back=el('button','settings-btn');back.textContent='← Back to Settings';back.style.marginBottom='16px';
+  back.onclick=()=>{S.tab='settings';render();};body.appendChild(back);
+
+  const intro=el('div');
+  intro.style.cssText='background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:var(--brown-mid);line-height:1.7;';
+  intro.innerHTML='<strong>The Card File</strong> is a web app — it runs in your browser and can be saved to your home screen so it opens like a regular app. Nothing is downloaded or installed on your device.';
+  body.appendChild(intro);
+
+  const sections=[
+    {title:'📱 iPhone (Recommended)',steps:[
+      'Open <strong>Safari</strong> on your iPhone. (Must be Safari — Chrome will not work.)',
+      'Type or paste the app address into the address bar and visit the page.',
+      'Tap the <strong>Share button</strong> — the square with an arrow pointing up, at the bottom of the screen.',
+      'Scroll down and tap <strong>"Add to Home Screen"</strong>.',
+      'If you see <strong>"Open as Web App"</strong> — tap that for the best experience!',
+      'Tap <strong>Add</strong> in the top right corner.',
+      'The Card File icon will appear on your home screen. Tap it to open!'
+    ]},
+    {title:'🤖 Android Phone',steps:[
+      'Open <strong>Chrome</strong> on your Android phone.',
+      'Type or paste the app address into the address bar.',
+      'Tap the <strong>three-dot menu</strong> in the top right corner.',
+      'Tap <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong>.',
+      'Tap <strong>Add</strong> to confirm.',
+      'The Card File icon will appear on your home screen!'
+    ]},
+    {title:'💻 Mac or PC',steps:[
+      'Open <strong>Safari</strong> (Mac) or <strong>Chrome</strong> (PC) on your computer.',
+      'Type or paste the app address into the address bar.',
+      'Bookmark the page — press <strong>⌘D</strong> on Mac or <strong>Ctrl+D</strong> on PC.',
+      'You can also drag the address bar icon to your desktop to create a shortcut.',
+      'Click your bookmark or shortcut any time to open The Card File!'
+    ]},
+    {title:'💾 Backing Up Your Cards — IMPORTANT',steps:[
+      'Your cards are saved in your browser\'s local storage — they stay private on your device.',
+      '<strong>⚠️ Warning:</strong> Clearing your browser cache or deleting browsing history will erase your cards!',
+      'Always export a backup BEFORE clearing your browser data.',
+      'To back up: tap the <strong>⚙ Settings</strong> tab → <strong>Export Backup</strong>. Save the file to your email, iCloud, or Google Drive.',
+      'To restore: go to Settings → <strong>Import Backup</strong> and select your saved file.',
+      'We recommend exporting a backup regularly — once a week or whenever you add new cards!'
+    ]},
+  ];
+
+  sections.forEach(sec=>{
+    const card=el('div');card.style.cssText='background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:12px;box-shadow:1px 2px 6px rgba(0,0,0,0.06);';
+    const t=el('div');t.style.cssText='font-family:"Playfair Display",serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:10px;';t.textContent=sec.title;card.appendChild(t);
+    sec.steps.forEach((step,i)=>{
+      const row=el('div');row.style.cssText='display:flex;gap:10px;margin-bottom:8px;align-items:flex-start;';
+      const num=el('span');num.style.cssText='min-width:22px;height:22px;border-radius:50%;background:var(--brown);color:var(--bg);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;';
+      num.textContent=i+1;
+      const txt=el('span');txt.style.cssText='font-size:13px;color:var(--brown-mid);line-height:1.6;';txt.innerHTML=step;
+      row.append(num,txt);card.appendChild(row);
+    });
+    body.appendChild(card);
+  });
+
+  const privacy=el('div');privacy.style.cssText='background:#e8f4ee;border:1px solid #b0d4bc;border-radius:4px;padding:14px 16px;';
+  const pt=el('div');pt.style.cssText='font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#2d7a3a;margin-bottom:6px;';pt.textContent='🔒 Your Privacy';
+  const pp=el('div');pp.style.cssText='font-size:13px;color:#3a5a40;line-height:1.7;';
+  pp.textContent='This app does not install any software, trackers, or code to your device. It does not track your activity or collect any user data from you or your device. Your cards and any information you add are stored locally on your own device, and only YOU have access to them.';
+  privacy.append(pt,pp);body.appendChild(privacy);
+}
+
+// ══════════════════════════════════════════
+// TAB: WALKTHROUGH
+// ══════════════════════════════════════════
+function renderWalkthrough(body){
+  const back=el('button','settings-btn');back.textContent='← Back to Settings';back.style.marginBottom='16px';
+  back.onclick=()=>{S.tab='settings';render();};body.appendChild(back);
+
+  const sections=[
+    {title:'📇 Creating Your First Card',steps:[
+      'Tap the <strong>Browse</strong> tab at the top.',
+      'Tap the large <strong>+</strong> button in the bottom right corner.',
+      'Fill in the task name, room/area, frequency, and time estimate.',
+      'Add any supplies or equipment needed — this appears at the bottom of the card.',
+      'Choose a card type if needed: <strong>Self-Care</strong> (rose), <strong>Medical</strong> (orange), or <strong>Financial</strong> (green).',
+      'Check <strong>Mini task</strong> if this is a quick 5–10 minute task you can pick up anytime.',
+      'Set a <strong>Start Date</strong> to schedule when this card becomes active. Leave it blank to save it to Pending.',
+      'Tap <strong>Add Card</strong> to save!'
+    ]},
+    {title:'🏠 Setting Up Your Rooms',steps:[
+      'Tap the <strong>⚙ Settings</strong> tab.',
+      'Scroll down to <strong>Rooms & Areas</strong>.',
+      'Your home\'s rooms are listed there. Tap <strong>✕</strong> next to any room you don\'t need.',
+      'Type a new room name at the bottom and tap <strong>Add</strong> to include it.',
+      'Your custom rooms will appear in the area dropdown when creating cards!'
+    ]},
+    {title:'🌙 Setting Dark Mode',steps:[
+      'Tap the <strong>⚙ Settings</strong> tab.',
+      'Under <strong>Appearance</strong>, tap the toggle next to <strong>Dark Mode</strong>.',
+      'The app will switch to a warm walnut brown theme with softer colors.',
+      'Tap again to return to the light parchment theme.'
+    ]},
+    {title:'🎨 Customizing Card Colors',steps:[
+      'Tap the <strong>⚙ Settings</strong> tab.',
+      'Scroll down to <strong>Card Colors</strong>.',
+      'Tap the color circle next to any frequency or card type.',
+      'A color palette will appear — tap any color to apply it.',
+      'Your color choices are saved automatically.',
+      'To return to the original colors, tap <strong>Reset All Colors</strong>.'
+    ]},
+    {title:'📅 Using the Schedule',steps:[
+      'Tap the <strong>Schedule</strong> tab.',
+      'Choose <strong>Day</strong>, <strong>Week</strong>, <strong>Month</strong>, or <strong>Year</strong> view.',
+      'Use the <strong>‹</strong> and <strong>›</strong> arrows to navigate forward and backward.',
+      'In Month and Year view, tap any day to jump to that day\'s task list.',
+      'Only cards with a start date will appear in Schedule views.',
+      'Cards in Pending (no start date) are invisible to the schedule.'
+    ]},
+    {title:'💾 Backing Up Your Cards',steps:[
+      'Go to <strong>⚙ Settings</strong> → <strong>Export Backup</strong>.',
+      'A .json file will download — save it to your email, iCloud Drive, or Google Drive.',
+      '<strong>Important:</strong> Do this before clearing your browser cache or history!',
+      'To restore on a new device, go to Settings → <strong>Import Backup</strong> and choose your file.',
+      'We recommend backing up weekly or whenever you add new cards.'
+    ]},
+  ];
+
+  sections.forEach(sec=>{
+    const card=el('div');card.style.cssText='background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:12px;box-shadow:1px 2px 6px rgba(0,0,0,0.06);';
+    const t=el('div');t.style.cssText='font-family:"Playfair Display",serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:10px;';t.textContent=sec.title;card.appendChild(t);
+    sec.steps.forEach((step,i)=>{
+      const row=el('div');row.style.cssText='display:flex;gap:10px;margin-bottom:8px;align-items:flex-start;';
+      const num=el('span');num.style.cssText='min-width:22px;height:22px;border-radius:50%;background:var(--gold);color:#2a1f18;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;';
+      num.textContent=i+1;
+      const txt=el('span');txt.style.cssText='font-size:13px;color:var(--brown-mid);line-height:1.6;';txt.innerHTML=step;
+      row.append(num,txt);card.appendChild(row);
+    });
+    body.appendChild(card);
+  });
+}
+
+// ══════════════════════════════════════════
+// WELCOME SCREEN
+// ══════════════════════════════════════════
+function buildWelcomeScreen(){
+  const bd=el('div','backdrop');
+  bd.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;';
+
+  const modal=el('div');
+  modal.style.cssText='background:#e8c4a0;border-radius:12px;max-width:480px;width:100%;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+
+  const floral=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  floral.setAttribute('preserveAspectRatio','none');
+  floral.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;border-radius:12px;pointer-events:none;z-index:0;';
+
+  function buildFloralSVG(W,H){
+    function rosebud(x,y,r=8){return `<circle cx="${x}" cy="${y}" r="${r}" fill="#f0b0c0" opacity=".8"/><circle cx="${x}" cy="${y}" r="${r*.6}" fill="#d4788a" opacity=".9"/>`;}
+    function daisy(x,y,r=11,color='#b8a0d4'){return Array.from({length:10},(_,i)=>{const a=i*36*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*r}" cy="${y+Math.sin(a)*r}" rx="5" ry="2.5" fill="${color}" opacity=".85" transform="rotate(${i*36} ${x+Math.cos(a)*r} ${y+Math.sin(a)*r})"/>`;}).join('')+`<circle cx="${x}" cy="${y}" r="5" fill="#e8d840"/>`;}
+    function sunflower(x,y,r=12){return Array.from({length:12},(_,i)=>{const a=i*30*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*r}" cy="${y+Math.sin(a)*r}" rx="5" ry="2.5" fill="#f5c842" opacity=".9" transform="rotate(${i*30} ${x+Math.cos(a)*r} ${y+Math.sin(a)*r})"/>`;}).join('')+`<circle cx="${x}" cy="${y}" r="6" fill="#8B6914"/>`;}
+    function pansy(x,y,s=1){return `<ellipse cx="${x-8*s}" cy="${y-5*s}" rx="${9*s}" ry="${6*s}" fill="#7060c0" opacity=".8"/><ellipse cx="${x+8*s}" cy="${y-5*s}" rx="${9*s}" ry="${6*s}" fill="#7060c0" opacity=".8"/><ellipse cx="${x}" cy="${y+6*s}" rx="${9*s}" ry="${6*s}" fill="#5048a8" opacity=".85"/><ellipse cx="${x-7*s}" cy="${y+3*s}" rx="${7*s}" ry="${5*s}" fill="#8878d0" opacity=".7"/><ellipse cx="${x+7*s}" cy="${y+3*s}" rx="${7*s}" ry="${5*s}" fill="#8878d0" opacity=".7"/><circle cx="${x}" cy="${y+2*s}" r="${3*s}" fill="#f5e87a"/>`;}
+    function leaf(x,y,rx,ry,rot){return `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#7a9a6a" opacity=".7" transform="rotate(${rot} ${x} ${y})"/>`;}
+    const m=H/2;
+    return `
+      <path d="M30 0 Q0 ${H*.25} 20 ${m} Q0 ${H*.75} 30 ${H}" stroke="#5a7a4a" stroke-width="1.5" fill="none" opacity=".45"/>
+      <path d="M${W-30} 0 Q${W} ${H*.25} ${W-20} ${m} Q${W} ${H*.75} ${W-30} ${H}" stroke="#5a7a4a" stroke-width="1.5" fill="none" opacity=".45"/>
+      <path d="M0 30 Q${W*.25} 10 ${W/2} 25 Q${W*.75} 10 ${W} 30" stroke="#5a7a4a" stroke-width="1.2" fill="none" opacity=".4"/>
+      <path d="M0 ${H-30} Q${W*.25} ${H-10} ${W/2} ${H-20} Q${W*.75} ${H-10} ${W} ${H-30}" stroke="#5a7a4a" stroke-width="1.2" fill="none" opacity=".4"/>
+      ${leaf(25,20,16,8,-30)}${leaf(50,12,13,7,15)}${leaf(90,18,14,7,-10)}
+      ${leaf(W-25,20,16,8,30)}${leaf(W-50,12,13,7,-15)}${leaf(W-90,18,14,7,10)}
+      ${leaf(W/2-30,10,14,7,5)}${leaf(W/2+30,10,14,7,-5)}
+      ${rosebud(38,42,7)}${rosebud(70,28,6)}${rosebud(W-38,42,7)}${rosebud(W-70,28,6)}
+      ${daisy(W/2,22,10,'#b8a0d4')}${sunflower(130,25,10)}${sunflower(W-130,25,10)}
+      ${pansy(200,30,0.8)}${pansy(W-200,30,0.8)}
+      ${leaf(12,m*.4,15,8,40)}${leaf(22,m*.5,12,6,-20)}${leaf(10,m*.8,14,7,50)}${leaf(22,m*.9,11,6,-30)}
+      ${leaf(12,m*1.2,15,8,35)}${leaf(22,m*1.3,12,6,-15)}${leaf(10,m*1.6,14,7,45)}${leaf(22,m*1.5,11,6,-25)}
+      ${rosebud(28,m*.44,7)}${daisy(20,m*.76,9,'#c8b0e4')}${sunflower(25,m,9)}${pansy(22,m*1.44,.75)}${rosebud(28,m*1.76,6)}
+      ${leaf(W-12,m*.4,15,8,-40)}${leaf(W-22,m*.5,12,6,20)}${leaf(W-10,m*.8,14,7,-50)}${leaf(W-22,m*.9,11,6,30)}
+      ${leaf(W-12,m*1.2,15,8,-35)}${leaf(W-22,m*1.3,12,6,15)}${leaf(W-10,m*1.6,14,7,-45)}${leaf(W-22,m*1.5,11,6,25)}
+      ${rosebud(W-28,m*.44,7)}${daisy(W-20,m*.76,9,'#c8b0e4')}${sunflower(W-25,m,9)}${pansy(W-22,m*1.44,.75)}${rosebud(W-28,m*1.76,6)}
+      ${leaf(25,H-20,16,8,30)}${leaf(55,H-12,13,7,-15)}${leaf(90,H-18,14,7,10)}
+      ${leaf(W-25,H-20,16,8,-30)}${leaf(W-55,H-12,13,7,15)}${leaf(W-90,H-18,14,7,-10)}
+      ${leaf(W/2-30,H-10,14,7,-5)}${leaf(W/2+30,H-10,14,7,5)}
+      ${rosebud(40,H-40,7)}${rosebud(72,H-26,6)}${rosebud(W-40,H-40,7)}${rosebud(W-72,H-26,6)}
+      ${daisy(W/2,H-22,10,'#b8a0d4')}${sunflower(140,H-26,10)}${sunflower(W-140,H-26,10)}
+      ${pansy(210,H-32,.8)}${pansy(W-210,H-32,.8)}`;
+  }
+
+  modal.appendChild(floral);
+
+  const content=el('div');
+  content.style.cssText='position:relative;z-index:1;padding:72px 52px 68px;';
+
+  function txt(tag,css,text){const e=el(tag);e.style.cssText=css;e.textContent=text;return e;}
+  function div1(h,mb){return `height:1px;background:linear-gradient(to right,transparent,#c8a96e,transparent);margin-bottom:${mb||18}px;`;}
+
+  content.appendChild(txt('div','font-family:"Playfair Display",serif;font-size:26px;font-weight:700;color:#3a3128;text-align:center;margin-bottom:4px;','The Card File'));
+  content.appendChild(txt('div','font-family:"Lato",sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#9a8870;text-align:center;margin-bottom:20px;','Household Management'));
+  const d1=el('div');d1.style.cssText=div1();content.appendChild(d1);
+  content.appendChild(txt('div','font-family:"Lato",sans-serif;font-size:13px;color:#5a4a38;line-height:1.7;margin-bottom:14px;text-align:center;font-style:italic;','I hope you find this app useful! I created it for myself and then thought that others in our group might like to use it.'));
+  content.appendChild(txt('div','font-family:"Playfair Display",serif;font-size:10px;color:#9a8870;text-align:center;margin-bottom:18px;','Created with love for SHEs by fellow SHE, Beth Kahler'));
+  const d2=el('div');d2.style.cssText=div1();content.appendChild(d2);
+  content.appendChild(txt('div','font-family:"Lato",sans-serif;font-size:11px;color:#7a6a5a;line-height:1.7;margin-bottom:16px;text-align:center;','Inspired by the card file system from Sidetracked Home Executives by Pam Young and Peggy Jones. This app is an independent personal project and is not affiliated with, endorsed by, or connected to the authors or their work.'));
+
+  const priv=el('div');priv.style.cssText='background:rgba(255,255,255,0.5);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-family:"Lato",sans-serif;font-size:11px;color:#5a4a38;line-height:1.7;';
+  const privT=el('div');privT.style.cssText='font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#3a3128;margin-bottom:5px;';privT.textContent='🔒 Your Privacy';
+  const privP=el('div');privP.textContent='This app does not install any software, trackers, or code to your device. It does not track your activity or collect any user data from you or your device. Your cards and any information you add are stored locally on your own device, and only YOU have access to them.';
+  priv.append(privT,privP);content.appendChild(priv);
+
+  const cacheWarn=el('div');cacheWarn.style.cssText='background:rgba(200,100,0,0.1);border:1px solid rgba(200,100,0,0.25);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-family:"Lato",sans-serif;font-size:11px;color:#6a3a18;line-height:1.6;';
+  cacheWarn.textContent='⚠️ Clearing your browser cache or history will erase your cards. Always export a backup from Settings first!';
+  content.appendChild(cacheWarn);
+
+  content.appendChild(txt('div','font-family:"Lato",sans-serif;font-size:10px;color:#9a8870;text-align:center;margin-bottom:18px;font-style:italic;','This app is provided as-is for personal use. Use at your own discretion.'));
+
+  const startBtn=el('button');startBtn.style.cssText='width:100%;background:#3a3128;color:#f5f0e8;border:none;border-radius:8px;padding:14px;font-family:"Lato",sans-serif;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;';
+  startBtn.textContent='Get Started ✦';
+  startBtn.onclick=()=>{localStorage.setItem('cf4_welcomeSeen','1');S.showWelcome=false;render();};
+  content.appendChild(startBtn);
+
+  const howToLink=el('div');howToLink.style.cssText='text-align:center;margin-top:12px;font-family:"Lato",sans-serif;font-size:12px;color:#5a4a38;cursor:pointer;text-decoration:underline;font-weight:500;';
+  howToLink.textContent='How do I install this on my phone/computer?';
+  howToLink.onclick=()=>{localStorage.setItem('cf4_welcomeSeen','1');S.showWelcome=false;S.tab='howto';render();};
+  content.appendChild(howToLink);
+
+  modal.appendChild(content);bd.appendChild(modal);
+
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const h=modal.offsetHeight||700,w=modal.offsetWidth||480;
+    floral.setAttribute('viewBox',`0 0 ${w} ${h}`);
+    floral.innerHTML=buildFloralSVG(w,h);
+    if(window.ResizeObserver){
+      const ro=new ResizeObserver(()=>{
+        const nh=modal.offsetHeight,nw=modal.offsetWidth;
+        floral.setAttribute('viewBox',`0 0 ${nw} ${nh}`);
+        floral.innerHTML=buildFloralSVG(nw,nh);
+      });ro.observe(modal);
+    }
+  }));
+  return bd;
+}
+
+// ══════════════════════════════════════════
+// TASK MODAL (ADD / EDIT)
 // ══════════════════════════════════════════
 function buildModal(data,isEdit){
   const bd=el('div','backdrop');
@@ -594,67 +1334,73 @@ function buildModal(data,isEdit){
   // Name
   const f1=el('div','field');const l1=el('label');l1.textContent='Task Name';
   const i1=el('input');i1.type='text';i1.value=data.name||'';i1.placeholder='e.g., Wipe stovetop';
-  i1.oninput=e=>data.name=e.target.value;
-  f1.append(l1,i1);modal.appendChild(f1);
+  i1.oninput=e=>data.name=e.target.value;f1.append(l1,i1);modal.appendChild(f1);
 
   // Area
   const f2=el('div','field');const l2=el('label');l2.textContent='Area / Room';
   const sel2=el('select');
-  const allAreas=[...new Set([...AREAS,...S.tasks.map(t=>t.area)])].sort();
+  const allAreas=[...new Set([...S.areas,...(data.area?[data.area]:[])])].sort();
   allAreas.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;if(a===data.area)o.selected=true;sel2.appendChild(o);});
-  sel2.onchange=e=>data.area=e.target.value;
+  // Custom area option
+  const customOpt=document.createElement('option');customOpt.value='__custom__';customOpt.textContent='+ Add new area...';sel2.appendChild(customOpt);
+  sel2.onchange=e=>{
+    if(e.target.value==='__custom__'){
+      const val=prompt('Enter new room/area name:');
+      if(val&&val.trim()){
+        const v=val.trim();
+        if(!S.areas.includes(v)){S.areas.push(v);save();}
+        data.area=v;
+        const o=document.createElement('option');o.value=v;o.textContent=v;o.selected=true;
+        sel2.insertBefore(o,customOpt);sel2.value=v;
+      }else{sel2.value=data.area||allAreas[0];}
+    }else{data.area=e.target.value;}
+  };
   f2.append(l2,sel2);modal.appendChild(f2);
 
   // Frequency
   const f3=el('div','field');const l3=el('label');l3.textContent='Frequency';
   const sel3=el('select');
   FREQS.forEach(f=>{const o=document.createElement('option');o.value=f.id;o.textContent=`${f.label} — ${f.name}`;if(f.id===data.freq)o.selected=true;sel3.appendChild(o);});
-  sel3.onchange=e=>data.freq=e.target.value;
-  f3.append(l3,sel3);modal.appendChild(f3);
+  sel3.onchange=e=>data.freq=e.target.value;f3.append(l3,sel3);modal.appendChild(f3);
 
   // Time
   const f4=el('div','field');const l4=el('label');l4.textContent="Time (e.g., 5', 30', 1hr)";
   const i4=el('input');i4.type='text';i4.value=data.time||'';i4.placeholder="10'";
-  i4.oninput=e=>data.time=e.target.value;
-  f4.append(l4,i4);modal.appendChild(f4);
+  i4.oninput=e=>data.time=e.target.value;f4.append(l4,i4);modal.appendChild(f4);
 
   // Supplies
   const f5=el('div','field');const l5=el('label');l5.textContent='Equipment / Supplies';
   const ta=el('textarea');ta.value=data.supplies||'';ta.placeholder='e.g., Broom, dustpan, cleaner';
-  ta.oninput=e=>data.supplies=e.target.value;
-  f5.append(l5,ta);modal.appendChild(f5);
+  ta.oninput=e=>data.supplies=e.target.value;f5.append(l5,ta);modal.appendChild(f5);
 
   // Card type
   const f6=el('div','field');const l6=el('label');l6.textContent='Card Type';
   const sel6=el('select');
-  [['','Standard (frequency color)'],...SPECIAL.map(s=>[s.id,s.label])].forEach(([val,txt])=>{
-    const o=document.createElement('option');o.value=val;o.textContent=txt;if(val===data.special)o.selected=true;sel6.appendChild(o);
+  [['','Standard (frequency color)'],...S.specialTypes.map(s=>[s.id,s.label])].forEach(([val,txt2])=>{
+    const o=document.createElement('option');o.value=val;o.textContent=txt2;if(val===data.special)o.selected=true;sel6.appendChild(o);
   });
-  sel6.onchange=e=>data.special=e.target.value;
-  f6.append(l6,sel6);modal.appendChild(f6);
+  sel6.onchange=e=>data.special=e.target.value;f6.append(l6,sel6);modal.appendChild(f6);
 
-  // Mini checkbox
+  // Start date
+  const f7=el('div','field');const l7=el('label');l7.textContent='Start Date (leave blank to save as Pending)';
+  const i7=el('input');i7.type='date';i7.value=data.startDate||'';
+  i7.oninput=e=>data.startDate=e.target.value;f7.append(l7,i7);modal.appendChild(f7);
+
+  // Mini
   const cr=el('div','checkbox-row');
   const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!data.mini;
   cb.onchange=e=>data.mini=e.target.checked;
   const cl=el('span');cl.textContent='✦ Mini task (5–10 min, pick up anytime)';
-  cr.append(cb,cl);cr.onclick=()=>{cb.checked=!cb.checked;data.mini=cb.checked;};
-  modal.appendChild(cr);
+  cr.append(cb,cl);cr.onclick=()=>{cb.checked=!cb.checked;data.mini=cb.checked;};modal.appendChild(cr);
 
   // Buttons
   const btns=el('div','modal-btns');
-  const cancel=el('button','btn btn-ghost');cancel.textContent='Cancel';
-  cancel.onclick=()=>{isEdit?S.editTask=null:S.showAdd=false;render();};
-  const save=el('button','btn btn-primary');save.textContent=isEdit?'Save Changes':'Add Card';
-  save.onclick=()=>isEdit?saveEdit():addTask();
+  const cancel=el('button','btn btn-ghost');cancel.textContent='Cancel';cancel.onclick=()=>{isEdit?S.editTask=null:S.showAdd=false;render();};
+  const save=el('button','btn btn-primary');save.textContent=isEdit?'Save Changes':'Add Card';save.onclick=()=>isEdit?saveEdit():addTask();
   if(isEdit){
-    const del=el('button','btn btn-danger');del.textContent='Delete';del.onclick=()=>deleteTask(data.id);
-    btns.append(cancel,del,save);
+    const del=el('button','btn btn-danger');del.textContent='Delete';del.onclick=()=>deleteTask(data.id);btns.append(cancel,del,save);
   }else{btns.append(cancel,save);}
-  modal.appendChild(btns);
-  bd.appendChild(modal);
-  setTimeout(()=>i1.focus(),60);
-  return bd;
+  modal.appendChild(btns);bd.appendChild(modal);setTimeout(()=>i1.focus(),60);return bd;
 }
 
 // ══════════════════════════════════════════
@@ -666,27 +1412,27 @@ function render(){
   // Install hint
   if(S.showInstall){
     const bar=el('div','install-hint');
-    const txt=el('div','install-hint-text');
-    txt.innerHTML='📌 <strong>Save to Home Screen:</strong> Open in Safari → tap Share → <em>Add to Home Screen</em>';
+    const txt2=el('div','install-hint-text');
+    txt2.innerHTML='📌 <strong>Save to Home Screen:</strong> Open in Safari → tap Share → <em>Add to Home Screen</em>';
     const x=el('button','install-hint-close');x.textContent='×';
-    x.onclick=()=>{S.showInstall=false;localStorage.setItem('cf3_installOk','1');render();};
-    bar.append(txt,x);app.appendChild(bar);
+    x.onclick=()=>{S.showInstall=false;localStorage.setItem('cf4_installOk','1');render();};
+    bar.append(txt2,x);app.appendChild(bar);
   }
 
-  // Notification banner
-  if(S.notification){
+  // Daily notification
+  if(S._notification){
     const nb=el('div','notif');
     const bd2=el('div','notif-body');
     const t=el('div','notif-title');t.textContent='Tasks due today — '+new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
     const list=el('div','notif-list');
-    S.notification.slice(0,6).forEach(task=>{
+    S._notification.slice(0,6).forEach(task=>{
       const d=el('div');const color=cardColor(task);
       d.innerHTML=`<span style="color:${color};font-weight:700;">${fById(task.freq).label}</span> ${task.name}${task.area?` <span style="color:var(--brown-light);font-size:10px;">— ${task.area}</span>`:''}`;
       list.appendChild(d);
     });
-    if(S.notification.length>6){const m=el('div');m.style.color='var(--brown-light)';m.textContent=`…and ${S.notification.length-6} more`;list.appendChild(m);}
+    if(S._notification.length>6){const m=el('div');m.style.color='var(--brown-light)';m.textContent=`…and ${S._notification.length-6} more`;list.appendChild(m);}
     bd2.append(t,list);
-    const x=el('button','notif-close');x.textContent='×';x.onclick=()=>{S.notification=null;render();};
+    const x=el('button','notif-close');x.textContent='×';x.onclick=()=>{S._notification=null;render();};
     nb.append(bd2,x);app.appendChild(nb);
   }
 
@@ -699,37 +1445,49 @@ function render(){
   hleft.append(ey,ht);
   const hr=el('div','hright');
   const hd=el('div','hdate');hd.textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  const dueCount=S.tasks.filter(t=>isTaskDue(t)).length;
+  const dueCount=S.tasks.filter(t=>isDueToday(t)).length;
   const hdu=el('div','hdue');hdu.textContent=`${dueCount} task${dueCount!==1?'s':''} due`;
   hr.append(hd,hdu);htop.append(hleft,hr);
+
   const tabs=el('div','tabs');
-  [['today','Today'],['browse','Browse'],['history','History'],['settings','⚙']].forEach(([id,label])=>{
+  const mainTabs=[['today','Today'],['schedule','Schedule'],['browse','Browse'],['pending','Pending']];
+  mainTabs.forEach(([id,label])=>{
     const tab=el('div','tab'+(S.tab===id?' active':''));
-    tab.textContent=label;tab.onclick=()=>{S.tab=id;render();};
-    tabs.appendChild(tab);
+    tab.textContent=label;tab.onclick=()=>{S.tab=id;render();};tabs.appendChild(tab);
   });
+  // Settings button — more prominent
+  const settingsTab=el('div','tab settings-tab'+(S.tab==='settings'||S.tab==='howto'||S.tab==='walkthrough'?' active':''));
+  settingsTab.textContent='⚙ Settings';
+  settingsTab.onclick=()=>{S.tab='settings';render();};tabs.appendChild(settingsTab);
+
   header.append(htop,tabs);app.appendChild(header);
 
   // Body
   const body=el('div','body');
   if(S.tab==='today') renderToday(body);
+  else if(S.tab==='schedule') renderSchedule(body);
   else if(S.tab==='browse') renderBrowse(body);
-  else if(S.tab==='history') renderHistory(body);
-  else renderSettings(body);
+  else if(S.tab==='pending') renderPending(body);
+  else if(S.tab==='settings') renderSettings(body);
+  else if(S.tab==='howto') renderHowTo(body);
+  else if(S.tab==='walkthrough') renderWalkthrough(body);
   app.appendChild(body);
 
-  // FAB
-  if(S.tab==='browse'){
+  // FAB — on Today and Browse tabs
+  if(S.tab==='today'||S.tab==='browse'||S.tab==='pending'){
     const fab=el('button','fab');fab.textContent='+';fab.title='Add card';
-    fab.onclick=()=>{S.showAdd=true;render();};
-    app.appendChild(fab);
+    fab.onclick=()=>{S.showAdd=true;render();};app.appendChild(fab);
   }
 
   // Modals
   if(S.showAdd) app.appendChild(buildModal(S.newTask,false));
   if(S.editTask) app.appendChild(buildModal(S.editTask,true));
+  if(S.showWelcome) app.appendChild(buildWelcomeScreen());
 }
 
+// ══════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════
 load();render();
 </script>
 </body>
