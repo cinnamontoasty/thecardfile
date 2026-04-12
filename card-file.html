@@ -354,6 +354,7 @@ let S={
   scheduleView:'day',
   scheduleDate:new Date(),
   showAdd:false,editTask:null,showWelcome:false,showInstall:false,
+  firstTime:false,firstTimeHowTo:false,
   newTask:{name:'',area:'Kitchen',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:''},
   nextId:200,
 };
@@ -467,6 +468,8 @@ function load(){
   }
   S.showInstall=window.navigator.standalone!==true&&!localStorage.getItem('cf4_installOk');
   S.showWelcome=!localStorage.getItem('cf4_welcomeSeen');
+  S.firstTime=!localStorage.getItem('cf4_firstTimeDone');
+  S.firstTimeHowTo=false;
 }
 
 function save(){
@@ -567,6 +570,25 @@ function toggleDark(){
 }
 
 // ══════════════════════════════════════════
+// BACKUP WARNING BANNER
+// ══════════════════════════════════════════
+function backupWarningBanner(body){
+  const warn=el('div');
+  warn.style.cssText='background:rgba(180,80,0,0.10);border:1.5px solid rgba(180,80,0,0.25);border-radius:8px;padding:11px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;';
+  const txt=el('div');
+  txt.style.cssText='flex:1;font-family:"Lato",sans-serif;font-size:12px;color:var(--brown-mid);line-height:1.6;min-width:180px;';
+  txt.innerHTML='⚠️ <strong>Clearing your browser cache or history will erase ALL your cards AND settings</strong> (colors, rooms, dark mode). Always back up first!';
+  const btns=el('div');btns.style.cssText='display:flex;gap:6px;flex-shrink:0;';
+  const expBtn=el('button');
+  expBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 12px;border-radius:6px;border:none;background:var(--brown);color:var(--bg);cursor:pointer;white-space:nowrap;';
+  expBtn.textContent='Export ↓';expBtn.onclick=exportData;
+  const impBtn=el('button');
+  impBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;white-space:nowrap;';
+  impBtn.textContent='Import ↑';impBtn.onclick=importData;
+  btns.append(expBtn,impBtn);warn.append(txt,btns);body.appendChild(warn);
+}
+
+// ══════════════════════════════════════════
 // CARD COMPONENT
 // ══════════════════════════════════════════
 function renderCard(task,showArea,opts={}){
@@ -622,8 +644,8 @@ function renderCard(task,showArea,opts={}){
     const co=el('button','icon-btn');co.textContent='→';co.title='Carry over to tomorrow';
     co.onclick=()=>carryOver(task.id);actions.appendChild(co);
   }
-  const editBtn=el('button','icon-btn');editBtn.textContent='✎';editBtn.onclick=()=>{S.editTask={...task,completions:[...(task.completions||[])],carryOvers:[...(task.carryOvers||[])]};render();};
-  const delBtn=el('button','icon-btn del-btn');delBtn.textContent='✕';delBtn.onclick=()=>deleteTask(task.id);
+  const editBtn=el('button','icon-btn');editBtn.textContent='✎';editBtn.title='Edit this card';editBtn.onclick=()=>{S.editTask={...task,completions:[...(task.completions||[])],carryOvers:[...(task.carryOvers||[])]};render();};
+  const delBtn=el('button','icon-btn del-btn');delBtn.textContent='✕';delBtn.title='Delete this card';delBtn.onclick=()=>deleteTask(task.id);
   const chk=el('button','check-btn'+(doneToday?' done':''));
   chk.textContent=doneToday?'✓':'';chk.onclick=()=>{if(!doneToday)markDone(task.id);};
   actions.append(editBtn,delBtn,chk);
@@ -649,6 +671,7 @@ function sectionHead(label,color,count){
 // TAB: TODAY
 // ══════════════════════════════════════════
 function renderToday(body){
+  backupWarningBanner(body);
   const dueTasks=S.tasks.filter(t=>isActiveTask(t)&&isDueToday(t));
   const total=S.tasks.filter(t=>isActiveTask(t)).length;
   const doneCount=S.tasks.filter(t=>isActiveTask(t)&&isDoneToday(t)).length;
@@ -683,6 +706,7 @@ function renderToday(body){
 // TAB: SCHEDULE
 // ══════════════════════════════════════════
 function renderSchedule(body){
+  backupWarningBanner(body);
   // View selector
   const stabs=el('div','schedule-tabs');
   ['day','week','month','year'].forEach(v=>{
@@ -861,6 +885,7 @@ function renderYearView(body,d){
 // TAB: BROWSE
 // ══════════════════════════════════════════
 function renderBrowse(body){
+  backupWarningBanner(body);
   const toggle=el('div','browse-toggle');
   ['area','freq'].forEach(mode=>{
     const b=el('button','browse-btn'+(S.browseMode===mode?' active':''));
@@ -923,6 +948,7 @@ function renderBrowse(body){
 // TAB: PENDING
 // ══════════════════════════════════════════
 function renderPending(body){
+  backupWarningBanner(body);
   const pending=S.tasks.filter(t=>isPendingTask(t));
   const future=S.tasks.filter(t=>isFutureTask(t));
 
@@ -1107,8 +1133,18 @@ function showColorPicker(type,id,currentColor){
 // TAB: HOW TO
 // ══════════════════════════════════════════
 function renderHowTo(body){
-  const back=el('button','settings-btn');back.textContent='← Back to Settings';back.style.marginBottom='16px';
-  back.onclick=()=>{S.tab='settings';render();};body.appendChild(back);
+  const back=el('button','settings-btn');back.textContent='← Back';back.style.marginBottom='16px';
+  back.onclick=()=>{
+    if(S.firstTimeHowTo){
+      S.firstTimeHowTo=false;
+      localStorage.setItem('cf4_firstTimeDone','1');
+      S.firstTime=false;
+      S.tab='walkthrough';
+    }else{
+      S.tab='settings';
+    }
+    render();
+  };body.appendChild(back);
 
   const intro=el('div');
   intro.style.cssText='background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:var(--brown-mid);line-height:1.7;';
@@ -1163,6 +1199,31 @@ function renderHowTo(body){
     body.appendChild(card);
   });
 
+  const notifSection={title:'🔔 Setting Up Daily Reminders (iPhone)',steps:[
+    'Open the <strong>Shortcuts</strong> app on your iPhone (it comes pre-installed).',
+    'Tap the <strong>+</strong> button in the top right to create a new shortcut.',
+    'Tap <strong>Add Action</strong> and search for <strong>"Open URL"</strong>. Tap it.',
+    'Paste your Card File web address into the URL field.',
+    'Tap the <strong>clock icon</strong> at the top to set automation. Choose <strong>Time of Day</strong>.',
+    'Set your preferred reminder time (e.g., 8:00 AM).',
+    'Choose <strong>Daily</strong> as the repeat frequency.',
+    'Make sure <strong>"Ask Before Running"</strong> is turned OFF.',
+    'Save the shortcut. Every morning at your chosen time, a notification will appear — tap it to open your Card File and see what\'s due!'
+  ]};
+
+  const nCard=el('div');nCard.style.cssText='background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:12px;box-shadow:1px 2px 6px rgba(0,0,0,0.06);';
+  const nt=el('div');nt.style.cssText='font-family:"Playfair Display",serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:10px;';nt.textContent=notifSection.title;nCard.appendChild(nt);
+  notifSection.steps.forEach((step,i)=>{
+    const row=el('div');row.style.cssText='display:flex;gap:10px;margin-bottom:8px;align-items:flex-start;';
+    const num=el('span');num.style.cssText='min-width:22px;height:22px;border-radius:50%;background:var(--brown);color:var(--bg);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;';
+    num.textContent=i+1;
+    const txt=el('span');txt.style.cssText='font-size:13px;color:var(--brown-mid);line-height:1.6;';txt.innerHTML=step;
+    row.append(num,txt);nCard.appendChild(row);
+  });
+  const notifNote=el('div');notifNote.style.cssText='font-size:11px;color:var(--brown-light);margin-top:8px;font-style:italic;';
+  notifNote.textContent='Note: This is a free solution using Apple\'s built-in Shortcuts app. It works on iPhone only. Android users can use the Clock app\'s alarm feature to remind themselves.';
+  nCard.appendChild(notifNote);body.appendChild(nCard);
+
   const privacy=el('div');privacy.style.cssText='background:#e8f4ee;border:1px solid #b0d4bc;border-radius:4px;padding:14px 16px;';
   const pt=el('div');pt.style.cssText='font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#2d7a3a;margin-bottom:6px;';pt.textContent='🔒 Your Privacy';
   const pp=el('div');pp.style.cssText='font-size:13px;color:#3a5a40;line-height:1.7;';
@@ -1175,7 +1236,25 @@ function renderHowTo(body){
 // ══════════════════════════════════════════
 function renderWalkthrough(body){
   const back=el('button','settings-btn');back.textContent='← Back to Settings';back.style.marginBottom='16px';
-  back.onclick=()=>{S.tab='settings';render();};body.appendChild(back);
+  back.onclick=()=>{
+    localStorage.setItem('cf4_firstTimeDone','1');
+    S.firstTime=false;
+    S.tab='settings';
+    render();
+  };body.appendChild(back);
+
+  // Extra prominent warning at top
+  const bigWarn=el('div');
+  bigWarn.style.cssText='background:rgba(180,80,0,0.12);border:2px solid rgba(180,80,0,0.35);border-radius:10px;padding:16px 18px;margin-bottom:20px;';
+  const bwt=el('div');bwt.style.cssText='font-family:"Playfair Display",serif;font-size:16px;font-weight:700;color:#8B3A00;margin-bottom:8px;';bwt.textContent='⚠️ Before You Do Anything Else — Back Up Your Cards!';
+  const bwp=el('div');bwp.style.cssText='font-family:"Lato",sans-serif;font-size:13px;color:var(--brown-mid);line-height:1.7;margin-bottom:12px;';
+  bwp.textContent='Clearing your browser cache or history will permanently erase ALL your cards AND your settings — including custom rooms, colors, and dark mode. This cannot be undone. Export a backup regularly to keep your data safe!';
+  const bwBtns=el('div');bwBtns.style.cssText='display:flex;gap:8px;flex-wrap:wrap;';
+  const expB=el('button');expB.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 18px;border-radius:8px;border:none;background:var(--brown);color:var(--bg);cursor:pointer;';
+  expB.textContent='Export Backup Now ↓';expB.onclick=exportData;
+  const impB=el('button');impB.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 18px;border-radius:8px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;';
+  impB.textContent='Import Backup ↑';impB.onclick=importData;
+  bwBtns.append(expB,impB);bigWarn.append(bwt,bwp,bwBtns);body.appendChild(bigWarn);
 
   const sections=[
     {title:'📇 Creating Your First Card',steps:[
@@ -1315,13 +1394,36 @@ function buildWelcomeScreen(){
 
   const startBtn=el('button');startBtn.style.cssText='width:100%;background:#3a3128;color:#f5f0e8;border:none;border-radius:8px;padding:14px;font-family:"Lato",sans-serif;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;';
   startBtn.textContent='Get Started ✦';
-  startBtn.onclick=()=>{localStorage.setItem('cf4_welcomeSeen','1');S.showWelcome=false;render();};
+  startBtn.onclick=()=>{
+    localStorage.setItem('cf4_welcomeSeen','1');
+    S.showWelcome=false;
+    if(S.firstTime){S.tab='walkthrough';}
+    render();
+  };
   content.appendChild(startBtn);
 
   const howToLink=el('div');howToLink.style.cssText='text-align:center;margin-top:12px;font-family:"Lato",sans-serif;font-size:12px;color:#5a4a38;cursor:pointer;text-decoration:underline;font-weight:500;';
   howToLink.textContent='How do I install this on my phone/computer?';
-  howToLink.onclick=()=>{localStorage.setItem('cf4_welcomeSeen','1');S.showWelcome=false;S.tab='howto';render();};
+  howToLink.onclick=()=>{
+    localStorage.setItem('cf4_welcomeSeen','1');
+    S.showWelcome=false;
+    S.firstTimeHowTo=S.firstTime;
+    S.tab='howto';
+    render();
+  };
   content.appendChild(howToLink);
+
+  // Close button (X) top right
+  const closeBtn=el('button');
+  closeBtn.style.cssText='position:absolute;top:14px;right:14px;background:rgba(58,49,40,0.15);border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;color:#3a3128;display:flex;align-items:center;justify-content:center;z-index:2;line-height:1;';
+  closeBtn.textContent='×';closeBtn.title='Close';
+  closeBtn.onclick=()=>{
+    localStorage.setItem('cf4_welcomeSeen','1');
+    S.showWelcome=false;
+    if(S.firstTime){S.tab='walkthrough';}
+    render();
+  };
+  modal.appendChild(closeBtn);
 
   modal.appendChild(content);bd.appendChild(modal);
 
