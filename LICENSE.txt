@@ -1,0 +1,24 @@
+The Card File — Household Management App
+© 2026 Beth Kahler. All rights reserved.
+
+Created with love for the Sidetracked Home Executives community.
+Inspired by the card file system from "Sidetracked Home Executives"
+by Pam Young and Peggy Jones.
+
+LICENSE: Creative Commons Attribution-NonCommercial-NoDerivatives 4.0
+International (CC BY-NC-ND 4.0)
+
+You are free to:
+  - Share: copy and redistribute this app in any medium or format
+    for personal, non-commercial use only.
+
+You may NOT:
+  - Use this app or its code for any commercial purpose
+  - Sell, license, or monetize this app in any form
+  - Modify and redistribute this code without written permission
+  - Remove or alter this copyright notice
+
+Full license terms: https://creativecommons.org/licenses/by-nc-nd/4.0/
+
+For permissions beyond the scope of this license, contact the creator
+through the Sidetracked Home Executives Facebook group.
