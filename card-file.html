@@ -310,11 +310,16 @@ const DEFAULT_SPECIAL=[
 ];
 
 const DEFAULT_AREAS=[
-  'Entryway','Living Room','Dining Area','Office','Kitchen',
-  'Downstairs Bath','Pantry','Stairway','Breezeway/Hall',
-  'Upstairs Office','Workout Room','Hall Bath','Master Bedroom',
-  'Storage Closet','Master Bathroom','Balcony','Patio',
-  'Garage','Side Yard','Front Path','Driveway'
+  // Common living areas
+  'Kitchen','Living Room','Family Room','Dining Area','Den','Playroom',
+  // Bedrooms & offices
+  'Master Bedroom','Bedroom 1','Bedroom 2','Guest Room','Office','Upstairs Office','Workout Room',
+  // Bathrooms
+  'Master Bathroom','Hall Bath','Downstairs Bath',
+  // Transitional & storage
+  'Entryway','Stairway','Breezeway/Hall','Pantry','Storage Closet',
+  // Outdoor & garage
+  'Front Porch','Balcony','Patio','Front Path','Side Yard','Back Yard','Driveway','Garage',
 ];
 
 const COLOR_PALETTE=[
@@ -378,8 +383,14 @@ function cardColor(task){
 
 function cardBg(task){
   const c=cardColor(task);
-  const a1=S.darkMode?'88':'cc';
-  const a2=S.darkMode?'66':'99';
+  const isSpecial=!!task.special&&S.specialTypes.some(s=>s.id===task.special);
+  // Special cards keep full color in dark mode
+  // Daily (D) yellow gets a pale alabaster yellow in dark mode so it doesn't go olive
+  if(S.darkMode&&task.freq==='d'&&!isSpecial){
+    return `linear-gradient(135deg,#e8e4c0cc 0%,#ddd8a899 100%)`;
+  }
+  const a1=S.darkMode&&!isSpecial?'88':'cc';
+  const a2=S.darkMode&&!isSpecial?'66':'99';
   return `linear-gradient(135deg,${c}${a1} 0%,${c}${a2} 100%)`;
 }
 
@@ -548,7 +559,9 @@ function addTask(){
 }
 
 function deleteTask(id){
-  if(!confirm('Delete this card?'))return;
+  const task=S.tasks.find(t=>t.id===id);
+  const name=task?task.name:'this card';
+  if(!confirm(`Delete "${name}"?\n\nThis will permanently remove the card and all its history. It will NOT just remove it from the current view.\n\nThis cannot be undone.`))return;
   S.tasks=S.tasks.filter(t=>t.id!==id);save();render();
 }
 
@@ -1028,14 +1041,18 @@ function renderSettings(body){
   FREQS.forEach(f=>{
     const row=el('div','settings-row');
     const d=el('div','settings-row-label');d.textContent=`${f.label} — ${f.name}`;
-    const swatch=el('div');swatch.style.cssText=`width:28px;height:28px;border-radius:50%;background:${S.freqColors[f.id]};border:2px solid var(--border);cursor:pointer;flex-shrink:0;`;
+    const c=S.freqColors[f.id];
+    // In dark mode show how the color actually appears on cards
+    const swatchBg=S.darkMode?`linear-gradient(135deg,${c}aa,${c}88)`:`linear-gradient(135deg,${c}cc,${c}99)`;
+    const swatch=el('div');swatch.style.cssText=`width:32px;height:32px;border-radius:6px;background:${swatchBg};border:2px solid var(--border);cursor:pointer;flex-shrink:0;`;
     swatch.onclick=()=>showColorPicker('freq',f.id,S.freqColors[f.id]);
     row.append(d,swatch);cs.appendChild(row);
   });
   S.specialTypes.forEach(sp=>{
     const row=el('div','settings-row');
     const d=el('div','settings-row-label');d.textContent=sp.label+' cards';
-    const swatch=el('div');swatch.style.cssText=`width:28px;height:28px;border-radius:50%;background:${sp.color};border:2px solid var(--border);cursor:pointer;flex-shrink:0;`;
+    const swatchBg=`linear-gradient(135deg,${sp.color}cc,${sp.color}99)`;
+    const swatch=el('div');swatch.style.cssText=`width:32px;height:32px;border-radius:6px;background:${swatchBg};border:2px solid var(--border);cursor:pointer;flex-shrink:0;`;
     swatch.onclick=()=>showColorPicker('special',sp.id,sp.color);
     row.append(d,swatch);cs.appendChild(row);
   });
@@ -1148,7 +1165,7 @@ function renderHowTo(body){
 
   const intro=el('div');
   intro.style.cssText='background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:var(--brown-mid);line-height:1.7;';
-  intro.innerHTML='<strong>The Card File</strong> is a web app — it runs in your browser and can be saved to your home screen so it opens like a regular app. Nothing is downloaded or installed on your device.';
+  intro.innerHTML='<strong>The Card File</strong> is a web app — it runs in your browser and can be saved to your home screen so it opens like a regular app. Nothing is downloaded or installed on your device, except your personal cards and app settings.';
   body.appendChild(intro);
 
   const sections=[
@@ -1246,15 +1263,20 @@ function renderWalkthrough(body){
   // Extra prominent warning at top
   const bigWarn=el('div');
   bigWarn.style.cssText='background:rgba(180,80,0,0.12);border:2px solid rgba(180,80,0,0.35);border-radius:10px;padding:16px 18px;margin-bottom:20px;';
-  const bwt=el('div');bwt.style.cssText='font-family:"Playfair Display",serif;font-size:16px;font-weight:700;color:#8B3A00;margin-bottom:8px;';bwt.textContent='⚠️ Before You Do Anything Else — Back Up Your Cards!';
-  const bwp=el('div');bwp.style.cssText='font-family:"Lato",sans-serif;font-size:13px;color:var(--brown-mid);line-height:1.7;margin-bottom:12px;';
-  bwp.textContent='Clearing your browser cache or history will permanently erase ALL your cards AND your settings — including custom rooms, colors, and dark mode. This cannot be undone. Export a backup regularly to keep your data safe!';
+  const bwt=el('div');bwt.style.cssText='font-family:"Playfair Display",serif;font-size:16px;font-weight:700;color:#8B3A00;margin-bottom:8px;';
+  bwt.textContent='⚠️ Important: Don\'t forget to back up your cards and settings regularly!';
+  const bwp1=el('div');bwp1.style.cssText='font-family:"Lato",sans-serif;font-size:13px;color:var(--brown-mid);line-height:1.7;margin-bottom:6px;';
+  bwp1.textContent='All your cards and settings are stored locally on your device\'s browser.';
+  const bwp2=el('div');bwp2.style.cssText='font-family:"Lato",sans-serif;font-size:13px;color:var(--brown-mid);line-height:1.7;margin-bottom:10px;';
+  bwp2.textContent='Clearing your browser cache or history will permanently erase ALL your cards AND your settings — including custom rooms, colors, and dark mode. This cannot be undone.';
+  const bwp3=el('div');bwp3.style.cssText='font-family:"Lato",sans-serif;font-size:12px;color:var(--brown-light);line-height:1.6;margin-bottom:12px;font-style:italic;';
+  bwp3.textContent='See the "Backing Up Your Cards" section at the bottom of this page for step-by-step export and import instructions.';
   const bwBtns=el('div');bwBtns.style.cssText='display:flex;gap:8px;flex-wrap:wrap;';
   const expB=el('button');expB.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 18px;border-radius:8px;border:none;background:var(--brown);color:var(--bg);cursor:pointer;';
   expB.textContent='Export Backup Now ↓';expB.onclick=exportData;
   const impB=el('button');impB.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 18px;border-radius:8px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;';
   impB.textContent='Import Backup ↑';impB.onclick=importData;
-  bwBtns.append(expB,impB);bigWarn.append(bwt,bwp,bwBtns);body.appendChild(bigWarn);
+  bwBtns.append(expB,impB);bigWarn.append(bwt,bwp1,bwp2,bwp3,bwBtns);body.appendChild(bigWarn);
 
   const sections=[
     {title:'📇 Creating Your First Card',steps:[
