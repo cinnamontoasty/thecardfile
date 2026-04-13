@@ -384,13 +384,16 @@ function cardColor(task){
 function cardBg(task){
   const c=cardColor(task);
   const isSpecial=!!task.special&&S.specialTypes.some(s=>s.id===task.special);
-  // Special cards keep full color in dark mode
-  // Daily (D) yellow gets a pale alabaster yellow in dark mode so it doesn't go olive
-  if(S.darkMode&&task.freq==='d'&&!isSpecial){
-    return `linear-gradient(135deg,#e8e4c0cc 0%,#ddd8a899 100%)`;
+  // Special cards always keep full vivid color in both modes
+  if(isSpecial){
+    return `linear-gradient(135deg,${c}cc 0%,${c}99 100%)`;
   }
-  const a1=S.darkMode&&!isSpecial?'88':'cc';
-  const a2=S.darkMode&&!isSpecial?'66':'99';
+  // Daily (D) yellow: force a true bright yellow in dark mode — bypasses hex transparency issue
+  if(S.darkMode&&task.freq==='d'){
+    return `linear-gradient(135deg,#f0e840 0%,#e8de20 100%)`;
+  }
+  const a1=S.darkMode?'88':'cc';
+  const a2=S.darkMode?'66':'99';
   return `linear-gradient(135deg,${c}${a1} 0%,${c}${a2} 100%)`;
 }
 
@@ -878,12 +881,22 @@ function renderYearView(body,d){
       const ds=`${year}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
       const tasks=tasksDueOn(ds);
       const isToday=ds===todayStr();
-      const cell=el('div','year-cell'+(tasks.length?' has-tasks':'')+(isToday?' is-today':''));
+      const cell=el('div','year-cell'+(isToday?' is-today':''));
+      cell.style.cssText=`height:auto;min-height:10px;border-radius:2px;background:var(--parchment-dark);cursor:pointer;padding:1px;display:flex;flex-wrap:wrap;gap:1px;align-items:flex-start;`;
       if(tasks.length){
-        // Use the color of the most frequent task type
-        cell.style.background=cardColor(tasks[0]);
-        cell.style.opacity='0.75';
+        tasks.slice(0,4).forEach(t=>{
+          const dot=el('div');
+          dot.style.cssText=`width:4px;height:4px;border-radius:50%;background:${cardColor(t)};flex-shrink:0;`;
+          cell.appendChild(dot);
+        });
+        if(tasks.length>4){
+          // fill rest with a small + indicator
+          const more=el('div');
+          more.style.cssText='width:4px;height:4px;border-radius:50%;background:var(--brown-light);flex-shrink:0;';
+          cell.appendChild(more);
+        }
       }
+      if(isToday){cell.style.outline='1.5px solid var(--gold)';}
       cell.title=`${MONTH_NAMES[m]} ${day}: ${tasks.length} task${tasks.length!==1?'s':''}`;
       cell.onclick=()=>{S.scheduleDate=parseDate(ds);S.scheduleView='day';render();};
       miniGrid.appendChild(cell);
@@ -1001,6 +1014,7 @@ function renderPending(body){
 // TAB: SETTINGS
 // ══════════════════════════════════════════
 function renderSettings(body){
+  backupWarningBanner(body);
   // About
   const as=el('div','settings-section');
   const at=el('div','settings-title');at.textContent='About & Help';as.appendChild(at);
@@ -1147,6 +1161,47 @@ function showColorPicker(type,id,currentColor){
 }
 
 // ══════════════════════════════════════════
+// FLORAL PAGE TITLE
+// ══════════════════════════════════════════
+function floralPageTitle(body,titleText){
+  const wrap=el('div');
+  wrap.style.cssText='text-align:center;margin-bottom:20px;';
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox','0 0 320 80');
+  svg.setAttribute('width','100%');
+  svg.style.cssText='max-width:320px;display:block;margin:0 auto;overflow:visible;';
+  const W=320,H=80;
+  function rb(x,y,r=6){return `<circle cx="${x}" cy="${y}" r="${r}" fill="#f0b0c0" opacity=".85"/><circle cx="${x}" cy="${y}" r="${r*.55}" fill="#d4788a" opacity=".9"/>`;}
+  function daisy(x,y,r=9,col='#b8a0d4'){return Array.from({length:10},(_,i)=>{const a=i*36*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*r}" cy="${y+Math.sin(a)*r}" rx="4" ry="2" fill="${col}" opacity=".85" transform="rotate(${i*36} ${x+Math.cos(a)*r} ${y+Math.sin(a)*r})"/>`;}).join('')+`<circle cx="${x}" cy="${y}" r="4" fill="#e8d840"/>`;}
+  function sf(x,y,r=9){return Array.from({length:12},(_,i)=>{const a=i*30*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*r}" cy="${y+Math.sin(a)*r}" rx="4" ry="2" fill="#f5c842" opacity=".9" transform="rotate(${i*30} ${x+Math.cos(a)*r} ${y+Math.sin(a)*r})"/>`;}).join('')+`<circle cx="${x}" cy="${y}" r="5" fill="#8B6914"/>`;}
+  function pansy(x,y,s=.75){return `<ellipse cx="${x-7*s}" cy="${y-4*s}" rx="${8*s}" ry="${5*s}" fill="#7060c0" opacity=".8"/><ellipse cx="${x+7*s}" cy="${y-4*s}" rx="${8*s}" ry="${5*s}" fill="#7060c0" opacity=".8"/><ellipse cx="${x}" cy="${y+5*s}" rx="${8*s}" ry="${5*s}" fill="#5048a8" opacity=".85"/><ellipse cx="${x-6*s}" cy="${y+2*s}" rx="${6*s}" ry="${4*s}" fill="#8878d0" opacity=".7"/><ellipse cx="${x+6*s}" cy="${y+2*s}" rx="${6*s}" ry="${4*s}" fill="#8878d0" opacity=".7"/><circle cx="${x}" cy="${y+1*s}" r="${2.5*s}" fill="#f5e87a"/>`;}
+  function leaf(x,y,rx,ry,rot){return `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#7a9a6a" opacity=".72" transform="rotate(${rot} ${x} ${y})"/>`;}
+
+  svg.innerHTML=`
+    <path d="M20 ${H/2} Q${W*.12} 20 ${W*.28} ${H/2} Q${W*.15} ${H*.8} 20 ${H/2}" stroke="#5a7a4a" stroke-width="1.2" fill="none" opacity=".4"/>
+    <path d="M${W-20} ${H/2} Q${W*.88} 20 ${W*.72} ${H/2} Q${W*.85} ${H*.8} ${W-20} ${H/2}" stroke="#5a7a4a" stroke-width="1.2" fill="none" opacity=".4"/>
+    ${leaf(18,H/2-8,13,6,-30)}${leaf(30,H/2-18,11,5,10)}${leaf(22,H/2+10,12,5,40)}
+    ${leaf(W-18,H/2-8,13,6,30)}${leaf(W-30,H/2-18,11,5,-10)}${leaf(W-22,H/2+10,12,5,-40)}
+    ${rb(42,H/2-14,5)}${rb(28,H/2+8,4)}
+    ${rb(W-42,H/2-14,5)}${rb(W-28,H/2+8,4)}
+    ${daisy(62,H/2-8,8,'#b8a0d4')}
+    ${daisy(W-62,H/2-8,8,'#b8a0d4')}
+    ${sf(W/2-60,H/2+2,7)}${sf(W/2+60,H/2+2,7)}
+    ${pansy(W/2-80,H/2-5,.65)}${pansy(W/2+80,H/2-5,.65)}
+    ${leaf(W/2-40,14,10,5,-15)}${leaf(W/2+40,14,10,5,15)}
+    ${rb(W/2-20,10,4)}${rb(W/2+20,10,4)}
+  `;
+
+  const fo=document.createElementNS('http://www.w3.org/2000/svg','foreignObject');
+  fo.setAttribute('x','60');fo.setAttribute('y','18');
+  fo.setAttribute('width','200');fo.setAttribute('height','44');
+  fo.innerHTML=`<div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--text);text-align:center;line-height:1.3;">${titleText}</div>`;
+  svg.appendChild(fo);
+  wrap.appendChild(svg);
+  body.appendChild(wrap);
+}
+
+// ══════════════════════════════════════════
 // TAB: HOW TO
 // ══════════════════════════════════════════
 function renderHowTo(body){
@@ -1162,6 +1217,7 @@ function renderHowTo(body){
     }
     render();
   };body.appendChild(back);
+  floralPageTitle(body,'How To Install');
 
   const intro=el('div');
   intro.style.cssText='background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:var(--brown-mid);line-height:1.7;';
@@ -1259,6 +1315,7 @@ function renderWalkthrough(body){
     S.tab='settings';
     render();
   };body.appendChild(back);
+  floralPageTitle(body,'Getting Started');
 
   // Extra prominent warning at top
   const bigWarn=el('div');
