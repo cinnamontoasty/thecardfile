@@ -90,15 +90,14 @@ body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-he
 
 /* ── SIDE FLOWERS ── */
 .side-flowers{
-  position:fixed;top:90px;bottom:0;width:52px;pointer-events:none;z-index:5;
-  overflow:visible;
+  position:fixed;bottom:0;width:56px;pointer-events:none;z-index:5;
 }
 .side-flowers-left{left:0;}
 .side-flowers-right{right:0;}
 @media(max-width:700px){.side-flowers{display:none;}}
 @media(min-width:900px){.side-flowers{width:72px;}}
-@media(min-width:1100px){.side-flowers{width:96px;}}
-@media(min-width:1400px){.side-flowers{width:120px;}}
+@media(min-width:1100px){.side-flowers{width:92px;}}
+@media(min-width:1400px){.side-flowers{width:116px;}}
 .tabs{display:flex;overflow-x:auto;scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab{padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;}
@@ -456,9 +455,10 @@ function cardBg(task){
   if(isSpecial){
     return `linear-gradient(135deg,${c}cc 0%,${c}99 100%)`;
   }
-  // Daily (D) yellow: force legal-pad yellow in dark mode
-  if(S.darkMode&&task.freq==='d'){
-    return `linear-gradient(135deg,#d8cc60 0%,#c8bc48 100%)`;
+  // Daily (D): force solid legal-pad yellow in dark mode regardless of theme
+  // Must use fully opaque colors — any transparency causes green tint on dark bg
+  if(S.darkMode&&task.freq==='d'&&!isSpecial){
+    return `linear-gradient(135deg,#c8c040 0%,#b8b030 100%)`;
   }
   const a1=S.darkMode?'88':'cc';
   const a2=S.darkMode?'66':'99';
@@ -1938,6 +1938,12 @@ function render(){
     bar.append(txt2,x);app.appendChild(bar);
   }
 
+  // Daily notification — rebuild from due tasks if needed
+  const dueTodayForNotif=S.tasks.filter(t=>isDueToday(t));
+  if(dueTodayForNotif.length&&!S._notification){
+    S._notification=dueTodayForNotif;
+  }
+
   // Daily notification — only show if not dismissed
   if(S._notification&&!S.notificationDismissed){
     const nb=el('div','notif');
@@ -1993,7 +1999,9 @@ function render(){
   hdu.textContent=`${dueCount} task${dueCount!==1?'s':''} due`;
   hdu.title='Click to show/hide today\'s task list';
   hdu.onclick=()=>{
-    if(S._notification){
+    const due=S.tasks.filter(t=>isDueToday(t));
+    if(due.length){
+      if(!S._notification) S._notification=due;
       S.notificationDismissed=!S.notificationDismissed;
       render();
     }
