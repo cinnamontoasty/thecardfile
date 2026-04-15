@@ -90,14 +90,15 @@ body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-he
 
 /* ── SIDE FLOWERS ── */
 .side-flowers{
-  position:fixed;top:0;bottom:0;width:52px;pointer-events:none;z-index:5;
-  overflow:hidden;
+  position:fixed;top:90px;bottom:0;width:52px;pointer-events:none;z-index:5;
+  overflow:visible;
 }
 .side-flowers-left{left:0;}
 .side-flowers-right{right:0;}
 @media(max-width:700px){.side-flowers{display:none;}}
-@media(min-width:900px){.side-flowers{width:70px;}}
-@media(min-width:1100px){.side-flowers{width:90px;}}
+@media(min-width:900px){.side-flowers{width:72px;}}
+@media(min-width:1100px){.side-flowers{width:96px;}}
+@media(min-width:1400px){.side-flowers{width:120px;}}
 .tabs{display:flex;overflow-x:auto;scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab{padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;}
@@ -343,7 +344,7 @@ const THEMES={
   },
   'autumn':{
     name:'🍁 Autumn Harvest',
-    freqs:{'2d':'#f8d898','d':'#f8e878','eod':'#e8a870','3w':'#d87858','2w':'#c05840','w':'#a87848','eow':'#886838','m':'#98a868','eom':'#788858','s':'#586840','2y':'#e8c890','y':'#b07848'},
+    freqs:{'2d':'#f8d898','d':'#f8e878','eod':'#e8a870','3w':'#d87858','2w':'#c05840','w':'#7888b8','eow':'#886838','m':'#98a868','eom':'#788858','s':'#586840','2y':'#e8c890','y':'#b07848'},
   },
   'lavender':{
     name:'💜 Lavender Fields',
@@ -351,7 +352,7 @@ const THEMES={
   },
   'sunrise':{
     name:'🌅 Sunrise',
-    freqs:{'2d':'#f8d898','d':'#f8f060','eod':'#f8b870','3w':'#f09060','2w':'#e86858','w':'#e05090','eow':'#5898d8','m':'#88b898','eom':'#c878b8','s':'#a878a0','2y':'#f0c880','y':'#c07060'},
+    freqs:{'2d':'#f8d898','d':'#f8f060','eod':'#f8b870','3w':'#f09060','2w':'#e86858','w':'#5898d8','eow':'#e05090','m':'#88b898','eom':'#c878b8','s':'#a878a0','2y':'#f0c880','y':'#c07060'},
   },
 };
 
@@ -732,7 +733,7 @@ function buildSideFlowers(){
   };
 
   function makeSVGContent(W,side){
-    const cx=side==='left'?W-6:6;
+    const cx=side==='left'?W-8:8;
     function rb(x,y,r=7){return `<circle cx="${x}" cy="${y}" r="${r}" fill="${colors.rose}" opacity=".85"/><circle cx="${x}" cy="${y}" r="${r*.55}" fill="${colors.roseDark}" opacity=".9"/>`;}
     function daisy(x,y,r=10){return Array.from({length:10},(_,i)=>{const a=i*36*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*r}" cy="${y+Math.sin(a)*r}" rx="4.5" ry="2.2" fill="${colors.daisy}" opacity=".85" transform="rotate(${i*36} ${x+Math.cos(a)*r} ${y+Math.sin(a)*r})"/>`;}).join('')+`<circle cx="${x}" cy="${y}" r="4.5" fill="${colors.dCenter}"/>`;}
     function sf(x,y,r=10){return Array.from({length:12},(_,i)=>{const a=i*30*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*r}" cy="${y+Math.sin(a)*r}" rx="4.5" ry="2.2" fill="${colors.sfPetal}" opacity=".9" transform="rotate(${i*30} ${x+Math.cos(a)*r} ${y+Math.sin(a)*r})"/>`;}).join('')+`<circle cx="${x}" cy="${y}" r="5.5" fill="${colors.sfCenter}"/>`;}
@@ -783,9 +784,11 @@ function buildSideFlowers(){
 
     function redraw(){
       const W=div.offsetWidth||60;
-      svg.setAttribute('viewBox',`0 0 ${W} 1220`);
+      const H=Math.max(window.innerHeight*3,1800);
+      svg.setAttribute('viewBox',`0 0 60 ${H}`);
       svg.setAttribute('preserveAspectRatio','xMidYMin meet');
-      svg.innerHTML=makeSVGContent(W,side);
+      svg.style.cssText=`position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;`;
+      svg.innerHTML=makeSVGContent(60,side);
     }
     redraw();
     if(window.ResizeObserver){
@@ -2033,6 +2036,16 @@ function render(){
 
   // Side flowers (wide screens only — CSS handles hiding on mobile)
   buildSideFlowers();
+  // Position flowers below header dynamically
+  requestAnimationFrame(()=>{
+    const headerEl=document.querySelector('.header');
+    if(headerEl){
+      const hh=headerEl.offsetHeight;
+      document.querySelectorAll('.side-flowers').forEach(f=>{
+        f.style.top=(hh+4)+'px';
+      });
+    }
+  });
 }
 
 // ══════════════════════════════════════════
