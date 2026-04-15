@@ -163,6 +163,8 @@ body.dark .icon-btn{color:rgba(255,240,220,0.5);}
 .icon-btn:active{color:rgba(0,0,0,0.85);}
 .del-btn{color:rgba(180,60,60,0.55);}
 .check-btn{width:32px;height:32px;border-radius:50%;border:2px solid rgba(255,255,255,0.6);background:rgba(255,255,255,0.3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .2s;-webkit-appearance:none;flex-shrink:0;}
+.check-btn:not(.done):hover::after{content:'Mark complete';position:absolute;right:40px;background:rgba(0,0,0,0.75);color:#fff;font-size:10px;padding:3px 8px;border-radius:4px;white-space:nowrap;pointer-events:none;font-family:'Lato',sans-serif;}
+.check-btn{position:relative;}
 .check-btn:active{transform:scale(.88);}
 .check-btn.done{background:rgba(255,255,255,0.85);border-color:rgba(255,255,255,0.9);color:#2d7a3a;}
 
@@ -455,10 +457,14 @@ function cardBg(task){
   if(isSpecial){
     return `linear-gradient(135deg,${c}cc 0%,${c}99 100%)`;
   }
-  // Daily (D): force solid legal-pad yellow in dark mode regardless of theme
-  // Must use fully opaque colors — any transparency causes green tint on dark bg
+  // Daily (D): fully opaque legal-pad yellow in dark mode
+  // MUST be fully opaque — any transparency causes green tint on dark background
   if(S.darkMode&&task.freq==='d'&&!isSpecial){
-    return `linear-gradient(135deg,#c8c040 0%,#b8b030 100%)`;
+    return `linear-gradient(135deg,#c8c028 0%,#b8b018 100%)`;
+  }
+  // Daily in light mode — use the theme color but ensure it reads as yellow not green
+  if(!S.darkMode&&task.freq==='d'&&!isSpecial){
+    return `linear-gradient(135deg,#FFFFC5 0%,#F5F080 100%)`;
   }
   const a1=S.darkMode?'88':'cc';
   const a2=S.darkMode?'66':'99';
@@ -710,90 +716,147 @@ function backupWarningBanner(body){
 // ══════════════════════════════════════════
 // SIDE FLOWERS
 // ══════════════════════════════════════════
+// SIDE FLOWERS
+// ══════════════════════════════════════════
 function buildSideFlowers(){
   const isLight=!S.darkMode;
   const acc=S.darkAccent||'#c06878';
   const r=parseInt(acc.slice(1,3),16),g=parseInt(acc.slice(3,5),16),b=parseInt(acc.slice(5,7),16);
-  const lighter=`rgb(${Math.min(255,r+50)},${Math.min(255,g+50)},${Math.min(255,b+50)})`;
-  const darker=`rgb(${Math.max(0,r-35)},${Math.max(0,g-35)},${Math.max(0,b-35)})`;
-  const colors={
+  const lighter=`rgb(${Math.min(255,r+55)},${Math.min(255,g+55)},${Math.min(255,b+55)})`;
+  const darker=`rgb(${Math.max(0,r-40)},${Math.max(0,g-40)},${Math.max(0,b-40)})`;
+  const C={
     rose:    isLight?'#f0b0c0':lighter,
-    roseDark:isLight?'#d4788a':acc,
+    roseD:   isLight?'#d4788a':acc,
     daisy:   isLight?'#b8a0d4':lighter,
-    dCenter: isLight?'#e8d840':lighter,
-    sfPetal: isLight?'#f5c842':lighter,
-    sfCenter:isLight?'#8B6914':darker,
-    pOuter:  isLight?'#7060c0':acc,
-    pInner:  isLight?'#5048a8':darker,
-    pLight:  isLight?'#8878d0':lighter,
-    pCenter: isLight?'#f5e87a':lighter,
-    leaf:    isLight?'#7a9a6a':'#a07880',
-    leafDk:  isLight?'#5a7a4a':'#886070',
-    vine:    isLight?'#5a7a4a':'#987080',
+    dCtr:    isLight?'#e8d840':lighter,
+    sfP:     isLight?'#f5c842':lighter,
+    sfC:     isLight?'#8B6914':darker,
+    pOut:    isLight?'#7060c0':acc,
+    pIn:     isLight?'#5048a8':darker,
+    pLt:     isLight?'#8878d0':lighter,
+    pCtr:    isLight?'#f5e87a':lighter,
+    leaf:    isLight?'#7a9a6a':'#907878',
+    leafD:   isLight?'#5a7a4a':'#785858',
+    vine:    isLight?'#5a7a4a':'#907878',
   };
 
-  function makeSVGContent(W,side){
-    const cx=side==='left'?W-8:8;
-    function rb(x,y,r=7){return `<circle cx="${x}" cy="${y}" r="${r}" fill="${colors.rose}" opacity=".85"/><circle cx="${x}" cy="${y}" r="${r*.55}" fill="${colors.roseDark}" opacity=".9"/>`;}
-    function daisy(x,y,r=10){return Array.from({length:10},(_,i)=>{const a=i*36*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*r}" cy="${y+Math.sin(a)*r}" rx="4.5" ry="2.2" fill="${colors.daisy}" opacity=".85" transform="rotate(${i*36} ${x+Math.cos(a)*r} ${y+Math.sin(a)*r})"/>`;}).join('')+`<circle cx="${x}" cy="${y}" r="4.5" fill="${colors.dCenter}"/>`;}
-    function sf(x,y,r=10){return Array.from({length:12},(_,i)=>{const a=i*30*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*r}" cy="${y+Math.sin(a)*r}" rx="4.5" ry="2.2" fill="${colors.sfPetal}" opacity=".9" transform="rotate(${i*30} ${x+Math.cos(a)*r} ${y+Math.sin(a)*r})"/>`;}).join('')+`<circle cx="${x}" cy="${y}" r="5.5" fill="${colors.sfCenter}"/>`;}
-    function pansy(x,y,s=.9){return `<ellipse cx="${x-7*s}" cy="${y-5*s}" rx="${8*s}" ry="${5*s}" fill="${colors.pOuter}" opacity=".82"/><ellipse cx="${x+7*s}" cy="${y-5*s}" rx="${8*s}" ry="${5*s}" fill="${colors.pOuter}" opacity=".82"/><ellipse cx="${x}" cy="${y+6*s}" rx="${8*s}" ry="${5*s}" fill="${colors.pInner}" opacity=".88"/><ellipse cx="${x-6*s}" cy="${y+2*s}" rx="${6*s}" ry="${4*s}" fill="${colors.pLight}" opacity=".72"/><ellipse cx="${x+6*s}" cy="${y+2*s}" rx="${6*s}" ry="${4*s}" fill="${colors.pLight}" opacity=".72"/><circle cx="${x}" cy="${y+1.5*s}" r="${2.5*s}" fill="${colors.pCenter}"/>`;}
-    function leaf(x,y,rx,ry,rot){return `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${colors.leaf}" opacity=".75" transform="rotate(${rot} ${x} ${y})"/>`;}
-    function leafD(x,y,rx,ry,rot){return `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${colors.leafDk}" opacity=".65" transform="rotate(${rot} ${x} ${y})"/>`;}
-    // vine curves toward content (inward)
+  // Build flower pattern for a given column width W
+  // All coordinates are in a 100-unit wide space, scaled to actual W
+  function makeFlowers(W,side){
+    const cx=side==='left'?W*0.75:W*0.25;
     const dir=side==='left'?1:-1;
+    const s=W/100; // scale factor — flowers grow with column width
+    function rb(x,y,rad=7){
+      const rx=cx+(x-50)*s,ry=y;
+      return `<circle cx="${rx}" cy="${ry}" r="${rad*s}" fill="${C.rose}" opacity=".85"/><circle cx="${rx}" cy="${ry}" r="${rad*s*.55}" fill="${C.roseD}" opacity=".9"/>`;
+    }
+    function daisy(x,y,rad=10){
+      const rx=cx+(x-50)*s,ry=y;
+      return Array.from({length:10},(_,i)=>{const a=i*36*Math.PI/180;return `<ellipse cx="${rx+Math.cos(a)*rad*s}" cy="${ry+Math.sin(a)*rad*s}" rx="${4.5*s}" ry="${2.2*s}" fill="${C.daisy}" opacity=".85" transform="rotate(${i*36} ${rx+Math.cos(a)*rad*s} ${ry+Math.sin(a)*rad*s})"/>`;}).join('')+`<circle cx="${rx}" cy="${ry}" r="${4.5*s}" fill="${C.dCtr}"/>`;
+    }
+    function sf(x,y,rad=10){
+      const rx=cx+(x-50)*s,ry=y;
+      return Array.from({length:12},(_,i)=>{const a=i*30*Math.PI/180;return `<ellipse cx="${rx+Math.cos(a)*rad*s}" cy="${ry+Math.sin(a)*rad*s}" rx="${4.5*s}" ry="${2.2*s}" fill="${C.sfP}" opacity=".9" transform="rotate(${i*30} ${rx+Math.cos(a)*rad*s} ${ry+Math.sin(a)*rad*s})"/>`;}).join('')+`<circle cx="${rx}" cy="${ry}" r="${5.5*s}" fill="${C.sfC}"/>`;
+    }
+    function pansy(x,y,ps=1){
+      const rx=cx+(x-50)*s,ry=y,ss=ps*s;
+      return `<ellipse cx="${rx-7*ss}" cy="${ry-5*ss}" rx="${8*ss}" ry="${5*ss}" fill="${C.pOut}" opacity=".82"/><ellipse cx="${rx+7*ss}" cy="${ry-5*ss}" rx="${8*ss}" ry="${5*ss}" fill="${C.pOut}" opacity=".82"/><ellipse cx="${rx}" cy="${ry+6*ss}" rx="${8*ss}" ry="${5*ss}" fill="${C.pIn}" opacity=".88"/><ellipse cx="${rx-6*ss}" cy="${ry+2*ss}" rx="${6*ss}" ry="${4*ss}" fill="${C.pLt}" opacity=".72"/><ellipse cx="${rx+6*ss}" cy="${ry+2*ss}" rx="${6*ss}" ry="${4*ss}" fill="${C.pLt}" opacity=".72"/><circle cx="${rx}" cy="${ry+1.5*ss}" r="${2.5*ss}" fill="${C.pCtr}"/>`;
+    }
+    function leaf(x,y,lx,ly,rot){
+      const rx=cx+(x-50)*s,ry=y;
+      return `<ellipse cx="${rx}" cy="${ry}" rx="${lx*s}" ry="${ly*s}" fill="${C.leaf}" opacity=".75" transform="rotate(${rot} ${rx} ${ry})"/>`;
+    }
+    function leafD(x,y,lx,ly,rot){
+      const rx=cx+(x-50)*s,ry=y;
+      return `<ellipse cx="${rx}" cy="${ry}" rx="${lx*s}" ry="${ly*s}" fill="${C.leafD}" opacity=".65" transform="rotate(${rot} ${rx} ${ry})"/>`;
+    }
+    const vcx=cx;
     return `
-      <path d="M${cx} 0 Q${cx+dir*12} 200 ${cx} 400 Q${cx+dir*12} 600 ${cx} 800 Q${cx+dir*12} 1000 ${cx} 1200" stroke="${colors.vine}" stroke-width="1.5" fill="none" opacity=".5"/>
-      ${leaf(cx,55,15,6,side==='left'?-35:35)}${leafD(cx+dir*4,75,11,5,side==='left'?18:-18)}
-      ${rb(cx,105,7)}
-      ${leaf(cx,140,14,6,side==='left'?-28:28)}${leafD(cx+dir*3,158,10,5,side==='left'?14:-14)}
-      ${daisy(cx,195,10)}
-      ${leaf(cx,238,15,6,side==='left'?-40:40)}${leafD(cx+dir*4,256,11,5,side==='left'?22:-22)}
-      ${rb(cx,282,6)}${rb(cx+dir*2,300,5)}
-      ${leaf(cx,328,14,6,side==='left'?-32:32)}
-      ${sf(cx,368,10)}
-      ${leaf(cx,408,15,6,side==='left'?-38:38)}${leafD(cx+dir*3,426,11,5,side==='left'?18:-18)}
-      ${rb(cx,452,7)}
-      ${leaf(cx,488,14,6,side==='left'?-28:28)}
-      ${pansy(cx,528,.88)}
-      ${leaf(cx,568,15,6,side==='left'?-42:42)}${leafD(cx+dir*3,586,10,5,side==='left'?22:-22)}
-      ${rb(cx,612,6)}
-      ${leaf(cx,642,14,6,side==='left'?-32:32)}${leafD(cx+dir*4,660,11,5,side==='left'?16:-16)}
-      ${daisy(cx,692,10)}
-      ${leaf(cx,732,15,6,side==='left'?-38:38)}
-      ${rb(cx,765,7)}${rb(cx+dir*2,783,5)}
-      ${leaf(cx,808,14,6,side==='left'?-28:28)}${leafD(cx+dir*3,826,10,5,side==='left'?18:-18)}
-      ${sf(cx,858,10)}
-      ${leaf(cx,898,15,6,side==='left'?-42:42)}
-      ${pansy(cx,938,.88)}
-      ${leaf(cx,976,14,6,side==='left'?-32:32)}${leafD(cx+dir*4,994,11,5,side==='left'?16:-16)}
-      ${rb(cx,1022,7)}
-      ${leaf(cx,1055,15,6,side==='left'?-38:38)}${leafD(cx+dir*3,1073,10,5,side==='left'?22:-22)}
-      ${daisy(cx,1102,10)}
-      ${leaf(cx,1142,14,6,side==='left'?-28:28)}
-      ${rb(cx,1172,6)}${rb(cx+dir*2,1190,5)}
+      <path d="M${vcx} 0 Q${vcx+dir*15*s} 300 ${vcx} 600 Q${vcx+dir*15*s} 900 ${vcx} 1200 Q${vcx+dir*15*s} 1500 ${vcx} 1800 Q${vcx+dir*15*s} 2100 ${vcx} 2400" stroke="${C.vine}" stroke-width="${1.5*s}" fill="none" opacity=".5"/>
+      ${leaf(50,50,15,6,-35)}${leafD(50,72,11,5,18)}
+      ${rb(50,100,7)}
+      ${leaf(50,138,14,6,-28)}${leafD(50,158,10,5,14)}
+      ${daisy(50,195,10)}
+      ${leaf(50,238,15,6,-40)}${leafD(50,258,11,5,22)}
+      ${rb(50,284,6)}${rb(50,304,5)}
+      ${leaf(50,330,14,6,-32)}
+      ${sf(50,368,10)}
+      ${leaf(50,408,15,6,-38)}${leafD(50,428,11,5,18)}
+      ${rb(50,454,7)}
+      ${leaf(50,490,14,6,-28)}
+      ${pansy(50,530,1)}
+      ${leaf(50,570,15,6,-42)}${leafD(50,590,10,5,22)}
+      ${rb(50,615,6)}
+      ${leaf(50,645,14,6,-32)}${leafD(50,665,11,5,16)}
+      ${daisy(50,694,10)}
+      ${leaf(50,734,15,6,-38)}
+      ${rb(50,767,7)}${rb(50,787,5)}
+      ${leaf(50,812,14,6,-28)}${leafD(50,830,10,5,18)}
+      ${sf(50,860,10)}
+      ${leaf(50,900,15,6,-42)}
+      ${pansy(50,940,1)}
+      ${leaf(50,978,14,6,-32)}${leafD(50,998,11,5,16)}
+      ${rb(50,1025,7)}
+      ${leaf(50,1058,15,6,-38)}${leafD(50,1076,10,5,22)}
+      ${daisy(50,1106,10)}
+      ${leaf(50,1146,14,6,-28)}
+      ${rb(50,1176,6)}${rb(50,1196,5)}
+      ${leaf(50,1222,15,6,-35)}${leafD(50,1242,11,5,18)}
+      ${rb(50,1270,7)}
+      ${leaf(50,1306,14,6,-28)}${leafD(50,1326,10,5,14)}
+      ${daisy(50,1363,10)}
+      ${sf(50,1440,10)}
+      ${pansy(50,1530,1)}
+      ${daisy(50,1620,10)}
+      ${rb(50,1700,7)}
+      ${sf(50,1780,10)}
+      ${pansy(50,1860,1)}
+      ${daisy(50,1940,10)}
+      ${rb(50,2020,6)}${rb(50,2040,5)}
+      ${sf(50,2120,10)}
+      ${pansy(50,2210,1)}
+      ${daisy(50,2300,10)}
+      ${rb(50,2380,7)}
     `;
   }
 
   ['left','right'].forEach(side=>{
     const div=el('div',`side-flowers side-flowers-${side}`);
+    div.style.cssText=`position:fixed;bottom:0;pointer-events:none;z-index:5;`;
+    if(side==='left') div.style.left='0';
+    else div.style.right='0';
+
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-    svg.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;';
+    svg.style.cssText='display:block;width:100%;';
     div.appendChild(svg);
     document.body.appendChild(div);
 
     function redraw(){
-      const W=div.offsetWidth||60;
-      const H=Math.max(window.innerHeight*3,1800);
-      svg.setAttribute('viewBox',`0 0 60 ${H}`);
-      svg.setAttribute('preserveAspectRatio','xMidYMin meet');
-      svg.style.cssText=`position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;`;
-      svg.innerHTML=makeSVGContent(60,side);
+      const W=div.offsetWidth||56;
+      const H=Math.max(document.body.scrollHeight,window.innerHeight)*1.2;
+      svg.setAttribute('width',W);
+      svg.setAttribute('height',H);
+      svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+      svg.style.height=H+'px';
+      svg.innerHTML=makeFlowers(W,side);
     }
-    redraw();
+
+    // Set top based on header height
+    requestAnimationFrame(()=>{
+      const hdr=document.querySelector('.header');
+      const top=hdr?hdr.offsetHeight+4:90;
+      div.style.top=top+'px';
+      redraw();
+    });
+
     if(window.ResizeObserver){
-      const ro=new ResizeObserver(redraw);
-      ro.observe(div);
+      const ro=new ResizeObserver(()=>{
+        const hdr=document.querySelector('.header');
+        const top=hdr?hdr.offsetHeight+4:90;
+        div.style.top=top+'px';
+        redraw();
+      });
+      ro.observe(document.body);
     }
   });
 }
@@ -910,7 +973,9 @@ function renderCard(task,showArea,opts={}){
   const editBtn=el('button','icon-btn');editBtn.textContent='✎';editBtn.title='Edit this card';editBtn.onclick=()=>{S.editTask={...task,completions:[...(task.completions||[])],carryOvers:[...(task.carryOvers||[])]};render();};
   const delBtn=el('button','icon-btn del-btn');delBtn.textContent='✕';delBtn.title='Delete this card';delBtn.onclick=()=>deleteTask(task.id);
   const chk=el('button','check-btn'+(doneToday?' done':''));
-  chk.textContent=doneToday?'✓':'';chk.onclick=()=>{if(!doneToday)markDone(task.id);};
+  chk.textContent=doneToday?'✓':'';
+  chk.title=doneToday?'Completed today':'Mark complete';
+  chk.onclick=()=>{if(!doneToday)markDone(task.id);};
   actions.append(editBtn,delBtn,chk);
   footer.append(lfoot,actions);inner.appendChild(footer);
   card.appendChild(inner);
@@ -1944,47 +2009,6 @@ function render(){
     S._notification=dueTodayForNotif;
   }
 
-  // Daily notification — only show if not dismissed
-  if(S._notification&&!S.notificationDismissed){
-    const nb=el('div','notif');
-    const bd2=el('div','notif-body');
-    const t=el('div','notif-title');t.textContent='Tasks due today — '+new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-    const list=el('div','notif-list');
-    // Tiny flowers before the list
-    const isLight=!S.darkMode;
-    const flowerRow=el('div');flowerRow.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:6px;opacity:.7;';
-    const tinySvg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-    tinySvg.setAttribute('viewBox','0 0 120 14');tinySvg.setAttribute('width','120');tinySvg.setAttribute('height','14');
-    const rc=isLight?'#f0b0c0':'#c8a878',dp=isLight?'#b8a0d4':'#c8b888',sf=isLight?'#f5c842':'#c8b060',lc=isLight?'#7a9a6a':'#a09060';
-    tinySvg.innerHTML=`
-      <ellipse cx="6" cy="7" rx="8" ry="4" fill="${lc}" opacity=".7" transform="rotate(-20 6 7)"/>
-      <circle cx="18" cy="7" r="3" fill="${rc}" opacity=".85"/><circle cx="18" cy="7" r="1.8" fill="#d4788a" opacity=".9"/>
-      <circle cx="30" cy="7" r="2" fill="${sf}" opacity=".85"/><circle cx="30" cy="7" r="1.2" fill="#8B6914"/>
-      <ellipse cx="40" cy="7" rx="8" ry="4" fill="${lc}" opacity=".65" transform="rotate(15 40 7)"/>
-      <circle cx="52" cy="7" r="3" fill="${dp}" opacity=".8"/><circle cx="52" cy="7" r="1.8" fill="#e8d840"/>
-      <ellipse cx="62" cy="7" rx="8" ry="4" fill="${lc}" opacity=".7" transform="rotate(-10 62 7)"/>
-      <circle cx="74" cy="7" r="2.5" fill="${rc}" opacity=".85"/><circle cx="74" cy="7" r="1.5" fill="#d4788a"/>
-      <circle cx="84" cy="7" r="2" fill="${sf}" opacity=".9"/><circle cx="84" cy="7" r="1.2" fill="#8B6914"/>
-      <ellipse cx="94" cy="7" rx="8" ry="4" fill="${lc}" opacity=".65" transform="rotate(20 94 7)"/>
-      <circle cx="106" cy="7" r="3" fill="${dp}" opacity=".8"/><circle cx="106" cy="7" r="1.8" fill="#e8d840"/>
-    `;
-    flowerRow.appendChild(tinySvg);
-    list.appendChild(flowerRow);
-    S._notification.slice(0,6).forEach(task=>{
-      const d=el('div');const color=cardColor(task);
-      d.innerHTML=`<span style="color:${color};font-weight:700;">${fById(task.freq).label}</span> ${task.name}${task.area?` <span style="color:var(--brown-light);font-size:10px;">— ${task.area}</span>`:''}`;
-      list.appendChild(d);
-    });
-    if(S._notification.length>6){const m=el('div');m.style.color='var(--brown-light)';m.textContent=`…and ${S._notification.length-6} more`;list.appendChild(m);}
-    // Another tiny flower row at bottom
-    const flowerRow2=el('div');flowerRow2.style.cssText='display:flex;gap:6px;align-items:center;margin-top:6px;opacity:.7;';
-    const tinySvg2=tinySvg.cloneNode(true);flowerRow2.appendChild(tinySvg2);list.appendChild(flowerRow2);
-    bd2.append(t,list);
-    const x=el('button','notif-close');x.textContent='×';
-    x.onclick=()=>{S.notificationDismissed=true;render();};
-    nb.append(bd2,x);app.appendChild(nb);
-  }
-
   // Header
   const header=el('div','header');
   const htop=el('div','header-top');
@@ -2017,8 +2041,67 @@ function render(){
   const settingsTab=el('div','tab settings-tab'+(S.tab==='settings'||S.tab==='howto'||S.tab==='walkthrough'?' active':''));
   settingsTab.textContent='⚙ Settings';
   settingsTab.onclick=()=>{S.tab='settings';render();};tabs.appendChild(settingsTab);
-
   header.append(htop,tabs);app.appendChild(header);
+
+  // Daily notification — appears AFTER header, only if not dismissed
+  if(S._notification&&!S.notificationDismissed){
+    const nb=el('div','notif');
+    const bd2=el('div','notif-body');
+    const t=el('div','notif-title');t.textContent='Tasks due today — '+new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+
+    // Build accent-aware flower garland SVG
+    function makeGarland(){
+      const isLight=!S.darkMode;
+      const acc=S.darkAccent||'#c06878';
+      const ra=parseInt(acc.slice(1,3),16),ga=parseInt(acc.slice(3,5),16),ba=parseInt(acc.slice(5,7),16);
+      const lighter=`rgb(${Math.min(255,ra+55)},${Math.min(255,ga+55)},${Math.min(255,ba+55)})`;
+      const rc=isLight?'#f0b0c0':lighter;
+      const rd=isLight?'#d4788a':acc;
+      const dp=isLight?'#b8a0d4':lighter;
+      const dc=isLight?'#e8d840':lighter;
+      const sf=isLight?'#f5c842':lighter;
+      const lc=isLight?'#7a9a6a':'#907878';
+      const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('viewBox','0 0 400 16');
+      svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+      svg.style.cssText='width:100%;height:16px;display:block;';
+      svg.innerHTML=`
+        <path d="M0 8 Q200 2 400 8" stroke="${lc}" stroke-width="1" fill="none" opacity=".5"/>
+        ${[20,60,100,140,180,220,260,300,340,380].map((x,i)=>{
+          if(i%3===0) return `<circle cx="${x}" cy="8" r="4" fill="${rc}" opacity=".85"/><circle cx="${x}" cy="8" r="2.2" fill="${rd}" opacity=".9"/>`;
+          if(i%3===1) return Array.from({length:8},(_,j)=>{const a=j*45*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*5}" cy="${8+Math.sin(a)*5}" rx="2.5" ry="1.2" fill="${dp}" opacity=".8" transform="rotate(${j*45} ${x+Math.cos(a)*5} ${8+Math.sin(a)*5})"/>`;}).join('')+`<circle cx="${x}" cy="8" r="2.5" fill="${dc}"/>`;
+          return Array.from({length:8},(_,j)=>{const a=j*45*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*4}" cy="${8+Math.sin(a)*4}" rx="2" ry="1" fill="${sf}" opacity=".85" transform="rotate(${j*45} ${x+Math.cos(a)*4} ${8+Math.sin(a)*4})"/>`;}).join('')+`<circle cx="${x}" cy="8" r="2" fill="#8B6914"/>`;
+        }).join('')}
+        ${[40,80,120,160,200,240,280,320,360].map(x=>`<ellipse cx="${x}" cy="8" rx="8" ry="3.5" fill="${lc}" opacity=".55" transform="rotate(${Math.random()>0.5?15:-15} ${x} 8)"/>`).join('')}
+      `;
+      return svg;
+    }
+
+    // Top garland
+    const topGarland=makeGarland();bd2.appendChild(topGarland);
+    bd2.appendChild(t);
+
+    // Tasks in columns
+    const tasks=S._notification;
+    const cols=Math.min(3,Math.ceil(tasks.length/3));
+    const list=el('div');
+    list.style.cssText=`display:grid;grid-template-columns:repeat(${cols},1fr);gap:2px 12px;margin:6px 0;`;
+    tasks.forEach(task=>{
+      const d=el('div');
+      d.style.cssText='font-size:12px;line-height:1.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      const color=cardColor(task);
+      d.innerHTML=`<span style="color:${color};font-weight:700;">${fById(task.freq).label}</span> ${task.name}`;
+      list.appendChild(d);
+    });
+    bd2.appendChild(list);
+
+    // Bottom garland
+    const bottomGarland=makeGarland();bd2.appendChild(bottomGarland);
+
+    const x=el('button','notif-close');x.textContent='×';
+    x.onclick=()=>{S.notificationDismissed=true;render();};
+    nb.append(bd2,x);app.appendChild(nb);
+  }
 
   // Body
   const body=el('div','body');
@@ -2044,16 +2127,6 @@ function render(){
 
   // Side flowers (wide screens only — CSS handles hiding on mobile)
   buildSideFlowers();
-  // Position flowers below header dynamically
-  requestAnimationFrame(()=>{
-    const headerEl=document.querySelector('.header');
-    if(headerEl){
-      const hh=headerEl.offsetHeight;
-      document.querySelectorAll('.side-flowers').forEach(f=>{
-        f.style.top=(hh+4)+'px';
-      });
-    }
-  });
 }
 
 // ══════════════════════════════════════════
