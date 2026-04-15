@@ -95,9 +95,9 @@ body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-he
 .side-flowers-left{left:0;}
 .side-flowers-right{right:0;}
 @media(max-width:700px){.side-flowers{display:none;}}
-@media(min-width:900px){.side-flowers{width:72px;}}
-@media(min-width:1100px){.side-flowers{width:92px;}}
-@media(min-width:1400px){.side-flowers{width:116px;}}
+@media(min-width:900px){.side-flowers{width:88px;}}
+@media(min-width:1100px){.side-flowers{width:120px;}}
+@media(min-width:1400px){.side-flowers{width:160px;}}
 .tabs{display:flex;overflow-x:auto;scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab{padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;}
@@ -222,11 +222,11 @@ body.dark .btn-primary{background:var(--gold);color:#2a1f18;}
 .btn-danger{background:#c0392b;color:#fff;}
 
 /* ── NOTIFICATIONS ── */
-.notif{background:var(--card-bg);border-bottom:3px solid var(--gold);padding:12px 15px;display:flex;align-items:flex-start;gap:10px;}
+.notif{background:var(--card-bg);border-bottom:3px solid var(--gold);padding:10px 15px;position:sticky;top:0;z-index:55;}
 .notif-body{flex:1;}
 .notif-title{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;font-weight:700;}
 .notif-list{font-size:12px;color:var(--brown-mid);line-height:1.9;}
-.notif-close{background:none;border:none;font-size:20px;color:var(--brown-light);cursor:pointer;padding:0 4px;-webkit-appearance:none;}
+.notif-close{position:absolute;top:8px;right:10px;background:none;border:none;font-size:20px;color:var(--brown-light);cursor:pointer;padding:0 4px;-webkit-appearance:none;}
 .install-hint{background:var(--parchment-dark);border-bottom:1px solid var(--border);padding:11px 15px;display:flex;align-items:center;gap:10px;}
 .install-hint-text{flex:1;font-size:12px;color:var(--brown-mid);line-height:1.5;}
 .install-hint-close{background:none;border:none;font-size:18px;color:var(--brown-light);cursor:pointer;-webkit-appearance:none;}
@@ -457,14 +457,10 @@ function cardBg(task){
   if(isSpecial){
     return `linear-gradient(135deg,${c}cc 0%,${c}99 100%)`;
   }
-  // Daily (D): fully opaque legal-pad yellow in dark mode
-  // MUST be fully opaque — any transparency causes green tint on dark background
-  if(S.darkMode&&task.freq==='d'&&!isSpecial){
-    return `linear-gradient(135deg,#c8c028 0%,#b8b018 100%)`;
-  }
-  // Daily in light mode — use the theme color but ensure it reads as yellow not green
-  if(!S.darkMode&&task.freq==='d'&&!isSpecial){
-    return `linear-gradient(135deg,#FFFFC5 0%,#F5F080 100%)`;
+  // Daily (D): same pale legal-pad yellow in BOTH light and dark mode
+  // Fully opaque so dark background never bleeds through and causes green tint
+  if(task.freq==='d'&&!isSpecial){
+    return `linear-gradient(135deg,#FFFFC5 0%,#F0E868 100%)`;
   }
   const a1=S.darkMode?'88':'cc';
   const a2=S.darkMode?'66':'99';
@@ -841,10 +837,11 @@ function buildSideFlowers(){
       svg.innerHTML=makeFlowers(W,side);
     }
 
-    // Set top based on header height
+    // Set top based on header + notification height
     requestAnimationFrame(()=>{
       const hdr=document.querySelector('.header');
-      const top=hdr?hdr.offsetHeight+4:90;
+      const notif=document.querySelector('.notif');
+      const top=(hdr?hdr.offsetHeight:90)+(notif?notif.offsetHeight:0)+2;
       div.style.top=top+'px';
       redraw();
     });
@@ -852,7 +849,8 @@ function buildSideFlowers(){
     if(window.ResizeObserver){
       const ro=new ResizeObserver(()=>{
         const hdr=document.querySelector('.header');
-        const top=hdr?hdr.offsetHeight+4:90;
+        const notif=document.querySelector('.notif');
+        const top=(hdr?hdr.offsetHeight:90)+(notif?notif.offsetHeight:0)+2;
         div.style.top=top+'px';
         redraw();
       });
@@ -2098,6 +2096,7 @@ function render(){
     // Bottom garland
     const bottomGarland=makeGarland();bd2.appendChild(bottomGarland);
 
+    nb.style.cssText='position:relative;';
     const x=el('button','notif-close');x.textContent='×';
     x.onclick=()=>{S.notificationDismissed=true;render();};
     nb.append(bd2,x);app.appendChild(nb);
