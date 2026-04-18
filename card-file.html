@@ -387,6 +387,14 @@ const COLOR_PALETTE=[
 const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
 
+const TIME_OF_DAY=[
+  {id:'dawn',    label:'🌅 Dawn',      color:'#c8a878'},
+  {id:'morning', label:'🌞 Morning',   color:'#e8b040'},
+  {id:'afternoon',label:'☀️ Afternoon',color:'#d4784a'},
+  {id:'evening', label:'🌙 Evening',   color:'#7878b8'},
+  {id:'',        label:'✨ Anytime',   color:'#9a8870'},
+];
+
 const DEFAULT_TASKS=[
   {id:1,name:'Wipe down stovetop',area:'Kitchen',freq:'d',time:"5'",supplies:'Degreaser, microfiber',mini:false,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
   {id:2,name:'Sweep kitchen floor',area:'Kitchen',freq:'d',time:"5'",supplies:'Broom, dustpan',mini:true,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
@@ -417,7 +425,7 @@ let S={
   scheduleDate:new Date(),
   showAdd:false,editTask:null,showWelcome:false,showInstall:false,
   firstTime:false,firstTimeHowTo:false,
-  newTask:{name:'',area:'Kitchen',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:''},
+  newTask:{name:'',area:'Kitchen',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:'',timeOfDay:''},
   nextId:200,
 };
 
@@ -527,7 +535,11 @@ function isDueToday(task){
 }
 
 function isDoneOn(task,dateS){
-  return (task.completions||[]).some(c=>c.startsWith(dateS));
+  return (task.completions||[]).some(c=>{
+    // Handle both full ISO timestamps and date strings
+    if(c.length>=10) return c.slice(0,10)===dateS;
+    return c.startsWith(dateS);
+  });
 }
 
 function isDoneToday(task){return isDoneOn(task,todayStr());}
@@ -538,21 +550,40 @@ function daysSince(task){
   return Math.floor((Date.now()-new Date(h[h.length-1]))/86400000);
 }
 
-// Get all active tasks due on a given date (for schedule views)
+// Get all active tasks due on a given date (for schedule views, including past days)
 function tasksDueOn(dateS){
+  const isPast=dateS<todayStr();
   return S.tasks.filter(t=>{
     if(!isActiveTask(t)) return false;
+    // Task must have started on or before this date
+    if(t.startDate>dateS) return false;
+    // Carry-overs
     if((t.carryOvers||[]).includes(dateS)) return true;
-    if(t.nextDueDate===dateS) return true;
-    // Predict future occurrences
-    if(t.nextDueDate && t.nextDueDate<=dateS){
+
+    if(isPast){
+      // For past dates: reconstruct whether this task was due on that day
+      // by computing the cycle from startDate forward
       const f=fById(t.freq);
-      const start=parseDate(t.nextDueDate);
+      const start=parseDate(t.startDate);
       const target=parseDate(dateS);
       const diff=(target-start)/86400000;
-      const cycles=Math.floor(diff/f.days);
-      const predicted=addDays(start,cycles*Math.ceil(f.days));
-      return dateStr(predicted)===dateS;
+      if(diff<0) return false;
+      if(diff===0) return true; // due on start date
+      const cycles=Math.round(diff/f.days);
+      const predicted=addDays(start,Math.round(cycles*f.days));
+      return Math.abs((parseDate(dateStr(predicted))-target)/86400000)<0.6;
+    }else{
+      // Future/today: use nextDueDate logic
+      if(t.nextDueDate===dateS) return true;
+      if(t.nextDueDate && t.nextDueDate<=dateS){
+        const f=fById(t.freq);
+        const start=parseDate(t.nextDueDate);
+        const target=parseDate(dateS);
+        const diff=(target-start)/86400000;
+        const cycles=Math.floor(diff/f.days);
+        const predicted=addDays(start,cycles*Math.ceil(f.days));
+        return dateStr(predicted)===dateS;
+      }
     }
     return false;
   });
@@ -634,15 +665,58 @@ function importData(){
 // ══════════════════════════════════════════
 // ACTIONS
 // ══════════════════════════════════════════
-function markDone(id){
+function markDone(id,onDateStr){
   const task=S.tasks.find(t=>t.id===id);if(!task)return;
-  const now=new Date().toISOString();
-  task.completions=[...(task.completions||[]),now];
-  // Remove any carry-overs for today
-  task.carryOvers=(task.carryOvers||[]).filter(d=>d!==todayStr());
-  // Roll to next due date
-  task.nextDueDate=calcNextDueDate(task,todayStr());
+  const dStr=onDateStr||todayStr();
+  // Build ISO timestamp for the given date at noon
+  const ts=dStr+'T12:00:00.000Z';
+  task.completions=[...(task.completions||[]),ts];
+  // Remove carry-overs for that date
+  task.carryOvers=(task.carryOvers||[]).filter(d=>d!==dStr);
+  // Roll to next due date from the completion date
+  task.nextDueDate=calcNextDueDate(task,dStr);
   save();render();
+}
+
+function showCompletionPopup(task){
+  const bd=el('div','backdrop');
+  bd.onclick=e=>{if(e.target===bd)bd.remove();};
+  const modal=el('div','modal');
+  modal.style.cssText='background:var(--card-bg);border-radius:16px 16px 0 0;padding:22px 18px 32px;width:100%;max-height:60vh;overflow-y:auto;animation:slideUp .28s ease;';
+  const title=el('div','modal-title');title.textContent='Mark as Complete';
+  const sub=el('div','modal-sub');sub.textContent=task.name;
+  modal.append(title,sub);
+
+  const yesterday=dateStr(addDays(new Date(),-1));
+  const yestLabel=new Date(yesterday+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const todayLabel=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+
+  const opts=[
+    {label:`✓ Completed today`,sub:todayLabel,fn:()=>{bd.remove();markDone(task.id,todayStr());}},
+    {label:`✓ Completed yesterday`,sub:yestLabel,fn:()=>{bd.remove();markDone(task.id,yesterday);}},
+    {label:`↷ Skip this time`,sub:'Advance to next due date without marking complete',fn:()=>{
+      bd.remove();
+      const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
+      t.nextDueDate=calcNextDueDate(t,todayStr());
+      save();render();
+    }},
+  ];
+
+  opts.forEach(opt=>{
+    const row=el('div');
+    row.style.cssText='padding:14px 0;border-bottom:1px dashed var(--border);cursor:pointer;transition:background .15s;';
+    row.onmouseenter=()=>row.style.background='var(--parchment-dark)';
+    row.onmouseleave=()=>row.style.background='';
+    const lbl=el('div');lbl.style.cssText='font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px;';lbl.textContent=opt.label;
+    const sub2=el('div');sub2.style.cssText='font-size:11px;color:var(--brown-light);';sub2.textContent=opt.sub;
+    row.append(lbl,sub2);
+    row.onclick=opt.fn;
+    modal.appendChild(row);
+  });
+
+  const cancel=el('button','btn btn-ghost');cancel.style.marginTop='16px';cancel.textContent='Cancel';cancel.onclick=()=>bd.remove();
+  modal.appendChild(cancel);
+  bd.appendChild(modal);document.body.appendChild(bd);
 }
 
 function carryOver(id){
@@ -661,7 +735,7 @@ function addTask(){
   if(t.startDate){t.nextDueDate=t.startDate;}
   else{t.nextDueDate='';}
   S.tasks.push(t);
-  S.newTask={name:'',area:S.areas[0]||'General',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:''};
+  S.newTask={name:'',area:S.areas[0]||'General',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:'',timeOfDay:''};
   S.showAdd=false;save();render();
 }
 
@@ -909,13 +983,16 @@ function scheduleNavFlowers(label){
 // CARD COMPONENT
 // ══════════════════════════════════════════
 function renderCard(task,showArea,opts={}){
+  const dateCtx=opts.dateContext||todayStr();
+  const doneOnDate=isDoneOn(task,dateCtx);
   const doneToday=isDoneToday(task);
   const dueToday=isDueToday(task);
   const ds=daysSince(task);
   const freq=fById(task.freq);
   const color=cardColor(task);
+  const isPastDate=dateCtx<todayStr();
 
-  const card=el('div','index-card'+(task.mini?' is-mini':'')+(doneToday?' done-today':''));
+  const card=el('div','index-card'+(task.mini?' is-mini':'')+(doneOnDate?' done-today':''));
   card.style.background=cardBg(task);
 
   const bar=el('div','card-color-bar');card.appendChild(bar);
@@ -932,6 +1009,11 @@ function renderCard(task,showArea,opts={}){
   const header=el('div','card-header');
   const fb=el('span','card-freq');fb.textContent=freq.label;
   const mi=el('span','card-mini-icon');mi.textContent='✦';
+  // Time of day badge if set
+  if(task.timeOfDay){
+    const tod=TIME_OF_DAY.find(t=>t.id===task.timeOfDay);
+    if(tod){const tb=el('span');tb.style.cssText='font-size:9px;opacity:.7;margin-left:4px;';tb.textContent=tod.label.split(' ')[0];fb.after(tb);}
+  }
   const ti=el('span','card-time');ti.textContent=task.time||'';
   header.append(fb,mi,ti);inner.appendChild(header);
 
@@ -942,7 +1024,7 @@ function renderCard(task,showArea,opts={}){
   }
 
   // Task name
-  const tn=el('div','card-task'+(doneToday?' done-text':''));
+  const tn=el('div','card-task'+(doneOnDate?' done-text':''));
   tn.textContent=task.name;
   if(showArea&&task.area){const as=el('span','card-area-sub');as.textContent=task.area;tn.appendChild(as);}
   inner.appendChild(tn);
@@ -954,9 +1036,14 @@ function renderCard(task,showArea,opts={}){
   const footer=el('div','card-footer');
   const lfoot=el('div');lfoot.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:3px;';
   const lastEl=el('span','card-last');
-  lastEl.textContent=ds===null?'Never done':ds===0?'Done today':`${ds}d ago`;
+  if(isPastDate){
+    lastEl.textContent=doneOnDate?'✓ Completed':'Not completed';
+    if(doneOnDate) lastEl.style.color='#4a9e5c';
+  }else{
+    lastEl.textContent=ds===null?'Never done':ds===0?'Done today':`${ds}d ago`;
+  }
   lfoot.appendChild(lastEl);
-  if(dueToday&&!doneToday){
+  if(!isPastDate&&dueToday&&!doneToday){
     const missed=(task.carryOvers||[]).includes(todayStr());
     if(missed){const b=el('span','badge-carryover');b.textContent='Carried over';lfoot.appendChild(b);}
     else{const b=el('span','badge-due');b.textContent='Due';lfoot.appendChild(b);}
@@ -968,12 +1055,17 @@ function renderCard(task,showArea,opts={}){
     const co=el('button','icon-btn');co.textContent='→';co.title='Carry over to tomorrow';
     co.onclick=()=>carryOver(task.id);actions.appendChild(co);
   }
-  const editBtn=el('button','icon-btn');editBtn.textContent='✎';editBtn.title='Edit this card';editBtn.onclick=()=>{S.editTask={...task,completions:[...(task.completions||[])],carryOvers:[...(task.carryOvers||[])]};render();};
-  const delBtn=el('button','icon-btn del-btn');delBtn.textContent='✕';delBtn.title='Delete this card';delBtn.onclick=()=>deleteTask(task.id);
-  const chk=el('button','check-btn'+(doneToday?' done':''));
-  chk.textContent=doneToday?'✓':'';
-  chk.title=doneToday?'Completed today':'Mark complete';
-  chk.onclick=()=>{if(!doneToday)markDone(task.id);};
+  const editBtn=el('button','icon-btn');editBtn.textContent='✎';editBtn.title='Edit this card';
+  editBtn.onclick=()=>{S.editTask={...task,completions:[...(task.completions||[])],carryOvers:[...(task.carryOvers||[])]};render();};
+  const delBtn=el('button','icon-btn del-btn');delBtn.textContent='✕';delBtn.title='Delete this card';
+  delBtn.onclick=()=>deleteTask(task.id);
+  const chk=el('button','check-btn'+(doneOnDate?' done':''));
+  chk.textContent=doneOnDate?'✓':'';
+  chk.title=doneOnDate?'Completed':'Mark complete';
+  // Only show completion popup on today or future — not past days
+  if(!isPastDate){
+    chk.onclick=()=>{if(!doneOnDate)showCompletionPopup(task);};
+  }
   actions.append(editBtn,delBtn,chk);
   footer.append(lfoot,actions);inner.appendChild(footer);
   card.appendChild(inner);
@@ -996,6 +1088,66 @@ function sectionHead(label,color,count){
 // ══════════════════════════════════════════
 // TAB: TODAY
 // ══════════════════════════════════════════
+function showTodayProgressPopup(dueTasks,doneCount,total){
+  const bd=el('div','backdrop');
+  bd.onclick=e=>{if(e.target===bd)bd.remove();};
+  const modal=el('div','modal');
+  const title=el('div','modal-title');title.textContent='Today at a Glance';
+  const sub=el('div','modal-sub');sub.textContent=`${doneCount} of ${total} active tasks done today`;
+  modal.append(title,sub);
+
+  const doneTasks=S.tasks.filter(t=>isActiveTask(t)&&isDoneToday(t));
+  const outstanding=dueTasks.filter(t=>!isDoneToday(t));
+
+  function makeGarland(){
+    const isLight=!S.darkMode;
+    const acc=S.darkAccent||'#c06878';
+    const ra=parseInt(acc.slice(1,3),16),ga=parseInt(acc.slice(3,5),16),ba=parseInt(acc.slice(5,7),16);
+    const lighter=`rgb(${Math.min(255,ra+55)},${Math.min(255,ga+55)},${Math.min(255,ba+55)})`;
+    const rc=isLight?'#f0b0c0':lighter,rd=isLight?'#d4788a':acc;
+    const dp=isLight?'#b8a0d4':lighter,dc=isLight?'#e8d840':lighter;
+    const lc=isLight?'#7a9a6a':'#907878';
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('viewBox','0 0 400 16');svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+    svg.style.cssText='width:100%;height:14px;display:block;margin:8px 0;';
+    svg.innerHTML=`<path d="M0 8 Q200 2 400 8" stroke="${lc}" stroke-width="1" fill="none" opacity=".5"/>
+      ${[20,60,100,140,180,220,260,300,340,380].map((x,i)=>{
+        if(i%3===0)return `<circle cx="${x}" cy="8" r="4" fill="${rc}" opacity=".85"/><circle cx="${x}" cy="8" r="2.2" fill="${rd}" opacity=".9"/>`;
+        if(i%3===1)return Array.from({length:8},(_,j)=>{const a=j*45*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*5}" cy="${8+Math.sin(a)*5}" rx="2.5" ry="1.2" fill="${dp}" opacity=".8" transform="rotate(${j*45} ${x+Math.cos(a)*5} ${8+Math.sin(a)*5})"/>`;}).join('')+`<circle cx="${x}" cy="8" r="2.5" fill="${dc}"/>`;
+        return Array.from({length:8},(_,j)=>{const a=j*45*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*4}" cy="${8+Math.sin(a)*4}" rx="2" ry="1" fill="${isLight?'#f5c842':lighter}" opacity=".85" transform="rotate(${j*45} ${x+Math.cos(a)*4} ${8+Math.sin(a)*4})"/>`;}).join('')+`<circle cx="${x}" cy="8" r="2" fill="#8B6914"/>`;
+      }).join('')}
+      ${[40,80,120,160,200,240,280,320,360].map(x=>`<ellipse cx="${x}" cy="8" rx="8" ry="3.5" fill="${lc}" opacity=".5" transform="rotate(15 ${x} 8)"/>`).join('')}`;
+    return svg;
+  }
+
+  if(doneTasks.length){
+    const dh=el('div');dh.style.cssText='font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#4a9e5c;margin:12px 0 6px;';dh.textContent='✓ Completed today';
+    modal.appendChild(dh);modal.appendChild(makeGarland());
+    const dg=el('div');dg.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:2px 12px;';
+    doneTasks.forEach(t=>{
+      const d=el('div');d.style.cssText='font-size:12px;line-height:1.8;color:var(--brown-light);text-decoration:line-through;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      d.textContent=t.name;dg.appendChild(d);
+    });
+    modal.appendChild(dg);modal.appendChild(makeGarland());
+  }
+
+  if(outstanding.length){
+    const oh=el('div');oh.style.cssText='font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin:12px 0 6px;';oh.textContent='◌ Still outstanding';
+    modal.appendChild(oh);modal.appendChild(makeGarland());
+    const og=el('div');og.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:2px 12px;';
+    outstanding.forEach(t=>{
+      const d=el('div');d.style.cssText='font-size:12px;line-height:1.8;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      const color=cardColor(t);
+      d.innerHTML=`<span style="color:${color};font-weight:700;">${fById(t.freq).label}</span> ${t.name}`;
+      og.appendChild(d);
+    });
+    modal.appendChild(og);modal.appendChild(makeGarland());
+  }
+
+  const cancel=el('button','btn btn-ghost');cancel.style.marginTop='12px';cancel.textContent='Close';cancel.onclick=()=>bd.remove();
+  modal.appendChild(cancel);bd.appendChild(modal);document.body.appendChild(bd);
+}
+
 function renderToday(body){
   backupWarningBanner(body);
   const dueTasks=S.tasks.filter(t=>isActiveTask(t)&&isDueToday(t));
@@ -1004,10 +1156,15 @@ function renderToday(body){
 
   if(total>0){
     const pc=el('div','progress-card');
+    pc.style.cursor='pointer';pc.title='Click to see today\'s summary';
+    pc.onclick=()=>showTodayProgressPopup(dueTasks,doneCount,total);
     const pr=el('div','progress-row');
     const l=el('span');l.textContent='Completed today';
     const r=el('span','pct');r.textContent=`${doneCount} / ${total}`;
-    pr.append(l,r);
+    const hint=el('span');hint.style.cssText='font-size:9px;color:var(--brown-light);margin-left:4px;';hint.textContent='tap for summary';
+    pr.append(l,el('span'));
+    const rightSide=el('div');rightSide.style.cssText='display:flex;align-items:center;gap:6px;';
+    rightSide.append(hint,r);pr.append(l,rightSide);
     const pb=el('div','progress-bar');
     const pf=el('div','progress-fill');pf.style.width=`${Math.round(doneCount/total*100)}%`;
     pb.appendChild(pf);pc.append(pr,pb);body.appendChild(pc);
@@ -1020,11 +1177,28 @@ function renderToday(body){
     emp.append(ic,tx);body.appendChild(emp);return;
   }
 
-  FREQS.forEach(freq=>{
-    const ft=dueTasks.filter(t=>t.freq===freq.id);
-    if(!ft.length)return;
-    body.appendChild(sectionHead(`${freq.label} — ${freq.name}`,S.freqColors[freq.id],ft.length));
-    ft.forEach(task=>body.appendChild(renderCard(task,true,{showCarryOver:true})));
+  // Group by time of day → then by area
+  TIME_OF_DAY.forEach(tod=>{
+    const todTasks=dueTasks.filter(t=>(t.timeOfDay||'')===(tod.id));
+    if(!todTasks.length)return;
+
+    // Time of day section header
+    const todHead=el('div');
+    todHead.style.cssText='display:flex;align-items:center;gap:8px;margin:20px 0 10px;';
+    const todLabel=el('span');
+    todLabel.style.cssText=`font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:${tod.color};padding:4px 12px;border-radius:12px;white-space:nowrap;`;
+    todLabel.textContent=tod.label;
+    const todLine=el('div');todLine.style.cssText='flex:1;height:1px;background:var(--section-line);';
+    todHead.append(todLabel,todLine);body.appendChild(todHead);
+
+    // Group by area within this time slot
+    const areas=[...new Set(todTasks.map(t=>t.area||'General'))].sort();
+    areas.forEach(area=>{
+      const areaTasks=todTasks.filter(t=>(t.area||'General')===area);
+      if(!areaTasks.length)return;
+      const aHead=el('div','area-heading');aHead.textContent=area;body.appendChild(aHead);
+      areaTasks.forEach(task=>body.appendChild(renderCard(task,false,{showCarryOver:true})));
+    });
   });
 }
 
@@ -1065,20 +1239,49 @@ function navBar(label){
 function renderDayView(body,d){
   const ds=dateStr(d);
   const isToday=ds===todayStr();
+  const isPast=ds<todayStr();
   const label=isToday?'Today — '+d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}):d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const{nav,prev,next}=navBar(label);
   prev.onclick=()=>{S.scheduleDate=addDays(d,-1);render();};
   next.onclick=()=>{S.scheduleDate=addDays(d,1);render();};
   body.appendChild(nav);
+
   const tasks=tasksDueOn(ds);
   if(!tasks.length){
-    const emp=el('div','empty');const tx=el('div','empty-text');tx.textContent='No tasks scheduled for this day.';emp.appendChild(tx);body.appendChild(emp);return;
+    const emp=el('div','empty');const tx=el('div','empty-text');
+    tx.textContent=isPast?'No tasks were scheduled for this day.':'No tasks scheduled for this day.';
+    emp.appendChild(tx);body.appendChild(emp);return;
   }
-  FREQS.forEach(freq=>{
-    const ft=tasks.filter(t=>t.freq===freq.id);
-    if(!ft.length)return;
-    body.appendChild(sectionHead(`${freq.label} — ${freq.name}`,S.freqColors[freq.id],ft.length));
-    ft.forEach(task=>body.appendChild(renderCard(task,true,{showCarryOver:isToday})));
+
+  // Past day label
+  if(isPast){
+    const pastNote=el('div');
+    pastNote.style.cssText='font-size:11px;color:var(--brown-light);font-style:italic;margin-bottom:10px;text-align:center;';
+    pastNote.textContent='Showing tasks that were scheduled for this day';
+    body.appendChild(pastNote);
+  }
+
+  // Group by time of day → area
+  TIME_OF_DAY.forEach(tod=>{
+    const todTasks=tasks.filter(t=>(t.timeOfDay||'')===(tod.id));
+    if(!todTasks.length)return;
+    const todHead=el('div');
+    todHead.style.cssText='display:flex;align-items:center;gap:8px;margin:20px 0 10px;';
+    const todLabel=el('span');
+    todLabel.style.cssText=`font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:${tod.color};padding:4px 12px;border-radius:12px;white-space:nowrap;`;
+    todLabel.textContent=tod.label;
+    const todLine=el('div');todLine.style.cssText='flex:1;height:1px;background:var(--section-line);';
+    todHead.append(todLabel,todLine);body.appendChild(todHead);
+
+    const areas=[...new Set(todTasks.map(t=>t.area||'General'))].sort();
+    areas.forEach(area=>{
+      const areaTasks=todTasks.filter(t=>(t.area||'General')===area);
+      if(!areaTasks.length)return;
+      const aHead=el('div','area-heading');aHead.textContent=area;body.appendChild(aHead);
+      areaTasks.forEach(task=>{
+        body.appendChild(renderCard(task,false,{showCarryOver:isToday,dateContext:ds}));
+      });
+    });
   });
 }
 
@@ -1719,9 +1922,10 @@ function renderWalkthrough(body){
       'Tap the <strong>Browse</strong> tab at the top.',
       'Tap the large <strong>+</strong> button in the bottom right corner.',
       'Fill in the task name, room/area, frequency, and time estimate.',
+      'Choose a <strong>Time of Day</strong> — Dawn, Morning, Afternoon, or Evening. Leave blank for Anytime tasks.',
       'Add any supplies or equipment needed — this appears at the bottom of the card.',
       'Choose a card type if needed: <strong>Self-Care</strong> (rose), <strong>Medical</strong> (orange), or <strong>Financial</strong> (green).',
-      'Check <strong>Mini task</strong> if this is a quick 5–10 minute task you can pick up anytime.',
+      'Tap the <strong>Mini task</strong> button to toggle it on — use this for quick 5–10 minute pick-up tasks.',
       'Set a <strong>Start Date</strong> to schedule when this card becomes active. Leave it blank to save it to Pending.',
       'Tap <strong>Add Card</strong> to save!'
     ]},
@@ -1966,12 +2170,26 @@ function buildModal(data,isEdit){
   const i7=el('input');i7.type='date';i7.value=data.startDate||'';
   i7.oninput=e=>data.startDate=e.target.value;f7.append(l7,i7);modal.appendChild(f7);
 
-  // Mini
-  const cr=el('div','checkbox-row');
-  const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!data.mini;
-  cb.onchange=e=>data.mini=e.target.checked;
-  const cl=el('span');cl.textContent='✦ Mini task (5–10 min, pick up anytime)';
-  cr.append(cb,cl);cr.onclick=()=>{cb.checked=!cb.checked;data.mini=cb.checked;};modal.appendChild(cr);
+  // Time of day
+  const f8=el('div','field');const l8=el('label');l8.textContent='Time of Day';
+  const sel8=el('select');
+  [['','No preference (Anytime)'],['dawn','🌅 Dawn'],['morning','🌞 Morning'],['afternoon','☀️ Afternoon'],['evening','🌙 Evening']].forEach(([val,txt2])=>{
+    const o=document.createElement('option');o.value=val;o.textContent=txt2;
+    if((data.timeOfDay||'')=== val)o.selected=true;sel8.appendChild(o);
+  });
+  sel8.onchange=e=>data.timeOfDay=e.target.value;f8.append(l8,sel8);modal.appendChild(f8);
+
+  // Mini — fixed for mobile: use a proper toggle button instead of checkbox
+  const miniWrap=el('div');miniWrap.style.cssText='margin-bottom:14px;';
+  const miniBtn=el('button');
+  miniBtn.type='button';
+  const updateMiniBtn=()=>{
+    miniBtn.style.cssText=`width:100%;font-family:'Lato',sans-serif;font-size:13px;font-weight:${data.mini?'700':'400'};padding:12px 14px;border-radius:8px;border:${data.mini?'2px solid var(--gold)':'1.5px solid var(--border)'};background:${data.mini?'rgba(200,169,110,0.15)':'var(--bg)'};color:var(--text);cursor:pointer;text-align:left;-webkit-appearance:none;transition:all .2s;`;
+    miniBtn.textContent=(data.mini?'✦ ':'○ ')+'Mini task (5–10 min, pick up anytime)';
+  };
+  updateMiniBtn();
+  miniBtn.onclick=e=>{e.preventDefault();data.mini=!data.mini;updateMiniBtn();};
+  miniWrap.appendChild(miniBtn);modal.appendChild(miniWrap);
 
   // Buttons
   const btns=el('div','modal-btns');
