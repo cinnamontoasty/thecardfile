@@ -319,6 +319,7 @@ const FREQS=[
   {id:'2d', label:'2/D', name:'Twice a Day',        days:0.5},
   {id:'d',  label:'D',   name:'Daily',               days:1},
   {id:'eod',label:'EOD', name:'Every Other Day',     days:2},
+  {id:'e3d',label:'E3D', name:'Every 3 Days',        days:3},
   {id:'3w', label:'3/W', name:'Three Times a Week',  days:2.33},
   {id:'2w', label:'2/W', name:'Twice a Week',        days:3.5},
   {id:'w',  label:'W',   name:'Weekly',              days:7},
@@ -331,7 +332,7 @@ const FREQS=[
 ];
 
 const DEFAULT_FREQ_COLORS={
-  '2d':'#f5a880','d':'#f0e868','eod':'#d4b870',
+  '2d':'#f5a880','d':'#f0e868','eod':'#d4b870','e3d':'#5a9e98',
   '3w':'#afa8d4','2w':'#4ab8d4','w':'#6a9fd4',
   'eow':'#7878cc','m':'#8dbdaa','eom':'#c4a882',
   's':'#a09060','2y':'#e8c4a0','y':'#c07050',
@@ -340,27 +341,27 @@ const DEFAULT_FREQ_COLORS={
 const THEMES={
   'parchment':{
     name:'🍂 Classic Parchment',
-    freqs:{'2d':'#f5a880','d':'#f0e868','eod':'#d4b870','3w':'#afa8d4','2w':'#4ab8d4','w':'#6a9fd4','eow':'#7878cc','m':'#8dbdaa','eom':'#c4a882','s':'#a09060','2y':'#e8c4a0','y':'#c07050'},
+    freqs:{'2d':'#f5a880','d':'#f0e868','eod':'#d4b870','e3d':'#5a9e98','3w':'#afa8d4','2w':'#4ab8d4','w':'#6a9fd4','eow':'#7878cc','m':'#8dbdaa','eom':'#c4a882','s':'#a09060','2y':'#e8c4a0','y':'#c07050'},
   },
   'garden':{
     name:'🌸 Garden Party',
-    freqs:{'2d':'#f9c8d4','d':'#fce8a0','eod':'#c8e8a8','3w':'#a8d8c0','2w':'#88c8d8','w':'#a8b8e8','eow':'#c8a8e0','m':'#e8a8c8','eom':'#d4b888','s':'#b8c888','2y':'#f0c890','y':'#d88898'},
+    freqs:{'2d':'#f9c8d4','d':'#fce8a0','eod':'#c8e8a8','e3d':'#70b8a8','3w':'#a8d8c0','2w':'#88c8d8','w':'#a8b8e8','eow':'#c8a8e0','m':'#e8a8c8','eom':'#d4b888','s':'#b8c888','2y':'#f0c890','y':'#d88898'},
   },
   'ocean':{
     name:'🌊 Ocean Breeze',
-    freqs:{'2d':'#f0e8c8','d':'#e8f4a0','eod':'#a8e4d8','3w':'#70c8e8','2w':'#50a8d8','w':'#6888c8','eow':'#d96060','m':'#88c0b0','eom':'#c8d8a8','s':'#a8b890','2y':'#e8d8b0','y':'#c09060'},
+    freqs:{'2d':'#f0e8c8','d':'#e8f4a0','eod':'#a8e4d8','e3d':'#3a9888','3w':'#70c8e8','2w':'#50a8d8','w':'#6888c8','eow':'#d96060','m':'#88c0b0','eom':'#c8d8a8','s':'#a8b890','2y':'#e8d8b0','y':'#c09060'},
   },
   'autumn':{
     name:'🍁 Autumn Harvest',
-    freqs:{'2d':'#f8d898','d':'#f8e878','eod':'#e8a870','3w':'#d87858','2w':'#c05840','w':'#7888b8','eow':'#886838','m':'#98a868','eom':'#788858','s':'#586840','2y':'#e8c890','y':'#b07848'},
+    freqs:{'2d':'#f8d898','d':'#f8e878','eod':'#e8a870','e3d':'#6a9888','3w':'#d87858','2w':'#c05840','w':'#7888b8','eow':'#886838','m':'#98a868','eom':'#788858','s':'#586840','2y':'#e8c890','y':'#b07848'},
   },
   'lavender':{
     name:'💜 Lavender Fields',
-    freqs:{'2d':'#f8d8f0','d':'#f0e8a8','eod':'#d8c8f0','3w':'#b898e0','2w':'#9878c8','w':'#6888c8','eow':'#c8a8e0','m':'#e0b8d8','eom':'#88b898','s':'#b0a0c0','2y':'#e8d8b8','y':'#987888'},
+    freqs:{'2d':'#f8d8f0','d':'#f0e8a8','eod':'#d8c8f0','e3d':'#5a9890','3w':'#b898e0','2w':'#9878c8','w':'#6888c8','eow':'#c8a8e0','m':'#e0b8d8','eom':'#88b898','s':'#b0a0c0','2y':'#e8d8b8','y':'#987888'},
   },
   'sunrise':{
     name:'🌅 Sunrise',
-    freqs:{'2d':'#f8d898','d':'#f8f060','eod':'#f8b870','3w':'#f09060','2w':'#e86858','w':'#5898d8','eow':'#e05090','m':'#88b898','eom':'#c878b8','s':'#a878a0','2y':'#f0c880','y':'#c07060'},
+    freqs:{'2d':'#f8d898','d':'#f8f060','eod':'#f8b870','e3d':'#5aa898','3w':'#f09060','2w':'#e86858','w':'#5898d8','eow':'#e05090','m':'#88b898','eom':'#c878b8','s':'#a878a0','2y':'#f0c880','y':'#c07060'},
   },
 };
 
@@ -368,6 +369,7 @@ const DEFAULT_SPECIAL=[
   {id:'selfcare', label:'Self-Care', color:'#d488a8'},
   {id:'medical',  label:'Medical',   color:'#e8843a'},
   {id:'financial',label:'Financial', color:'#72aa82'},
+  {id:'meals',    label:'Meals',     color:'#e8a048'},
 ];
 
 const DEFAULT_AREAS=[
@@ -388,6 +390,7 @@ const COLOR_PALETTE=[
   '#e8c4a0','#c4a882','#a09060','#7a6a3a','#d488a8','#c06888','#b05880',
   '#afa8d4','#7878cc','#5a6bbf','#6a9fd4','#4ab8d4','#8aaad4','#3a86c8',
   '#8dbdaa','#6ab898','#4a9e5c','#72aa82','#2d7a3a','#1a7a6a','#2a9d8f',
+  '#5a9e98','#3a8880','#4a9888','#6ab8b0','#70c8b8','#88d8c8','#a8e0d0',
   '#c49090','#c0392b','#d4688a','#b07898','#c8b0e4','#9a8870','#888888',
 ];
 
@@ -432,7 +435,7 @@ let S={
   scheduleDate:new Date(),
   showAdd:false,editTask:null,showWelcome:false,showInstall:false,
   firstTime:false,firstTimeHowTo:false,
-  newTask:{name:'',area:'Kitchen',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:'',timeOfDay:''},
+  newTask:{name:'',area:'Kitchen',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:'',timeOfDay:'',timeOfDay2:''},
   nextId:200,
 };
 
@@ -801,7 +804,7 @@ function addTask(){
   if(t.startDate){t.nextDueDate=t.startDate;}
   else{t.nextDueDate='';}
   S.tasks.push(t);
-  S.newTask={name:'',area:S.areas[0]||'General',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:'',timeOfDay:''};
+  S.newTask={name:'',area:S.areas[0]||'General',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:'',timeOfDay:'',timeOfDay2:''};
   S.showAdd=false;save();render();
 }
 
@@ -1050,13 +1053,13 @@ function scheduleNavFlowers(label){
 // ══════════════════════════════════════════
 function renderCard(task,showArea,opts={}){
   const dateCtx=opts.dateContext||todayStr();
-  const doneOnDate=isDoneOn(task,dateCtx);
+  const isPastDate=dateCtx<todayStr();
+  // For 2/D dual slot, use slot-specific done state; otherwise use date-based
+  const doneOnDate=opts.slotDone!==undefined?opts.slotDone:isDoneOn(task,dateCtx);
   const doneToday=isDoneToday(task);
   const dueToday=isDueToday(task);
   const ds=daysSince(task);
   const freq=fById(task.freq);
-  const color=cardColor(task);
-  const isPastDate=dateCtx<todayStr();
 
   const card=el('div','index-card'+(task.mini?' is-mini':'')+(doneOnDate?' done-today':''));
   card.style.background=cardBg(task);
@@ -1128,8 +1131,15 @@ function renderCard(task,showArea,opts={}){
   const chk=el('button','check-btn'+(doneOnDate?' done':''));
   chk.textContent=doneOnDate?'✓':'';
   chk.title=doneOnDate?'Completed':'Mark complete';
-  // Enable on past days too — show date-aware popup
-  chk.onclick=()=>{if(!doneOnDate)showCompletionPopup(task,isPastDate?dateCtx:null);};
+  chk.onclick=()=>{
+    if(doneOnDate)return;
+    if(opts.on2dMark){
+      // 2/D dual slot — use direct mark without popup
+      opts.on2dMark();
+    }else{
+      showCompletionPopup(task,isPastDate?dateCtx:null);
+    }
+  };
   actions.append(editBtn,delBtn,chk);
   footer.append(lfoot,actions);inner.appendChild(footer);
   card.appendChild(inner);
@@ -1224,10 +1234,9 @@ function renderToday(body){
     pc.onclick=()=>showTodayProgressPopup(dueTasks,doneCount,total);
     const pr=el('div','progress-row');
     const l=el('span');l.textContent='Completed today';
-    const r=el('span','pct');r.textContent=`${doneCount} / ${total}`;
-    const hint=el('span');hint.style.cssText='font-size:9px;color:var(--brown-light);margin-left:4px;';hint.textContent='tap for summary';
-    pr.append(l,el('span'));
     const rightSide=el('div');rightSide.style.cssText='display:flex;align-items:center;gap:6px;';
+    const hint=el('span');hint.style.cssText='font-size:9px;color:var(--brown-light);';hint.textContent='tap for summary';
+    const r=el('span','pct');r.textContent=`${doneCount} / ${total}`;
     rightSide.append(hint,r);pr.append(l,rightSide);
     const pb=el('div','progress-bar');
     const pf=el('div','progress-fill');pf.style.width=`${Math.round(doneCount/total*100)}%`;
@@ -1241,12 +1250,35 @@ function renderToday(body){
     emp.append(ic,tx);body.appendChild(emp);return;
   }
 
-  // Group by time of day → then by area
-  TIME_OF_DAY.forEach(tod=>{
-    const todTasks=dueTasks.filter(t=>(t.timeOfDay||'')===(tod.id));
-    if(!todTasks.length)return;
+  // Build the list of task+slot combinations to show
+  // For 2/D tasks with two slots, show once in each slot
+  // Track per-slot completion using todayStr+slot key
+  const todayCompletions=S.tasks.reduce((acc,t)=>{
+    const count=(t.completions||[]).filter(c=>c.startsWith(todayStr())).length;
+    acc[t.id]=count;return acc;
+  },{});
 
-    // Time of day section header
+  // Build slot entries — each entry is {task, slotId, slotIndex (0=first, 1=second)}
+  const slotEntries=[];
+  dueTasks.forEach(task=>{
+    if(task.freq==='2d'&&task.timeOfDay&&task.timeOfDay2&&task.timeOfDay!==task.timeOfDay2){
+      // 2/D with two different slots
+      const completionsToday=todayCompletions[task.id]||0;
+      // First slot — show as done if at least 1 completion today
+      slotEntries.push({task,slotId:task.timeOfDay,slotIndex:0,slotDone:completionsToday>=1});
+      // Second slot — show as done if 2 completions today
+      // Only show second slot if first slot is done (or both if first is done)
+      slotEntries.push({task,slotId:task.timeOfDay2,slotIndex:1,slotDone:completionsToday>=2});
+    }else{
+      slotEntries.push({task,slotId:task.timeOfDay||'',slotIndex:0,slotDone:isDoneToday(task)});
+    }
+  });
+
+  // Group by time of day → area
+  TIME_OF_DAY.forEach(tod=>{
+    const todEntries=slotEntries.filter(e=>e.slotId===tod.id);
+    if(!todEntries.length)return;
+
     const todHead=el('div');
     todHead.style.cssText='display:flex;align-items:center;gap:8px;margin:20px 0 10px;';
     const todLabel=el('span');
@@ -1255,13 +1287,34 @@ function renderToday(body){
     const todLine=el('div');todLine.style.cssText='flex:1;height:1px;background:var(--section-line);';
     todHead.append(todLabel,todLine);body.appendChild(todHead);
 
-    // Group by area within this time slot
-    const areas=[...new Set(todTasks.map(t=>t.area||'General'))].sort();
+    const areas=[...new Set(todEntries.map(e=>e.task.area||'General'))].sort();
     areas.forEach(area=>{
-      const areaTasks=todTasks.filter(t=>(t.area||'General')===area);
-      if(!areaTasks.length)return;
+      const areaEntries=todEntries.filter(e=>(e.task.area||'General')===area);
+      if(!areaEntries.length)return;
       const aHead=el('div','area-heading');aHead.textContent=area;body.appendChild(aHead);
-      areaTasks.forEach(task=>body.appendChild(renderCard(task,false,{showCarryOver:true})));
+      areaEntries.forEach(entry=>{
+        const{task,slotIndex,slotDone}=entry;
+        const completionsToday=todayCompletions[task.id]||0;
+        // For 2/D dual slot: pass slot context so card shows correct done state
+        const card=renderCard(task,false,{
+          showCarryOver:!slotDone,
+          slotDone,
+          slotIndex,
+          on2dMark:task.freq==='2d'&&task.timeOfDay2?()=>{
+            // Mark one completion for this slot
+            const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
+            const ts=todayStr()+'T12:00:00.000Z';
+            t.completions=[...(t.completions||[]),ts];
+            t.carryOvers=(t.carryOvers||[]).filter(d=>d!==todayStr());
+            // Only roll nextDueDate after second completion
+            if((t.completions||[]).filter(c=>c.startsWith(todayStr())).length>=2){
+              t.nextDueDate=calcNextDueDate(t,todayStr());
+            }
+            save();render();
+          }:null,
+        });
+        body.appendChild(card);
+      });
     });
   });
 }
@@ -1522,8 +1575,15 @@ function renderBrowse(body){
       b.onclick=()=>{S.freqFilter=sp.id;render();setTimeout(()=>b.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}),50);};
       strip.appendChild(b);
     });
+    // Mini filter
+    const miniFilterBtn=el('button','filter-btn'+(S.freqFilter==='__mini__'?' active':''));
+    miniFilterBtn.textContent='✦ Mini';
+    if(S.freqFilter==='__mini__'){miniFilterBtn.style.background='#e8d800';miniFilterBtn.style.color='#3a3128';miniFilterBtn.style.borderColor='#e8d800';}
+    miniFilterBtn.onclick=()=>{S.freqFilter='__mini__';render();setTimeout(()=>miniFilterBtn.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}),50);};
+    strip.appendChild(miniFilterBtn);
     body.appendChild(strip);
     let filtered=S.freqFilter==='all'?activeTasks:
+      S.freqFilter==='__mini__'?activeTasks.filter(t=>t.mini):
       S.specialTypes.find(s=>s.id===S.freqFilter)?activeTasks.filter(t=>t.special===S.freqFilter):
       activeTasks.filter(t=>t.freq===S.freqFilter);
     if(!filtered.length){const emp=el('div','empty');const tx=el('div','empty-text');tx.textContent='No cards here yet.';emp.appendChild(tx);body.appendChild(emp);return;}
@@ -1609,6 +1669,16 @@ function renderSettings(body){
     const b=el('button','settings-btn');b.textContent='View';b.onclick=fn;
     row.append(d,b);as.appendChild(row);
   });
+
+  // Sponsors row
+  const sponsorRow=el('div','settings-row');
+  const spd=el('div');
+  const spl=el('div','settings-row-label');spl.textContent='☕ Buy Beth a Coffee';
+  const sps=el('div','settings-row-sub');sps.textContent='Optional, anonymous — always appreciated, never expected';
+  spd.append(spl,sps);
+  const spb=el('button','settings-btn');spb.textContent='Visit';
+  spb.onclick=()=>window.open('https://github.com/sponsors/cinnamontoasty','_blank');
+  sponsorRow.append(spd,spb);as.appendChild(sponsorRow);
   body.appendChild(as);
 
   // Appearance
@@ -2139,6 +2209,12 @@ function buildWelcomeScreen(){
   };
   content.appendChild(howToLink);
 
+  // Gentle sponsors link
+  const sponsorLink=el('div');
+  sponsorLink.style.cssText='text-align:center;margin-top:16px;padding-top:14px;border-top:1px solid rgba(90,74,56,0.2);font-family:"Lato",sans-serif;font-size:11px;color:#9a8870;line-height:1.6;';
+  sponsorLink.innerHTML='If you enjoy The Card File and would like to support its creator,<br>you can <a href="https://github.com/sponsors/cinnamontoasty" target="_blank" style="color:#5a4a38;font-weight:600;text-decoration:underline;">buy Beth a coffee ☕</a> — always optional, never expected. 🌸';
+  content.appendChild(sponsorLink);
+
   // Close button (X) top right
   const closeBtn=el('button');
   closeBtn.style.cssText='position:absolute;top:14px;right:14px;background:rgba(58,49,40,0.15);border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;color:#3a3128;display:flex;align-items:center;justify-content:center;z-index:2;line-height:1;';
@@ -2241,7 +2317,28 @@ function buildModal(data,isEdit){
     const o=document.createElement('option');o.value=val;o.textContent=txt2;
     if((data.timeOfDay||'')=== val)o.selected=true;sel8.appendChild(o);
   });
-  sel8.onchange=e=>data.timeOfDay=e.target.value;f8.append(l8,sel8);modal.appendChild(f8);
+  sel8.onchange=e=>{data.timeOfDay=e.target.value;updateTod2Visibility();};
+  f8.append(l8,sel8);modal.appendChild(f8);
+
+  // Second time of day (only for 2/D)
+  const f8b=el('div','field');
+  const l8b=el('label');l8b.textContent='Second Time of Day (2/D only)';
+  const sel8b=el('select');
+  [['','None'],['dawn','🌅 Dawn'],['morning','🌞 Morning'],['afternoon','☀️ Afternoon'],['evening','🌙 Evening']].forEach(([val,txt2])=>{
+    const o=document.createElement('option');o.value=val;o.textContent=txt2;
+    if((data.timeOfDay2||'')=== val)o.selected=true;sel8b.appendChild(o);
+  });
+  sel8b.onchange=e=>data.timeOfDay2=e.target.value;
+  f8b.append(l8b,sel8b);modal.appendChild(f8b);
+
+  function updateTod2Visibility(){
+    const is2d=(data.freq||sel3.value)==='2d';
+    f8b.style.display=is2d?'block':'none';
+    if(!is2d) data.timeOfDay2='';
+  }
+  // Also update when freq changes
+  sel3.addEventListener('change',updateTod2Visibility);
+  updateTod2Visibility();
 
   // Mini — fixed for mobile: use a proper toggle button instead of checkbox
   const miniWrap=el('div');miniWrap.style.cssText='margin-bottom:14px;';
@@ -2452,8 +2549,8 @@ function render(){
   else if(S.tab==='walkthrough') renderWalkthrough(body);
   app.appendChild(body);
 
-  // FAB
-  if(S.tab==='today'||S.tab==='browse'||S.tab==='pending'){
+  // FAB — Today, Browse, Pending, and Schedule tabs
+  if(S.tab==='today'||S.tab==='browse'||S.tab==='pending'||S.tab==='schedule'){
     const fab=el('button','fab');fab.textContent='+';fab.title='Add card';
     fab.onclick=()=>{S.showAdd=true;render();};app.appendChild(fab);
   }
