@@ -300,6 +300,13 @@ body.dark .week-mini-card{color:rgba(255,240,220,0.85);}
 .toggle-slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s;}
 .toggle input:checked+.toggle-slider{background:var(--gold);}
 .toggle input:checked+.toggle-slider:before{transform:translateX(20px);}
+/* ── UNDO TOAST ── */
+.undo-toast{position:fixed;bottom:calc(90px + var(--safe-bottom));left:50%;transform:translateX(-50%);background:var(--brown);color:var(--bg);border-radius:24px;padding:12px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:80;animation:slideUp .25s ease;white-space:nowrap;}
+body.dark .undo-toast{background:#3a2828;color:var(--text);}
+.undo-toast-text{font-size:13px;font-weight:500;}
+.undo-toast-btn{font-family:'Lato',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:6px 14px;border-radius:16px;border:none;background:var(--gold);color:var(--brown);cursor:pointer;-webkit-appearance:none;}
+.undo-toast-bar{position:absolute;bottom:0;left:0;height:3px;background:var(--gold);border-radius:0 0 24px 24px;animation:undoCountdown 5s linear forwards;}
+@keyframes undoCountdown{from{width:100%;}to{width:0%;}}
 </style>
 </head>
 <body>
@@ -665,53 +672,112 @@ function importData(){
 // ══════════════════════════════════════════
 // ACTIONS
 // ══════════════════════════════════════════
+// Undo state
+let S_undo=null;
+let S_undoTimer=null;
+
 function markDone(id,onDateStr){
   const task=S.tasks.find(t=>t.id===id);if(!task)return;
   const dStr=onDateStr||todayStr();
-  // Build ISO timestamp for the given date at noon
+  // Save undo snapshot
+  S_undo={
+    taskId:id,
+    completions:[...(task.completions||[])],
+    carryOvers:[...(task.carryOvers||[])],
+    nextDueDate:task.nextDueDate,
+    label:task.name,
+  };
+  // Record completion
   const ts=dStr+'T12:00:00.000Z';
   task.completions=[...(task.completions||[]),ts];
-  // Remove carry-overs for that date
   task.carryOvers=(task.carryOvers||[]).filter(d=>d!==dStr);
-  // Roll to next due date from the completion date
   task.nextDueDate=calcNextDueDate(task,dStr);
   save();render();
+  showUndoToast(`"${task.name}" marked complete`);
 }
 
-function showCompletionPopup(task){
+function undoLastCompletion(){
+  if(!S_undo)return;
+  const task=S.tasks.find(t=>t.id===S_undo.taskId);
+  if(task){
+    task.completions=S_undo.completions;
+    task.carryOvers=S_undo.carryOvers;
+    task.nextDueDate=S_undo.nextDueDate;
+    save();
+  }
+  S_undo=null;
+  dismissUndoToast();
+  render();
+}
+
+function showUndoToast(msg){
+  dismissUndoToast();
+  const toast=el('div','undo-toast');
+  toast.id='undo-toast';
+  const txt=el('div','undo-toast-text');txt.textContent='✓ '+msg;
+  const btn=el('button','undo-toast-btn');btn.textContent='Undo';
+  btn.onclick=()=>undoLastCompletion();
+  const bar=el('div','undo-toast-bar');
+  toast.append(txt,btn,bar);
+  document.body.appendChild(toast);
+  if(S_undoTimer)clearTimeout(S_undoTimer);
+  S_undoTimer=setTimeout(()=>{S_undo=null;dismissUndoToast();},5000);
+}
+
+function dismissUndoToast(){
+  const t=document.getElementById('undo-toast');
+  if(t)t.remove();
+  if(S_undoTimer){clearTimeout(S_undoTimer);S_undoTimer=null;}
+}
+
+function showCompletionPopup(task,dateContext){
   const bd=el('div','backdrop');
   bd.onclick=e=>{if(e.target===bd)bd.remove();};
   const modal=el('div','modal');
-  modal.style.cssText='background:var(--card-bg);border-radius:16px 16px 0 0;padding:22px 18px 32px;width:100%;max-height:60vh;overflow-y:auto;animation:slideUp .28s ease;';
+  modal.style.cssText='background:var(--card-bg);border-radius:16px 16px 0 0;padding:22px 18px 32px;width:100%;max-height:70vh;overflow-y:auto;animation:slideUp .28s ease;';
   const title=el('div','modal-title');title.textContent='Mark as Complete';
   const sub=el('div','modal-sub');sub.textContent=task.name;
   modal.append(title,sub);
 
+  const isPastDate=dateContext&&dateContext<todayStr();
   const yesterday=dateStr(addDays(new Date(),-1));
-  const yestLabel=new Date(yesterday+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const yestLabel=parseDate(yesterday).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   const todayLabel=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 
-  const opts=[
-    {label:`✓ Completed today`,sub:todayLabel,fn:()=>{bd.remove();markDone(task.id,todayStr());}},
-    {label:`✓ Completed yesterday`,sub:yestLabel,fn:()=>{bd.remove();markDone(task.id,yesterday);}},
-    {label:`↷ Skip this time`,sub:'Advance to next due date without marking complete',fn:()=>{
-      bd.remove();
-      const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
-      t.nextDueDate=calcNextDueDate(t,todayStr());
-      save();render();
-    }},
-  ];
+  let opts;
+  if(isPastDate){
+    // For past days — mark for that specific date or skip
+    const pastLabel=parseDate(dateContext).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    opts=[
+      {label:`✓ Completed on this day`,sub:pastLabel,fn:()=>{bd.remove();markDone(task.id,dateContext);}},
+      {label:`↷ Skip this day`,sub:'Advance schedule without marking complete',fn:()=>{
+        bd.remove();
+        const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
+        t.nextDueDate=calcNextDueDate(t,dateContext);
+        save();render();
+      }},
+    ];
+  }else{
+    opts=[
+      {label:`✓ Completed today`,sub:todayLabel,fn:()=>{bd.remove();markDone(task.id,todayStr());}},
+      {label:`✓ Completed yesterday`,sub:yestLabel,fn:()=>{bd.remove();markDone(task.id,yesterday);}},
+      {label:`↷ Skip this time`,sub:'Advance to next due date without marking complete',fn:()=>{
+        bd.remove();
+        const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
+        t.nextDueDate=calcNextDueDate(t,todayStr());
+        save();render();
+      }},
+    ];
+  }
 
   opts.forEach(opt=>{
     const row=el('div');
-    row.style.cssText='padding:14px 0;border-bottom:1px dashed var(--border);cursor:pointer;transition:background .15s;';
+    row.style.cssText='padding:14px 0;border-bottom:1px dashed var(--border);cursor:pointer;transition:background .15s;border-radius:4px;';
     row.onmouseenter=()=>row.style.background='var(--parchment-dark)';
     row.onmouseleave=()=>row.style.background='';
     const lbl=el('div');lbl.style.cssText='font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px;';lbl.textContent=opt.label;
     const sub2=el('div');sub2.style.cssText='font-size:11px;color:var(--brown-light);';sub2.textContent=opt.sub;
-    row.append(lbl,sub2);
-    row.onclick=opt.fn;
-    modal.appendChild(row);
+    row.append(lbl,sub2);row.onclick=opt.fn;modal.appendChild(row);
   });
 
   const cancel=el('button','btn btn-ghost');cancel.style.marginTop='16px';cancel.textContent='Cancel';cancel.onclick=()=>bd.remove();
@@ -1062,10 +1128,8 @@ function renderCard(task,showArea,opts={}){
   const chk=el('button','check-btn'+(doneOnDate?' done':''));
   chk.textContent=doneOnDate?'✓':'';
   chk.title=doneOnDate?'Completed':'Mark complete';
-  // Only show completion popup on today or future — not past days
-  if(!isPastDate){
-    chk.onclick=()=>{if(!doneOnDate)showCompletionPopup(task);};
-  }
+  // Enable on past days too — show date-aware popup
+  chk.onclick=()=>{if(!doneOnDate)showCompletionPopup(task,isPastDate?dateCtx:null);};
   actions.append(editBtn,delBtn,chk);
   footer.append(lfoot,actions);inner.appendChild(footer);
   card.appendChild(inner);
@@ -2190,6 +2254,63 @@ function buildModal(data,isEdit){
   updateMiniBtn();
   miniBtn.onclick=e=>{e.preventDefault();data.mini=!data.mini;updateMiniBtn();};
   miniWrap.appendChild(miniBtn);modal.appendChild(miniWrap);
+
+  // Completion history editor (edit mode only)
+  if(isEdit&&data.completions&&data.completions.length){
+    const histSection=el('div');
+    histSection.style.cssText='margin-bottom:14px;border-top:1px solid var(--border);padding-top:14px;';
+    const histTitle=el('div');
+    histTitle.style.cssText='font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brown-light);margin-bottom:8px;';
+    histTitle.textContent='Completion History — tap a date to correct it';
+    histSection.appendChild(histTitle);
+    const recent=[...data.completions].reverse().slice(0,8);
+    recent.forEach((comp,revIdx)=>{
+      const origIdx=data.completions.length-1-revIdx;
+      const dateStr2=comp.slice(0,10);
+      const dispDate=parseDate(dateStr2).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+      const row=el('div');
+      row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed var(--border);';
+      const dl=el('div');dl.style.cssText='font-size:13px;color:var(--text);';dl.textContent='✓ '+dispDate;
+      const editDateBtn=el('button');
+      editDateBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;';
+      editDateBtn.textContent='Change date';
+      editDateBtn.onclick=e=>{
+        e.preventDefault();
+        // Show date input inline
+        const inp=document.createElement('input');inp.type='date';inp.value=dateStr2;
+        inp.style.cssText='font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--gold);border-radius:6px;padding:6px 10px;background:var(--bg);color:var(--text);outline:none;';
+        const confirmBtn=el('button');
+        confirmBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;border-radius:6px;border:none;background:var(--gold);color:var(--brown);cursor:pointer;margin-left:6px;-webkit-appearance:none;';
+        confirmBtn.textContent='Save';
+        confirmBtn.onclick=ev=>{
+          ev.preventDefault();
+          if(inp.value&&inp.value!==dateStr2){
+            data.completions[origIdx]=inp.value+'T12:00:00.000Z';
+          }
+          row.innerHTML='';row.append(dl);dl.textContent='✓ '+parseDate(inp.value||dateStr2).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+          const eb2=editDateBtn.cloneNode(true);eb2.onclick=editDateBtn.onclick;row.append(eb2);
+        };
+        row.innerHTML='';row.append(inp,confirmBtn);
+      };
+      const delBtn2=el('button');
+      delBtn2.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;padding:5px 10px;border-radius:6px;border:1px solid rgba(180,60,60,0.3);background:none;color:#c0392b;cursor:pointer;margin-left:6px;-webkit-appearance:none;';
+      delBtn2.textContent='Remove';
+      delBtn2.onclick=e=>{
+        e.preventDefault();
+        data.completions.splice(origIdx,1);
+        row.remove();
+      };
+      const btnWrap=el('div');btnWrap.style.cssText='display:flex;gap:4px;';
+      btnWrap.append(editDateBtn,delBtn2);
+      row.append(dl,btnWrap);histSection.appendChild(row);
+    });
+    if(data.completions.length>8){
+      const more=el('div');more.style.cssText='font-size:11px;color:var(--brown-light);padding-top:6px;font-style:italic;';
+      more.textContent=`...and ${data.completions.length-8} older completions`;
+      histSection.appendChild(more);
+    }
+    modal.appendChild(histSection);
+  }
 
   // Buttons
   const btns=el('div','modal-btns');
