@@ -548,22 +548,41 @@ function isDueOn(task,dateS){
   return false;
 }
 
-// Auto-advance overdue tasks to next occurrence (called on load)
+// Auto-advance overdue tasks to next occurrence on load
+// SHE philosophy: no guilt, just roll forward to next due date
 function advanceOverdueTasks(){
   const today=todayStr();
   let changed=false;
   S.tasks.forEach(task=>{
     if(!isActiveTask(task)) return;
     if(!task.nextDueDate) return;
-    // If overdue and not done today, roll forward to next occurrence
-    if(task.nextDueDate<today&&!isDoneToday(task)){
-      // Find next occurrence from today
-      const f=fById(task.freq);
-      let next=parseDate(task.nextDueDate);
-      while(dateStr(next)<today){
-        next=addDays(next,Math.ceil(f.days));
-      }
-      task.nextDueDate=dateStr(next);
+    // Skip if already due today or in the future
+    if(task.nextDueDate>=today) return;
+    // Skip if done today (already handled)
+    if(isDoneOn(task,today)) return;
+    // Skip if carried over to today or tomorrow already
+    if((task.carryOvers||[]).includes(today)) return;
+    const tomorrow=dateStr(addDays(new Date(),1));
+    if((task.carryOvers||[]).includes(tomorrow)) return;
+    // Skip if skipped today
+    if((task.skips||[]).includes(today)) return;
+
+    // Roll forward to next occurrence on or after today
+    const f=fById(task.freq);
+    let next=parseDate(task.nextDueDate);
+    // Safety check — if nextDueDate is invalid, reset to today
+    if(!next){task.nextDueDate=today;changed=true;return;}
+
+    let iterations=0;
+    while(dateStr(next)<today&&iterations<500){
+      next=addDays(next,Math.max(1,Math.ceil(f.days)));
+      iterations++;
+    }
+    const newDate=dateStr(next);
+    if(newDate!==task.nextDueDate){
+      task.nextDueDate=newDate;
+      // Clear any stale originalDueDate so the rolled date becomes the new anchor
+      delete task.originalDueDate;
       changed=true;
     }
   });
