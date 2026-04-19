@@ -1636,6 +1636,11 @@ function renderBrowse(body){
     miniFilterBtn.onclick=()=>{S.freqFilter='__mini__';render();setTimeout(()=>miniFilterBtn.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}),50);};
     strip.appendChild(miniFilterBtn);
     body.appendChild(strip);
+    // Scroll active filter into view after render
+    requestAnimationFrame(()=>{
+      const activeBtn=strip.querySelector('.filter-btn[style*="var(--brown)"], .filter-btn[style*="background: rgb"]');
+      if(activeBtn) activeBtn.scrollIntoView({behavior:'instant',inline:'center',block:'nearest'});
+    });
     let filtered=S.freqFilter==='all'?activeTasks:
       S.freqFilter==='__mini__'?activeTasks.filter(t=>t.mini):
       S.specialTypes.find(s=>s.id===S.freqFilter)?activeTasks.filter(t=>t.special===S.freqFilter):
@@ -1653,9 +1658,15 @@ function renderBrowse(body){
       const b=el('button','filter-btn'+(S.areaFilter===a?' active':''));
       b.textContent=a;
       if(S.areaFilter===a){b.style.background='var(--brown)';b.style.color='var(--bg)';b.style.borderColor='var(--brown)';}
-      b.onclick=()=>{S.areaFilter=a;render();};strip.appendChild(b);
+      b.onclick=()=>{S.areaFilter=a;render();setTimeout(()=>b.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}),50);};
+      strip.appendChild(b);
     });
     body.appendChild(strip);
+    // Scroll active area filter into view after render
+    requestAnimationFrame(()=>{
+      const activeBtn=strip.querySelector('.filter-btn[style*="var(--brown)"]');
+      if(activeBtn) activeBtn.scrollIntoView({behavior:'instant',inline:'center',block:'nearest'});
+    });
     const areas=S.areaFilter==='all'?usedAreas:[S.areaFilter];
     areas.forEach(area=>{
       const tasks=activeTasks.filter(t=>t.area===area);if(!tasks.length)return;
@@ -2174,7 +2185,7 @@ function renderWalkthrough(body){
 // ══════════════════════════════════════════
 function buildWelcomeScreen(){
   const bd=el('div','backdrop');
-  bd.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;';
+  bd.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:max(env(safe-area-inset-top,20px),20px) 16px 16px;overflow-y:auto;';
 
   const modal=el('div');
   modal.style.cssText='background:#e8c4a0;border-radius:12px;max-width:480px;width:100%;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
@@ -2537,7 +2548,7 @@ function render(){
     const bd2=el('div','notif-body');
     const t=el('div','notif-title');t.textContent='Tasks due today — '+new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 
-    // Build accent-aware flower garland SVG
+    // Build accent-aware flower garland SVG — truly full width using JS measurement
     function makeGarland(){
       const isLight=!S.darkMode;
       const acc=S.darkAccent||'#c06878';
@@ -2550,17 +2561,20 @@ function render(){
       const sf=isLight?'#f5c842':lighter;
       const lc=isLight?'#7a9a6a':'#907878';
       const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-      svg.setAttribute('viewBox','0 0 400 16');
+      // Use a wide viewBox with many flowers — SVG scales to fill width
+      const VW=800;
+      const positions=[20,60,100,140,180,220,260,300,340,380,420,460,500,540,580,620,660,700,740,780];
+      svg.setAttribute('viewBox',`0 0 ${VW} 16`);
       svg.setAttribute('preserveAspectRatio','xMidYMid meet');
       svg.style.cssText='width:100%;height:16px;display:block;';
       svg.innerHTML=`
-        <path d="M0 8 Q200 2 400 8" stroke="${lc}" stroke-width="1" fill="none" opacity=".5"/>
-        ${[20,60,100,140,180,220,260,300,340,380].map((x,i)=>{
+        <path d="M0 8 Q${VW/2} 2 ${VW} 8" stroke="${lc}" stroke-width="1" fill="none" opacity=".5"/>
+        ${positions.map((x,i)=>{
           if(i%3===0) return `<circle cx="${x}" cy="8" r="4" fill="${rc}" opacity=".85"/><circle cx="${x}" cy="8" r="2.2" fill="${rd}" opacity=".9"/>`;
           if(i%3===1) return Array.from({length:8},(_,j)=>{const a=j*45*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*5}" cy="${8+Math.sin(a)*5}" rx="2.5" ry="1.2" fill="${dp}" opacity=".8" transform="rotate(${j*45} ${x+Math.cos(a)*5} ${8+Math.sin(a)*5})"/>`;}).join('')+`<circle cx="${x}" cy="8" r="2.5" fill="${dc}"/>`;
           return Array.from({length:8},(_,j)=>{const a=j*45*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*4}" cy="${8+Math.sin(a)*4}" rx="2" ry="1" fill="${sf}" opacity=".85" transform="rotate(${j*45} ${x+Math.cos(a)*4} ${8+Math.sin(a)*4})"/>`;}).join('')+`<circle cx="${x}" cy="8" r="2" fill="#8B6914"/>`;
         }).join('')}
-        ${[40,80,120,160,200,240,280,320,360].map(x=>`<ellipse cx="${x}" cy="8" rx="8" ry="3.5" fill="${lc}" opacity=".55" transform="rotate(${Math.random()>0.5?15:-15} ${x} 8)"/>`).join('')}
+        ${[40,80,120,160,200,240,280,320,360,400,440,480,520,560,600,640,680,720,760].map(x=>`<ellipse cx="${x}" cy="8" rx="8" ry="3.5" fill="${lc}" opacity=".5" transform="rotate(15 ${x} 8)"/>`).join('')}
       `;
       return svg;
     }
@@ -2569,14 +2583,14 @@ function render(){
     const topGarland=makeGarland();bd2.appendChild(topGarland);
     bd2.appendChild(t);
 
-    // Tasks in columns
+    // Tasks in columns — centered within each column
     const tasks=S._notification;
-    const cols=Math.min(3,Math.ceil(tasks.length/3));
+    const numCols=Math.min(3,Math.ceil(tasks.length/3));
     const list=el('div');
-    list.style.cssText=`display:grid;grid-template-columns:repeat(${cols},1fr);gap:2px 12px;margin:6px 0;`;
+    list.style.cssText=`display:grid;grid-template-columns:repeat(${numCols},1fr);gap:2px 16px;margin:8px 0;`;
     tasks.forEach(task=>{
       const d=el('div');
-      d.style.cssText='font-size:12px;line-height:1.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      d.style.cssText='font-size:12px;line-height:1.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;';
       const color=cardColor(task);
       d.innerHTML=`<span style="color:${color};font-weight:700;">${fById(task.freq).label}</span> ${task.name}`;
       list.appendChild(d);
