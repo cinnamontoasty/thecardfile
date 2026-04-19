@@ -508,14 +508,21 @@ function cardBg(task){
   return `linear-gradient(135deg,${c}${a1} 0%,${c}${a2} 100%)`;
 }
 
-// Rolling due date calculation
-function calcNextDueDate(task,fromDate){
+// Rolling due date calculation — always advances from the ORIGINAL due date
+// This keeps the schedule anchored (true to the SHE card file system)
+// e.g. weekly task due Monday, completed Tuesday → next due following Monday
+function calcNextDueDate(task,completedOnDate){
   const f=fById(task.freq);
-  const d=parseDate(fromDate)||new Date();
+  // For 2/D (twice a day), always roll from completion date
   if(f.days<1){
-    return dateStr(addDays(d,1));
+    return dateStr(addDays(parseDate(completedOnDate)||new Date(),1));
   }
-  return dateStr(addDays(d,Math.ceil(f.days)));
+  // Use originalDueDate if set (carry-over case) to preserve anchor
+  // Otherwise use current nextDueDate
+  const anchor=parseDate(task.originalDueDate||task.nextDueDate)||parseDate(completedOnDate)||new Date();
+  // Clear originalDueDate after use
+  if(task.originalDueDate) delete task.originalDueDate;
+  return dateStr(addDays(anchor,Math.ceil(f.days)));
 }
 
 function isActiveTask(task){
@@ -570,10 +577,13 @@ function isDueToday(task){
 // Was this task part of today's schedule?
 // Includes tasks already completed today (nextDueDate rolled forward)
 // and tasks carried over to tomorrow (were due today)
+// and tasks skipped today
 function wasPartOfToday(task){
   if(!isActiveTask(task)) return false;
   // Completed today
   if(isDoneOn(task,todayStr())) return true;
+  // Skipped today
+  if((task.skips||[]).includes(todayStr())) return true;
   // Carried over to tomorrow — was due today
   const tomorrow=dateStr(addDays(new Date(),1));
   if((task.carryOvers||[]).includes(tomorrow)) return true;
@@ -603,7 +613,7 @@ function tasksDueOn(dateS){
   const isToday=dateS===todayStr();
   const isPast=dateS<todayStr();
 
-  // For today: use wasPartOfToday so completed/carried tasks still appear
+  // For today: use wasPartOfToday so completed/carried/skipped tasks still appear
   if(isToday){
     return S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t));
   }
@@ -812,6 +822,8 @@ function showCompletionPopup(task,dateContext){
       {label:`↷ Skip this time`,sub:'Advance to next due date without marking complete',fn:()=>{
         bd.remove();
         const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
+        // Record skip with a special marker so it shows in today's history
+        t.skips=[...(t.skips||[]),todayStr()];
         t.nextDueDate=calcNextDueDate(t,todayStr());
         save();render();
       }},
@@ -836,8 +848,10 @@ function showCompletionPopup(task,dateContext){
 function carryOver(id){
   const task=S.tasks.find(t=>t.id===id);if(!task)return;
   const tomorrow=dateStr(addDays(new Date(),1));
+  // Preserve the original due date before carry-over
+  // so calcNextDueDate can roll forward from the correct anchor
+  if(!task.originalDueDate) task.originalDueDate=task.nextDueDate;
   task.carryOvers=[...(task.carryOvers||[]).filter(d=>d!==todayStr()),tomorrow];
-  // Advance nextDueDate past tomorrow so it doesn't double-show
   if(task.nextDueDate===todayStr()) task.nextDueDate=tomorrow;
   save();render();
 }
@@ -1150,17 +1164,25 @@ function renderCard(task,showArea,opts={}){
   const footer=el('div','card-footer');
   const lfoot=el('div');lfoot.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:3px;';
   const lastEl=el('span','card-last');
+  const skippedToday=(task.skips||[]).includes(todayStr());
+  const carriedToday=(task.carryOvers||[]).includes(dateStr(addDays(new Date(),1)));
   if(isPastDate){
     lastEl.textContent=doneOnDate?'✓ Completed':'Not completed';
     if(doneOnDate) lastEl.style.color='#4a9e5c';
+  }else if(skippedToday){
+    lastEl.textContent='↷ Skipped today';
+    lastEl.style.color='var(--brown-light)';
+    lastEl.style.fontStyle='italic';
+  }else if(carriedToday){
+    lastEl.textContent='↷ Carried over';
+    lastEl.style.color='var(--brown-light)';
+    lastEl.style.fontStyle='italic';
   }else{
     lastEl.textContent=ds===null?'Never done':ds===0?'Done today':`${ds}d ago`;
   }
   lfoot.appendChild(lastEl);
-  if(!isPastDate&&dueToday&&!doneToday){
-    const missed=(task.carryOvers||[]).includes(todayStr());
-    if(missed){const b=el('span','badge-carryover');b.textContent='Carried over';lfoot.appendChild(b);}
-    else{const b=el('span','badge-due');b.textContent='Due';lfoot.appendChild(b);}
+  if(!isPastDate&&!skippedToday&&!carriedToday&&dueToday&&!doneToday){
+    const b=el('span','badge-due');b.textContent='Due';lfoot.appendChild(b);
   }
 
   const actions=el('div','card-actions');
@@ -2398,6 +2420,22 @@ function buildModal(data,isEdit){
   const i7=el('input');i7.type='date';i7.value=data.startDate||'';
   i7.oninput=e=>data.startDate=e.target.value;f7.append(l7,i7);modal.appendChild(f7);
 
+  // Next Due Date — only shown in edit mode for active tasks
+  if(isEdit&&data.startDate&&data.nextDueDate){
+    const f7b=el('div','field');
+    const l7b=el('label');l7b.textContent='Next Due Date (reschedule)';
+    const f7bNote=el('div');
+    f7bNote.style.cssText='font-size:11px;color:var(--brown-light);margin-bottom:6px;line-height:1.5;';
+    f7bNote.textContent='Change this to move the next occurrence. All future dates will anchor from here.';
+    const i7b=el('input');i7b.type='date';i7b.value=data.nextDueDate||'';
+    i7b.oninput=e=>{
+      data.nextDueDate=e.target.value;
+      // Clear originalDueDate so new date becomes the anchor
+      delete data.originalDueDate;
+    };
+    f7b.append(l7b,f7bNote,i7b);modal.appendChild(f7b);
+  }
+
   // Time of day
   const f8=el('div','field');const l8=el('label');l8.textContent='Time of Day';
   const sel8=el('select');
@@ -2619,9 +2657,8 @@ function render(){
 
     sorted.forEach(task=>{
       const done=isDoneToday(task);
-      const skipped=(task.carryOvers||[]).includes(
-        dateStr(addDays(new Date(),1))
-      );
+      const skipped=(task.skips||[]).includes(todayStr())||
+        (task.carryOvers||[]).includes(dateStr(addDays(new Date(),1)));
       const d=el('div');
       const color=cardColor(task);
 
