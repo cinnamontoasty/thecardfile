@@ -567,6 +567,21 @@ function isDueToday(task){
   return isDueOn(task,todayStr());
 }
 
+// Was this task part of today's schedule?
+// Includes tasks already completed today (nextDueDate rolled forward)
+// and tasks carried over to tomorrow (were due today)
+function wasPartOfToday(task){
+  if(!isActiveTask(task)) return false;
+  // Completed today
+  if(isDoneOn(task,todayStr())) return true;
+  // Carried over to tomorrow — was due today
+  const tomorrow=dateStr(addDays(new Date(),1));
+  if((task.carryOvers||[]).includes(tomorrow)) return true;
+  // Currently still due today
+  if(isDueOn(task,todayStr())) return true;
+  return false;
+}
+
 function isDoneOn(task,dateS){
   return (task.completions||[]).some(c=>{
     // Handle both full ISO timestamps and date strings
@@ -585,30 +600,37 @@ function daysSince(task){
 
 // Get all active tasks due on a given date (for schedule views, including past days)
 function tasksDueOn(dateS){
+  const isToday=dateS===todayStr();
   const isPast=dateS<todayStr();
+
+  // For today: use wasPartOfToday so completed/carried tasks still appear
+  if(isToday){
+    return S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t));
+  }
+
   return S.tasks.filter(t=>{
     if(!isActiveTask(t)) return false;
-    // Task must have started on or before this date
     if(t.startDate>dateS) return false;
     // Carry-overs
     if((t.carryOvers||[]).includes(dateS)) return true;
 
     if(isPast){
-      // For past dates: reconstruct whether this task was due on that day
-      // by computing the cycle from startDate forward
+      // Completed on that date counts
+      if(isDoneOn(t,dateS)) return true;
+      // Reconstruct from startDate cycle
       const f=fById(t.freq);
       const start=parseDate(t.startDate);
       const target=parseDate(dateS);
       const diff=(target-start)/86400000;
       if(diff<0) return false;
-      if(diff===0) return true; // due on start date
+      if(diff===0) return true;
       const cycles=Math.round(diff/f.days);
       const predicted=addDays(start,Math.round(cycles*f.days));
       return Math.abs((parseDate(dateStr(predicted))-target)/86400000)<0.6;
     }else{
-      // Future/today: use nextDueDate logic
+      // Future: use nextDueDate logic
       if(t.nextDueDate===dateS) return true;
-      if(t.nextDueDate && t.nextDueDate<=dateS){
+      if(t.nextDueDate&&t.nextDueDate<=dateS){
         const f=fById(t.freq);
         const start=parseDate(t.nextDueDate);
         const target=parseDate(dateS);
@@ -1247,29 +1269,30 @@ function showTodayProgressPopup(dueTasks,doneCount,total){
 
 function renderToday(body){
   backupWarningBanner(body);
-  const dueTasks=S.tasks.filter(t=>isActiveTask(t)&&isDueToday(t));
-  const total=S.tasks.filter(t=>isActiveTask(t)).length;
+  const dueTasks=S.tasks.filter(t=>isActiveTask(t)&&isDueToday(t)&&!isDoneToday(t));
+  const todayTotal=S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t)).length;
   const doneCount=S.tasks.filter(t=>isActiveTask(t)&&isDoneToday(t)).length;
 
-  if(total>0){
+  if(todayTotal>0){
     const pc=el('div','progress-card');
     pc.style.cursor='pointer';pc.title='Click to see today\'s summary';
-    pc.onclick=()=>showTodayProgressPopup(dueTasks,doneCount,total);
+    pc.onclick=()=>showTodayProgressPopup(dueTasks,doneCount,todayTotal);
     const pr=el('div','progress-row');
     const l=el('span');l.textContent='Completed today';
     const rightSide=el('div');rightSide.style.cssText='display:flex;align-items:center;gap:6px;';
     const hint=el('span');hint.style.cssText='font-size:9px;color:var(--brown-light);';hint.textContent='tap for summary';
-    const r=el('span','pct');r.textContent=`${doneCount} / ${total}`;
+    const r=el('span','pct');r.textContent=`${doneCount} / ${todayTotal}`;
     rightSide.append(hint,r);pr.append(l,rightSide);
     const pb=el('div','progress-bar');
-    const pf=el('div','progress-fill');pf.style.width=`${Math.round(doneCount/total*100)}%`;
+    const pf=el('div','progress-fill');pf.style.width=`${Math.round(doneCount/todayTotal*100)}%`;
     pb.appendChild(pf);pc.append(pr,pb);body.appendChild(pc);
   }
 
   if(!dueTasks.length){
     const emp=el('div','empty');
     const ic=el('div','empty-icon');ic.textContent='✓';
-    const tx=el('div','empty-text');tx.textContent='All caught up! Nothing due today.';
+    const tx=el('div','empty-text');
+    tx.textContent=doneCount>0?'All caught up! Everything done for today. 🌸':'Nothing due today!';
     emp.append(ic,tx);body.appendChild(emp);return;
   }
 
@@ -2503,7 +2526,7 @@ function render(){
   }
 
   // Daily notification — rebuild from due tasks if needed
-  const dueTodayForNotif=S.tasks.filter(t=>isDueToday(t));
+  const dueTodayForNotif=S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t));
   if(dueTodayForNotif.length&&!S._notification){
     S._notification=dueTodayForNotif;
   }
@@ -2517,12 +2540,12 @@ function render(){
   hleft.append(ey,ht);
   const hr=el('div','hright');
   const hd=el('div','hdate');hd.textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  const dueCount=S.tasks.filter(t=>isDueToday(t)).length;
+  const dueCount=S.tasks.filter(t=>isActiveTask(t)&&isDueToday(t)&&!isDoneToday(t)).length;
   const hdu=el('div','hdue');
   hdu.textContent=`${dueCount} task${dueCount!==1?'s':''} due`;
   hdu.title='Click to show/hide today\'s task list';
   hdu.onclick=()=>{
-    const due=S.tasks.filter(t=>isDueToday(t));
+    const due=S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t));
     if(due.length){
       if(!S._notification) S._notification=due;
       S.notificationDismissed=!S.notificationDismissed;
@@ -2584,8 +2607,8 @@ function render(){
     bd2.appendChild(t);
 
     // Tasks in columns — with done/skipped/pending status
-    // Rebuild from ALL due tasks so we always have current status
-    const allDueTasks=S.tasks.filter(t=>isDueToday(t));
+    // Use wasPartOfToday so completed/carried tasks stay visible
+    const allDueTasks=S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t));
     const numCols=Math.min(3,Math.ceil(allDueTasks.length/3));
     const list=el('div');
     list.style.cssText=`display:grid;grid-template-columns:repeat(${Math.max(1,numCols)},1fr);gap:2px 16px;margin:8px 0;`;
