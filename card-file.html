@@ -2583,16 +2583,37 @@ function render(){
     const topGarland=makeGarland();bd2.appendChild(topGarland);
     bd2.appendChild(t);
 
-    // Tasks in columns — centered within each column
-    const tasks=S._notification;
-    const numCols=Math.min(3,Math.ceil(tasks.length/3));
+    // Tasks in columns — with done/skipped/pending status
+    // Rebuild from ALL due tasks so we always have current status
+    const allDueTasks=S.tasks.filter(t=>isDueToday(t));
+    const numCols=Math.min(3,Math.ceil(allDueTasks.length/3));
     const list=el('div');
-    list.style.cssText=`display:grid;grid-template-columns:repeat(${numCols},1fr);gap:2px 16px;margin:8px 0;`;
-    tasks.forEach(task=>{
+    list.style.cssText=`display:grid;grid-template-columns:repeat(${Math.max(1,numCols)},1fr);gap:2px 16px;margin:8px 0;`;
+
+    // Sort by timeOfDay then name for consistent order
+    const todOrder=['dawn','morning','afternoon','evening',''];
+    const sorted=[...allDueTasks].sort((a,b)=>todOrder.indexOf(a.timeOfDay||'')-todOrder.indexOf(b.timeOfDay||''));
+
+    sorted.forEach(task=>{
+      const done=isDoneToday(task);
+      const skipped=(task.carryOvers||[]).includes(
+        dateStr(addDays(new Date(),1))
+      );
       const d=el('div');
-      d.style.cssText='font-size:12px;line-height:1.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;';
       const color=cardColor(task);
-      d.innerHTML=`<span style="color:${color};font-weight:700;">${fById(task.freq).label}</span> ${task.name}`;
+
+      let statusIcon='';
+      let textStyle='';
+      if(done){
+        statusIcon='✓ ';
+        textStyle='text-decoration:line-through;opacity:0.5;';
+      }else if(skipped){
+        statusIcon='↷ ';
+        textStyle='opacity:0.6;font-style:italic;';
+      }
+
+      d.style.cssText=`font-size:12px;line-height:1.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${textStyle}`;
+      d.innerHTML=`<span style="color:${done?'#4a9e5c':skipped?'var(--brown-light)':color};font-weight:700;">${statusIcon}${fById(task.freq).label}</span> ${task.name}`;
       list.appendChild(d);
     });
     bd2.appendChild(list);
