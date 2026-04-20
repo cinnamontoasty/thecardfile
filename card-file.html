@@ -600,8 +600,20 @@ function isDueToday(task){
 // and tasks whose nextDueDate is in the past (slipped through advance)
 function wasPartOfToday(task){
   if(!isActiveTask(task)) return false;
-  // Completed today
-  if(isDoneOn(task,todayStr())) return true;
+  // Completed today AND was actually due today (not a past-day completion)
+  if(isDoneOn(task,todayStr())){
+    // Only count as part of today if it was originally due today
+    // (not a past-day task completed today, which stays in its original day)
+    const wasDueToday=isDueOn(task,todayStr())||
+      (task.carryOvers||[]).includes(todayStr());
+    if(wasDueToday) return true;
+    // Check if it was due today before completion rolled it forward
+    // by seeing if nextDueDate is now in the future by exactly one cycle
+    const f=fById(task.freq);
+    const expectedNext=dateStr(addDays(parseDate(todayStr()),Math.ceil(f.days)));
+    if(task.nextDueDate===expectedNext) return true;
+    return false;
+  }
   // Skipped today
   if((task.skips||[]).includes(todayStr())) return true;
   // Carried over to tomorrow — was due today
@@ -754,22 +766,28 @@ function importData(){
 let S_undo=null;
 let S_undoTimer=null;
 
-function markDone(id,onDateStr){
+function markDone(id,onDateStr,originalDueDateStr){
   const task=S.tasks.find(t=>t.id===id);if(!task)return;
   const dStr=onDateStr||todayStr();
+  // originalDueDateStr is the date the task was ORIGINALLY due
+  // used when completing a past task today — anchors the schedule correctly
+  const anchorDate=originalDueDateStr||dStr;
   // Save undo snapshot
   S_undo={
     taskId:id,
     completions:[...(task.completions||[])],
     carryOvers:[...(task.carryOvers||[])],
     nextDueDate:task.nextDueDate,
+    originalDueDate:task.originalDueDate,
     label:task.name,
   };
-  // Record completion
+  // Record completion with actual date done
   const ts=dStr+'T12:00:00.000Z';
   task.completions=[...(task.completions||[]),ts];
   task.carryOvers=(task.carryOvers||[]).filter(d=>d!==dStr);
-  task.nextDueDate=calcNextDueDate(task,dStr);
+  // Roll schedule from original due date anchor, not from today
+  if(originalDueDateStr) task.originalDueDate=originalDueDateStr;
+  task.nextDueDate=calcNextDueDate(task,anchorDate);
   save();render();
   showUndoToast(`"${task.name}" marked complete`);
 }
@@ -828,7 +846,11 @@ function showCompletionPopup(task,dateContext){
     const todayLabel=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
     opts=[
       {label:`✓ Completed on this day`,sub:pastLabel,fn:()=>{bd.remove();markDone(task.id,dateContext);}},
-      {label:`✓ Completed today`,sub:todayLabel+' — records today as completion date',fn:()=>{bd.remove();markDone(task.id,todayStr());}},
+      {label:`✓ Completed today`,sub:todayLabel+' — filed under '+pastLabel,fn:()=>{
+        bd.remove();
+        // Record today as completion date but anchor schedule to original due date
+        markDone(task.id,todayStr(),dateContext);
+      }},
       {label:`↷ Skip this day`,sub:'Advance schedule without marking complete',fn:()=>{
         bd.remove();
         const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
@@ -1536,23 +1558,32 @@ function renderWeekView(body,d){
 
     tasks.forEach(task=>{
       const bg=cardBg(task);
+      const doneOnDs=isDoneOn(task,ds);
       const mc=el('div','week-mini-card');
-      mc.style.cssText=`background:${bg};border-radius:3px;padding:4px 5px;font-size:9px;font-weight:700;line-height:1.3;cursor:pointer;min-width:0;overflow:hidden;`;
 
-      // Dark text check — same luminosity logic as full cards
-      const hexC=cardColor(task);
-      const rr=parseInt(hexC.slice(1,3),16),gg=parseInt(hexC.slice(3,5),16),bb=parseInt(hexC.slice(5,7),16);
-      const lum=(rr*0.299+gg*0.587+bb*0.114)/255;
-      // Daily yellow always needs dark text
-      const needsDark=lum>0.62||task.freq==='d';
-      mc.style.color=needsDark?'rgba(0,0,0,0.78)':'rgba(255,255,255,0.92)';
-      if(S.darkMode&&!needsDark) mc.style.color='rgba(255,240,220,0.88)';
-
-      // Show time of day emoji if set
-      const tod=TIME_OF_DAY.find(t=>t.id===(task.timeOfDay||''));
-      const todEmoji=tod&&tod.id?tod.label.split(' ')[0]:'';
-      mc.textContent=(todEmoji?todEmoji+' ':'')+task.name;
-      mc.title=task.name+' ('+fById(task.freq).label+(task.timeOfDay?' · '+tod?.label:'')+')';
+      // Completed tasks: grayed out with strikethrough
+      if(doneOnDs){
+        mc.style.cssText=`background:${bg};border-radius:3px;padding:4px 5px;font-size:9px;font-weight:700;line-height:1.3;cursor:pointer;min-width:0;overflow:hidden;opacity:0.45;text-decoration:line-through;`;
+        mc.style.color='rgba(0,0,0,0.5)';
+        if(S.darkMode) mc.style.color='rgba(255,240,220,0.5)';
+        // Green checkmark prefix
+        const tod=TIME_OF_DAY.find(t=>t.id===(task.timeOfDay||''));
+        mc.textContent='✓ '+task.name;
+        mc.title=task.name+' — completed';
+      }else{
+        mc.style.cssText=`background:${bg};border-radius:3px;padding:4px 5px;font-size:9px;font-weight:700;line-height:1.3;cursor:pointer;min-width:0;overflow:hidden;`;
+        // Dark text check
+        const hexC=cardColor(task);
+        const rr=parseInt(hexC.slice(1,3),16),gg=parseInt(hexC.slice(3,5),16),bb=parseInt(hexC.slice(5,7),16);
+        const lum=(rr*0.299+gg*0.587+bb*0.114)/255;
+        const needsDark=lum>0.62||task.freq==='d';
+        mc.style.color=needsDark?'rgba(0,0,0,0.78)':'rgba(255,255,255,0.92)';
+        if(S.darkMode&&!needsDark) mc.style.color='rgba(255,240,220,0.88)';
+        const tod=TIME_OF_DAY.find(t=>t.id===(task.timeOfDay||''));
+        const todEmoji=tod&&tod.id?tod.label.split(' ')[0]:'';
+        mc.textContent=(todEmoji?todEmoji+' ':'')+task.name;
+        mc.title=task.name+' ('+fById(task.freq).label+(task.timeOfDay?' · '+tod?.label:'')+')';
+      }
       mc.onclick=()=>{S.scheduleDate=day;S.scheduleView='day';render();};
       col.appendChild(mc);
     });
