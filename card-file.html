@@ -635,6 +635,24 @@ function isDoneOn(task,dateS){
   });
 }
 
+// Was this task completed for a given due date?
+// Handles cases where completion was recorded on a different date
+// (e.g., "completed today" for yesterday's task records today's date)
+function isDoneForDay(task,dateS){
+  // First check: completion recorded on that exact date
+  if(isDoneOn(task,dateS)) return true;
+  // Second check: for past days, see if there's a completion recorded
+  // AFTER dateS but BEFORE the next expected occurrence
+  // This catches "completed today" for a past-day task
+  if(dateS>=todayStr()) return false;
+  const f=fById(task.freq);
+  const nextExpected=dateStr(addDays(parseDate(dateS),Math.ceil(f.days)));
+  return (task.completions||[]).some(c=>{
+    const cDate=c.length>=10?c.slice(0,10):c.slice(0,10);
+    return cDate>dateS&&cDate<nextExpected;
+  });
+}
+
 function isDoneToday(task){return isDoneOn(task,todayStr());}
 
 function daysSince(task){
@@ -1162,7 +1180,9 @@ function renderCard(task,showArea,opts={}){
   const dateCtx=opts.dateContext||todayStr();
   const isPastDate=dateCtx<todayStr();
   // For 2/D dual slot, use slot-specific done state; otherwise use date-based
-  const doneOnDate=opts.slotDone!==undefined?opts.slotDone:isDoneOn(task,dateCtx);
+  // For past days use isDoneForDay which catches "completed today" for past tasks
+  const doneOnDate=opts.slotDone!==undefined?opts.slotDone:
+    isPastDate?isDoneForDay(task,dateCtx):isDoneOn(task,dateCtx);
   const doneToday=isDoneToday(task);
   const dueToday=isDueToday(task);
   const ds=daysSince(task);
@@ -1563,7 +1583,7 @@ function renderWeekView(body,d){
 
     tasks.forEach(task=>{
       const bg=cardBg(task);
-      const doneOnDs=isDoneOn(task,ds);
+      const doneOnDs=isDoneForDay(task,ds);
       const skippedOnDs=(task.skips||[]).includes(ds);
       const mc=el('div','week-mini-card');
 
@@ -1574,11 +1594,16 @@ function renderWeekView(body,d){
         mc.textContent='✓ '+task.name;
         mc.title=task.name+' — completed';
       }else if(skippedOnDs){
-        mc.style.cssText=`background:${bg};border-radius:3px;padding:4px 5px;font-size:9px;font-weight:700;line-height:1.3;cursor:pointer;min-width:0;overflow:hidden;opacity:0.55;font-style:italic;`;
+        mc.style.cssText=`background:${bg};border-radius:3px;padding:4px 5px;font-size:9px;font-weight:700;line-height:1.3;cursor:pointer;min-width:0;overflow:hidden;opacity:0.55;font-style:italic;position:relative;`;
         mc.style.color='rgba(0,0,0,0.45)';
         if(S.darkMode) mc.style.color='rgba(255,240,220,0.45)';
+        // Cross-hatch overlay via inline pseudo-element workaround using a child div
+        const hatch=el('div');
+        hatch.style.cssText='position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(150,150,150,0.15) 0px,rgba(150,150,150,0.15) 2px,transparent 2px,transparent 8px);pointer-events:none;border-radius:3px;';
+        mc.style.position='relative';
         mc.textContent='↷ '+task.name;
         mc.title=task.name+' — skipped';
+        mc.appendChild(hatch);
       }else{
         mc.style.cssText=`background:${bg};border-radius:3px;padding:4px 5px;font-size:9px;font-weight:700;line-height:1.3;cursor:pointer;min-width:0;overflow:hidden;`;
         // Dark text check
