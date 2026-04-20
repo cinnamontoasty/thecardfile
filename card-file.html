@@ -124,6 +124,9 @@ body.dark .tab.active{color:var(--gold);}
 .index-card:active{transform:scale(0.99);}
 .index-card.done-today{opacity:.5;}
 .index-card.is-mini{outline:3px solid #e8d800;outline-offset:-2px;}
+.index-card.is-skipped{opacity:.7;}
+.index-card.is-skipped::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(180,180,180,0.10) 0px,rgba(180,180,180,0.10) 2px,transparent 2px,transparent 12px);pointer-events:none;z-index:2;}
+.index-card.is-skipped .card-inner{background:rgba(200,200,200,0.12);}
 .card-color-bar{position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--card-bar);}
 .card-inner{background:transparent;padding:10px 13px 10px 20px;min-height:92px;display:flex;flex-direction:column;gap:4px;}
 .card-inner.dark-text .card-freq{background:rgba(0,0,0,0.15);color:rgba(0,0,0,0.72);}
@@ -851,11 +854,12 @@ function showCompletionPopup(task,dateContext){
         // Record today as completion date but anchor schedule to original due date
         markDone(task.id,todayStr(),dateContext);
       }},
-      {label:`↷ Skip this day`,sub:'Advance schedule without marking complete',fn:()=>{
+      {label:`↷ Skip this day`,sub:'Records this day as skipped — no schedule change',fn:()=>{
         bd.remove();
         const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
-        t.skips=[...(t.skips||[]),dateContext];
-        t.nextDueDate=calcNextDueDate(t,dateContext);
+        // Just record the skip — don't change nextDueDate
+        // The schedule already rolled forward via advanceOverdueTasks
+        t.skips=[...(t.skips||[]).filter(d=>d!==dateContext),dateContext];
         save();render();
       }},
     ];
@@ -1164,7 +1168,8 @@ function renderCard(task,showArea,opts={}){
   const ds=daysSince(task);
   const freq=fById(task.freq);
 
-  const card=el('div','index-card'+(task.mini?' is-mini':'')+(doneOnDate?' done-today':''));
+  const isSkippedOnDate=(task.skips||[]).includes(dateCtx);
+  const card=el('div','index-card'+(task.mini?' is-mini':'')+(doneOnDate?' done-today':'')+(isSkippedOnDate?' is-skipped':''));
   card.style.background=cardBg(task);
 
   const bar=el('div','card-color-bar');card.appendChild(bar);
@@ -1559,17 +1564,21 @@ function renderWeekView(body,d){
     tasks.forEach(task=>{
       const bg=cardBg(task);
       const doneOnDs=isDoneOn(task,ds);
+      const skippedOnDs=(task.skips||[]).includes(ds);
       const mc=el('div','week-mini-card');
 
-      // Completed tasks: grayed out with strikethrough
       if(doneOnDs){
         mc.style.cssText=`background:${bg};border-radius:3px;padding:4px 5px;font-size:9px;font-weight:700;line-height:1.3;cursor:pointer;min-width:0;overflow:hidden;opacity:0.45;text-decoration:line-through;`;
         mc.style.color='rgba(0,0,0,0.5)';
         if(S.darkMode) mc.style.color='rgba(255,240,220,0.5)';
-        // Green checkmark prefix
-        const tod=TIME_OF_DAY.find(t=>t.id===(task.timeOfDay||''));
         mc.textContent='✓ '+task.name;
         mc.title=task.name+' — completed';
+      }else if(skippedOnDs){
+        mc.style.cssText=`background:${bg};border-radius:3px;padding:4px 5px;font-size:9px;font-weight:700;line-height:1.3;cursor:pointer;min-width:0;overflow:hidden;opacity:0.55;font-style:italic;`;
+        mc.style.color='rgba(0,0,0,0.45)';
+        if(S.darkMode) mc.style.color='rgba(255,240,220,0.45)';
+        mc.textContent='↷ '+task.name;
+        mc.title=task.name+' — skipped';
       }else{
         mc.style.cssText=`background:${bg};border-radius:3px;padding:4px 5px;font-size:9px;font-weight:700;line-height:1.3;cursor:pointer;min-width:0;overflow:hidden;`;
         // Dark text check
@@ -2474,25 +2483,82 @@ function buildModal(data,isEdit){
   });
   sel6.onchange=e=>data.special=e.target.value;f6.append(l6,sel6);modal.appendChild(f6);
 
-  // Start date
-  const f7=el('div','field');const l7=el('label');l7.textContent='Start Date (leave blank to save as Pending)';
-  const i7=el('input');i7.type='date';i7.value=data.startDate||'';
-  i7.oninput=e=>data.startDate=e.target.value;f7.append(l7,i7);modal.appendChild(f7);
+  // Helper: show a confirmation dialog with optional "don't ask again" checkbox
+  function confirmAction(msg,storageKey,onConfirm){
+    if(localStorage.getItem(storageKey)==='1'){onConfirm();return;}
+    const bd2=el('div','backdrop');
+    bd2.style.zIndex='201';
+    const box=el('div');
+    box.style.cssText='background:var(--card-bg);border-radius:12px;padding:24px 20px;max-width:340px;width:90%;margin:auto;margin-top:20vh;box-shadow:0 8px 32px rgba(0,0,0,0.3);';
+    const msg2=el('div');msg2.style.cssText='font-size:14px;color:var(--text);line-height:1.6;margin-bottom:18px;';msg2.textContent=msg;
+    const cbRow=el('div');cbRow.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:18px;cursor:pointer;';
+    const cb=document.createElement('input');cb.type='checkbox';cb.style.cssText='width:16px;height:16px;accent-color:var(--gold);cursor:pointer;';
+    const cbl=el('span');cbl.style.cssText='font-size:12px;color:var(--brown-light);';cbl.textContent="Don't ask me this again";
+    cbRow.append(cb,cbl);cbRow.onclick=()=>cb.checked=!cb.checked;
+    const btnRow=el('div');btnRow.style.cssText='display:flex;gap:8px;';
+    const cancelBtn=el('button','btn btn-ghost');cancelBtn.style.cssText+='flex:1;';cancelBtn.textContent='Cancel';
+    cancelBtn.onclick=()=>bd2.remove();
+    const okBtn=el('button','btn btn-primary');okBtn.style.cssText+='flex:1;';okBtn.textContent='Yes, continue';
+    okBtn.onclick=()=>{
+      if(cb.checked) localStorage.setItem(storageKey,'1');
+      bd2.remove();onConfirm();
+    };
+    btnRow.append(cancelBtn,okBtn);
+    box.append(msg2,cbRow,btnRow);
+    bd2.appendChild(box);document.body.appendChild(bd2);
+  }
 
-  // Next Due Date — only shown in edit mode for active tasks
+  // Start date — with clear button
+  const f7=el('div','field');
+  const l7=el('label');l7.textContent='Start Date (leave blank to save as Pending)';
+  const f7row=el('div');f7row.style.cssText='display:flex;align-items:center;gap:8px;';
+  const i7=el('input');i7.type='date';i7.value=data.startDate||'';i7.style.flex='1';
+  i7.oninput=e=>data.startDate=e.target.value;
+  const clr7=el('button');
+  clr7.type='button';
+  clr7.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--brown-light);cursor:pointer;white-space:nowrap;-webkit-appearance:none;flex-shrink:0;';
+  clr7.textContent='✕ Clear';
+  clr7.onclick=e=>{
+    e.preventDefault();
+    if(!data.startDate)return;
+    confirmAction(
+      'Clearing the start date will move this card to Pending and remove it from future scheduling. Clear it?',
+      'cf4_noConfirmClearDate',
+      ()=>{
+        data.startDate='';
+        data.nextDueDate='';
+        i7.value='';
+      }
+    );
+  };
+  f7row.append(i7,clr7);f7.append(l7,f7row);modal.appendChild(f7);
+
+  // Next Due Date — only shown in edit mode for active tasks, with clear/change confirmation
   if(isEdit&&data.startDate&&data.nextDueDate){
     const f7b=el('div','field');
     const l7b=el('label');l7b.textContent='Next Due Date (reschedule)';
     const f7bNote=el('div');
     f7bNote.style.cssText='font-size:11px;color:var(--brown-light);margin-bottom:6px;line-height:1.5;';
     f7bNote.textContent='Change this to move the next occurrence. All future dates will anchor from here.';
-    const i7b=el('input');i7b.type='date';i7b.value=data.nextDueDate||'';
-    i7b.oninput=e=>{
-      data.nextDueDate=e.target.value;
-      // Clear originalDueDate so new date becomes the anchor
-      delete data.originalDueDate;
+    const f7brow=el('div');f7brow.style.cssText='display:flex;align-items:center;gap:8px;';
+    const i7b=el('input');i7b.type='date';i7b.value=data.nextDueDate||'';i7b.style.flex='1';
+    let lastConfirmedNextDate=data.nextDueDate;
+    i7b.onchange=e=>{
+      const newVal=e.target.value;
+      if(!newVal||newVal===lastConfirmedNextDate){data.nextDueDate=newVal;return;}
+      confirmAction(
+        'Changing the due date will shift this card\'s entire schedule going forward. Continue?',
+        'cf4_noConfirmChangeDate',
+        ()=>{
+          data.nextDueDate=newVal;
+          lastConfirmedNextDate=newVal;
+          delete data.originalDueDate;
+        }
+      );
+      // Reset input if user cancels — will be overwritten by confirm if they proceed
+      setTimeout(()=>{if(i7b.value!==lastConfirmedNextDate)i7b.value=lastConfirmedNextDate;},300);
     };
-    f7b.append(l7b,f7bNote,i7b);modal.appendChild(f7b);
+    f7brow.append(i7b);f7b.append(l7b,f7bNote,f7brow);modal.appendChild(f7b);
   }
 
   // Time of day
