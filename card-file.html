@@ -597,6 +597,7 @@ function isDueToday(task){
 // Includes tasks already completed today (nextDueDate rolled forward)
 // and tasks carried over to tomorrow (were due today)
 // and tasks skipped today
+// and tasks whose nextDueDate is in the past (slipped through advance)
 function wasPartOfToday(task){
   if(!isActiveTask(task)) return false;
   // Completed today
@@ -632,7 +633,7 @@ function tasksDueOn(dateS){
   const isToday=dateS===todayStr();
   const isPast=dateS<todayStr();
 
-  // For today: use wasPartOfToday so completed/carried/skipped tasks still appear
+  // For today: use wasPartOfToday so completed/carried/skipped/overdue tasks all appear
   if(isToday){
     return S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t));
   }
@@ -823,13 +824,15 @@ function showCompletionPopup(task,dateContext){
 
   let opts;
   if(isPastDate){
-    // For past days — mark for that specific date or skip
     const pastLabel=parseDate(dateContext).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    const todayLabel=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
     opts=[
       {label:`✓ Completed on this day`,sub:pastLabel,fn:()=>{bd.remove();markDone(task.id,dateContext);}},
+      {label:`✓ Completed today`,sub:todayLabel+' — records today as completion date',fn:()=>{bd.remove();markDone(task.id,todayStr());}},
       {label:`↷ Skip this day`,sub:'Advance schedule without marking complete',fn:()=>{
         bd.remove();
         const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
+        t.skips=[...(t.skips||[]),dateContext];
         t.nextDueDate=calcNextDueDate(t,dateContext);
         save();render();
       }},
@@ -1183,24 +1186,30 @@ function renderCard(task,showArea,opts={}){
   const footer=el('div','card-footer');
   const lfoot=el('div');lfoot.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:3px;';
   const lastEl=el('span','card-last');
-  const skippedToday=(task.skips||[]).includes(todayStr());
-  const carriedToday=(task.carryOvers||[]).includes(dateStr(addDays(new Date(),1)));
+  const isViewingToday=dateCtx===todayStr();
+  const skippedToday=isViewingToday&&(task.skips||[]).includes(todayStr());
+  const carriedToday=isViewingToday&&(task.carryOvers||[]).includes(dateStr(addDays(new Date(),1)));
+  const doneViewDate=isViewingToday&&isDoneToday(task);
+
   if(isPastDate){
     lastEl.textContent=doneOnDate?'✓ Completed':'Not completed';
     if(doneOnDate) lastEl.style.color='#4a9e5c';
+  }else if(isViewingToday&&doneViewDate){
+    lastEl.textContent='Done today';
+    lastEl.style.color='#4a9e5c';
   }else if(skippedToday){
     lastEl.textContent='↷ Skipped today';
     lastEl.style.color='var(--brown-light)';
     lastEl.style.fontStyle='italic';
   }else if(carriedToday){
-    lastEl.textContent='↷ Carried over';
+    lastEl.textContent='↷ Carried over to tomorrow';
     lastEl.style.color='var(--brown-light)';
     lastEl.style.fontStyle='italic';
   }else{
     lastEl.textContent=ds===null?'Never done':ds===0?'Done today':`${ds}d ago`;
   }
   lfoot.appendChild(lastEl);
-  if(!isPastDate&&!skippedToday&&!carriedToday&&dueToday&&!doneToday){
+  if(!isPastDate&&!skippedToday&&!carriedToday&&!doneViewDate&&isDueOn(task,dateCtx)){
     const b=el('span','badge-due');b.textContent='Due';lfoot.appendChild(b);
   }
 
