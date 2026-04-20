@@ -269,6 +269,7 @@ body.dark .schedule-tab.active{background:var(--gold);color:#2a1f18;border-color
 .month-cell.other-month{opacity:.4;}
 .month-cell-date{font-size:11px;font-weight:700;color:var(--text);margin-bottom:2px;}
 .month-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin:1px;}
+.month-dot-row{display:flex;flex-wrap:wrap;gap:1px;}
 .month-count{font-size:9px;color:var(--brown-light);}
 
 /* ── WEEK GRID ── */
@@ -281,11 +282,11 @@ body.dark .schedule-tab.active{background:var(--gold);color:#2a1f18;border-color
 .year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
 .year-month{background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:8px;}
 .year-month-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:6px;text-align:center;}
-.year-mini-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;}
-.year-cell{height:10px;border-radius:1px;background:var(--parchment-dark);cursor:pointer;transition:opacity .15s;}
+.year-mini-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.year-cell{min-height:18px;border-radius:2px;background:var(--parchment-dark);cursor:pointer;transition:opacity .15s;padding:2px;display:flex;flex-wrap:wrap;gap:1px;align-items:flex-start;}
 .year-cell:active{opacity:.7;}
 .year-cell.has-tasks{opacity:1;}
-.year-cell.is-today{outline:1px solid var(--gold);}
+.year-cell.is-today{outline:1.5px solid var(--gold);}
 
 /* ── COLOR PICKER ── */
 .color-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
@@ -884,11 +885,9 @@ function showCompletionPopup(task,dateContext){
   }else{
     opts=[
       {label:`✓ Completed today`,sub:todayLabel,fn:()=>{bd.remove();markDone(task.id,todayStr());}},
-      {label:`✓ Completed yesterday`,sub:yestLabel,fn:()=>{bd.remove();markDone(task.id,yesterday);}},
       {label:`↷ Skip this time`,sub:'Advance to next due date without marking complete',fn:()=>{
         bd.remove();
         const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
-        // Record skip with a special marker so it shows in today's history
         t.skips=[...(t.skips||[]),todayStr()];
         t.nextDueDate=calcNextDueDate(t,todayStr());
         save();render();
@@ -1521,26 +1520,14 @@ function renderDayView(body,d){
     body.appendChild(pastNote);
   }
 
-  // Group by time of day → area
-  TIME_OF_DAY.forEach(tod=>{
-    const todTasks=tasks.filter(t=>(t.timeOfDay||'')===(tod.id));
-    if(!todTasks.length)return;
-    const todHead=el('div');
-    todHead.style.cssText='display:flex;align-items:center;gap:8px;margin:20px 0 10px;';
-    const todLabel=el('span');
-    todLabel.style.cssText=`font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:${tod.color};padding:4px 12px;border-radius:12px;white-space:nowrap;`;
-    todLabel.textContent=tod.label;
-    const todLine=el('div');todLine.style.cssText='flex:1;height:1px;background:var(--section-line);';
-    todHead.append(todLabel,todLine);body.appendChild(todHead);
-
-    const areas=[...new Set(todTasks.map(t=>t.area||'General'))].sort();
-    areas.forEach(area=>{
-      const areaTasks=todTasks.filter(t=>(t.area||'General')===area);
-      if(!areaTasks.length)return;
-      const aHead=el('div','area-heading');aHead.textContent=area;body.appendChild(aHead);
-      areaTasks.forEach(task=>{
-        body.appendChild(renderCard(task,false,{showCarryOver:isToday,dateContext:ds}));
-      });
+  // Group by area/room only — no time of day grouping in day view
+  const areas=[...new Set(tasks.map(t=>t.area||'General'))].sort();
+  areas.forEach(area=>{
+    const areaTasks=tasks.filter(t=>(t.area||'General')===area);
+    if(!areaTasks.length)return;
+    const aHead=el('div','area-heading');aHead.textContent=area;body.appendChild(aHead);
+    areaTasks.forEach(task=>{
+      body.appendChild(renderCard(task,false,{showCarryOver:isToday,dateContext:ds}));
     });
   });
 }
@@ -1664,11 +1651,13 @@ function renderMonthView(body,d){
     const todOrder=['dawn','morning','afternoon','evening',''];
     const tasks=tasksDueOn(ds).sort((a,b)=>todOrder.indexOf(a.timeOfDay||'')-todOrder.indexOf(b.timeOfDay||''));
     if(tasks.length){
-      const dotRow=el('div');
-      tasks.slice(0,5).forEach(t=>{
-        const dot=el('span','month-dot');dot.style.background=cardColor(t);dotRow.appendChild(dot);
+      const dotRow=el('div','month-dot-row');
+      tasks.forEach(t=>{
+        const dot=el('span','month-dot');
+        dot.style.background=cardColor(t);
+        dot.title=t.name;
+        dotRow.appendChild(dot);
       });
-      if(tasks.length>5){const more=el('span','month-count');more.textContent=`+${tasks.length-5}`;dotRow.appendChild(more);}
       cell.appendChild(dotRow);
     }
     cell.onclick=()=>{S.scheduleDate=parseDate(ds);S.scheduleView='day';render();};
@@ -1700,27 +1689,22 @@ function renderYearView(body,d){
     const firstDow=new Date(year,m,1).getDay();
     const miniGrid=el('div','year-mini-grid');
     // Padding
-    for(let p=0;p<firstDow;p++){const c=el('div');c.style.height='10px';miniGrid.appendChild(c);}
+    for(let p=0;p<firstDow;p++){
+      const c=el('div');c.style.cssText='min-height:18px;';miniGrid.appendChild(c);
+    }
     for(let day=1;day<=daysInMonth;day++){
       const ds=`${year}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
       const tasks=tasksDueOn(ds);
       const isToday=ds===todayStr();
       const cell=el('div','year-cell'+(isToday?' is-today':''));
-      cell.style.cssText=`height:auto;min-height:10px;border-radius:2px;background:var(--parchment-dark);cursor:pointer;padding:1px;display:flex;flex-wrap:wrap;gap:1px;align-items:flex-start;`;
+      if(isToday) cell.style.outline='1.5px solid var(--gold)';
       if(tasks.length){
-        tasks.slice(0,4).forEach(t=>{
+        tasks.slice(0,15).forEach(t=>{
           const dot=el('div');
           dot.style.cssText=`width:4px;height:4px;border-radius:50%;background:${cardColor(t)};flex-shrink:0;`;
           cell.appendChild(dot);
         });
-        if(tasks.length>4){
-          // fill rest with a small + indicator
-          const more=el('div');
-          more.style.cssText='width:4px;height:4px;border-radius:50%;background:var(--brown-light);flex-shrink:0;';
-          cell.appendChild(more);
-        }
       }
-      if(isToday){cell.style.outline='1.5px solid var(--gold)';}
       cell.title=`${MONTH_NAMES[m]} ${day}: ${tasks.length} task${tasks.length!==1?'s':''}`;
       cell.onclick=()=>{S.scheduleDate=parseDate(ds);S.scheduleView='day';render();};
       miniGrid.appendChild(cell);
