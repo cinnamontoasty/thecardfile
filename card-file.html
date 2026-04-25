@@ -421,6 +421,16 @@ const COLOR_PALETTE=[
 const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
 
+// Sort tasks by frequency order (daily first, yearly last), then by name
+function sortByFreq(tasks){
+  const freqOrder=FREQS.map(f=>f.id);
+  return [...tasks].sort((a,b)=>{
+    const fi=freqOrder.indexOf(a.freq)-freqOrder.indexOf(b.freq);
+    if(fi!==0) return fi;
+    return a.name.localeCompare(b.name);
+  });
+}
+
 const TIME_OF_DAY=[
   {id:'dawn',    label:'🌅 Dawn',      color:'#c8a878'},
   {id:'morning', label:'🌞 Morning',   color:'#e8b040'},
@@ -553,30 +563,26 @@ function isDueOn(task,dateS){
 }
 
 // Auto-advance overdue tasks to next occurrence on load
-// SHE philosophy: no guilt, just roll forward to next due date
+// SHE philosophy: only D (daily) tasks auto-advance
+// All other frequencies stay on their original day in Schedule view
 function advanceOverdueTasks(){
   const today=todayStr();
   let changed=false;
   S.tasks.forEach(task=>{
     if(!isActiveTask(task)) return;
     if(!task.nextDueDate) return;
-    // Skip if already due today or in the future
     if(task.nextDueDate>=today) return;
-    // Skip if done today (already handled)
     if(isDoneOn(task,today)) return;
-    // Skip if carried over to today or tomorrow already
     if((task.carryOvers||[]).includes(today)) return;
-    const tomorrow=dateStr(addDays(new Date(),1));
-    if((task.carryOvers||[]).includes(tomorrow)) return;
-    // Skip if skipped today
     if((task.skips||[]).includes(today)) return;
 
-    // Roll forward to next occurrence on or after today
+    // Only auto-advance daily tasks
     const f=fById(task.freq);
-    let next=parseDate(task.nextDueDate);
-    // Safety check — if nextDueDate is invalid, reset to today
-    if(!next){task.nextDueDate=today;changed=true;return;}
+    if(f.days>=2) return; // Leave weekly, monthly, etc. on their original day
 
+    // Roll daily (and 2/D) tasks forward to today
+    let next=parseDate(task.nextDueDate);
+    if(!next){task.nextDueDate=today;changed=true;return;}
     let iterations=0;
     while(dateStr(next)<today&&iterations<500){
       next=addDays(next,Math.max(1,Math.ceil(f.days)));
@@ -585,7 +591,6 @@ function advanceOverdueTasks(){
     const newDate=dateStr(next);
     if(newDate!==task.nextDueDate){
       task.nextDueDate=newDate;
-      // Clear any stale originalDueDate so the rolled date becomes the new anchor
       delete task.originalDueDate;
       changed=true;
     }
@@ -1255,16 +1260,10 @@ function renderCard(task,showArea,opts={}){
     lastEl.textContent=ds===null?'Never done':ds===0?'Done today':`${ds}d ago`;
   }
   lfoot.appendChild(lastEl);
-  if(!isPastDate&&!skippedToday&&!carriedToday&&!doneViewDate&&isDueOn(task,dateCtx)){
-    const b=el('span','badge-due');b.textContent='Due';lfoot.appendChild(b);
-  }
+  // No "Due" badge — if card shows here, user knows it's due
 
   const actions=el('div','card-actions');
-  // Carry-over button (only on today tab for due tasks)
-  if(opts.showCarryOver&&dueToday&&!doneToday){
-    const co=el('button','icon-btn');co.textContent='→';co.title='Carry over to tomorrow';
-    co.onclick=()=>carryOver(task.id);actions.appendChild(co);
-  }
+  // Carry-over button removed — use Schedule view to handle past days
   const editBtn=el('button','icon-btn');editBtn.textContent='✎';editBtn.title='Edit this card';
   editBtn.onclick=()=>{S.editTask={...task,completions:[...(task.completions||[])],carryOvers:[...(task.carryOvers||[])]};render();};
   const delBtn=el('button','icon-btn del-btn');delBtn.textContent='✕';delBtn.title='Delete this card';
@@ -1434,6 +1433,11 @@ function renderToday(body){
       const areaEntries=todEntries.filter(e=>(e.task.area||'General')===area);
       if(!areaEntries.length)return;
       const aHead=el('div','area-heading');aHead.textContent=area;body.appendChild(aHead);
+      // Sort by frequency within each area
+      areaEntries.sort((a,b)=>{
+        const freqOrder=FREQS.map(f=>f.id);
+        return freqOrder.indexOf(a.task.freq)-freqOrder.indexOf(b.task.freq);
+      });
       areaEntries.forEach(entry=>{
         const{task,slotIndex,slotDone}=entry;
         const completionsToday=todayCompletions[task.id]||0;
@@ -1523,11 +1527,11 @@ function renderDayView(body,d){
   // Group by area/room only — no time of day grouping in day view
   const areas=[...new Set(tasks.map(t=>t.area||'General'))].sort();
   areas.forEach(area=>{
-    const areaTasks=tasks.filter(t=>(t.area||'General')===area);
+    const areaTasks=sortByFreq(tasks.filter(t=>(t.area||'General')===area));
     if(!areaTasks.length)return;
     const aHead=el('div','area-heading');aHead.textContent=area;body.appendChild(aHead);
     areaTasks.forEach(task=>{
-      body.appendChild(renderCard(task,false,{showCarryOver:isToday,dateContext:ds}));
+      body.appendChild(renderCard(task,false,{dateContext:ds}));
     });
   });
 }
@@ -2286,6 +2290,14 @@ function renderWalkthrough(body){
       'To restore on a new device, go to Settings → <strong>Import Backup</strong> and choose your file.',
       'We recommend backing up weekly or whenever you add new cards.'
     ]},
+    {title:'📱 Using on Multiple Devices',steps:[
+      '<strong>Export first!</strong> Always export a backup before switching devices — importing replaces all existing data, it does not merge.',
+      '<strong>Phone → Computer:</strong> Export on your phone. The file saves to Downloads or you can save it to iCloud Drive or Google Drive. On your computer, open thecardfile.com, go to Settings → Import Backup, and choose your file.',
+      '<strong>Computer → Phone:</strong> Export on your computer. Move the file to iCloud Drive (Mac/iPhone users) or Google Drive (everyone else), or email it to yourself. On your phone, open thecardfile.com, go to Settings → Import Backup, and tap your file.',
+      '<strong>iCloud Drive</strong> is the easiest bridge if you use Apple devices — it\'s available on both iPhone and Mac.',
+      '<strong>Google Drive</strong> works great for everyone, including Android and Windows users.',
+      'Your card data is just a simple .json file — it lives wherever you put it, and only you have access to it.'
+    ]},
   ];
 
   sections.forEach(sec=>{
@@ -2472,7 +2484,7 @@ function buildModal(data,isEdit){
   const f3=el('div','field');const l3=el('label');l3.textContent='Frequency';
   const sel3=el('select');
   FREQS.forEach(f=>{const o=document.createElement('option');o.value=f.id;o.textContent=`${f.label} — ${f.name}`;if(f.id===data.freq)o.selected=true;sel3.appendChild(o);});
-  sel3.onchange=e=>data.freq=e.target.value;f3.append(l3,sel3);modal.appendChild(f3);
+  sel3.onchange=e=>{data.freq=e.target.value;recalcNextDue();};f3.append(l3,sel3);modal.appendChild(f3);
 
   // Time
   const f4=el('div','field');const l4=el('label');l4.textContent="Time (e.g., 5', 30', 1hr)";
@@ -2517,12 +2529,46 @@ function buildModal(data,isEdit){
     bd2.appendChild(box);document.body.appendChild(bd2);
   }
 
+  // Helper: calculate next due date from a start date and frequency
+  function calcNextFromStart(startDateStr,freqId){
+    if(!startDateStr) return '';
+    const f=fById(freqId||data.freq);
+    // First occurrence is the start date itself
+    return startDateStr;
+  }
+
+  // Auto-recalc next due date display when start date or frequency changes
+  function recalcNextDue(){
+    if(!data.startDate) return;
+    // Set nextDueDate to startDate (first occurrence)
+    data.nextDueDate=data.startDate;
+    if(nextDueDisplay) nextDueDisplay.textContent=formatNextDue(data.startDate,data.freq);
+    if(manualDateInput) manualDateInput.value=data.nextDueDate;
+  }
+
+  function formatNextDue(dateStr2,freqId){
+    if(!dateStr2) return '—';
+    const f=fById(freqId);
+    const d=parseDate(dateStr2);
+    const label=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    // Show following occurrence too
+    const next2=dateStr(addDays(d,Math.ceil(f.days)));
+    const next2Label=parseDate(next2).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    return `${label} — then ${next2Label}`;
+  }
+
+  let nextDueDisplay=null;
+  let manualDateInput=null;
+
   // Start date — with clear button
   const f7=el('div','field');
   const l7=el('label');l7.textContent='Start Date (leave blank to save as Pending)';
   const f7row=el('div');f7row.style.cssText='display:flex;align-items:center;gap:8px;';
   const i7=el('input');i7.type='date';i7.value=data.startDate||'';i7.style.flex='1';
-  i7.oninput=e=>data.startDate=e.target.value;
+  i7.oninput=e=>{
+    data.startDate=e.target.value;
+    recalcNextDue();
+  };
   const clr7=el('button');
   clr7.type='button';
   clr7.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--brown-light);cursor:pointer;white-space:nowrap;-webkit-appearance:none;flex-shrink:0;';
@@ -2537,37 +2583,73 @@ function buildModal(data,isEdit){
         data.startDate='';
         data.nextDueDate='';
         i7.value='';
+        if(nextDueDisplay) nextDueDisplay.textContent='—';
       }
     );
   };
   f7row.append(i7,clr7);f7.append(l7,f7row);modal.appendChild(f7);
 
-  // Next Due Date — only shown in edit mode for active tasks, with clear/change confirmation
-  if(isEdit&&data.startDate&&data.nextDueDate){
+  // Next Due Date — read-only display with auto-recalc
+  // Only shown when there's a start date
+  if(data.startDate||isEdit){
     const f7b=el('div','field');
-    const l7b=el('label');l7b.textContent='Next Due Date (reschedule)';
-    const f7bNote=el('div');
-    f7bNote.style.cssText='font-size:11px;color:var(--brown-light);margin-bottom:6px;line-height:1.5;';
-    f7bNote.textContent='Change this to move the next occurrence. All future dates will anchor from here.';
-    const f7brow=el('div');f7brow.style.cssText='display:flex;align-items:center;gap:8px;';
-    const i7b=el('input');i7b.type='date';i7b.value=data.nextDueDate||'';i7b.style.flex='1';
-    let lastConfirmedNextDate=data.nextDueDate;
-    i7b.onchange=e=>{
+    const l7b=el('label');l7b.textContent='Next Due Date';
+    nextDueDisplay=el('div');
+    nextDueDisplay.style.cssText='font-size:13px;color:var(--text);padding:10px 12px;background:var(--parchment-dark);border-radius:8px;border:1px solid var(--border);margin-bottom:6px;line-height:1.5;';
+    nextDueDisplay.textContent=data.nextDueDate?formatNextDue(data.nextDueDate,data.freq):'Set a start date to calculate';
+
+    // "Reschedule manually" toggle
+    const reschedLink=el('button');
+    reschedLink.type='button';
+    reschedLink.style.cssText='font-family:"Lato",sans-serif;font-size:11px;color:var(--brown-light);background:none;border:none;padding:0;cursor:pointer;text-decoration:underline;-webkit-appearance:none;';
+    reschedLink.textContent='Reschedule manually';
+    let manualVisible=false;
+    const manualWrap=el('div');manualWrap.style.display='none';
+    manualWrap.style.marginTop='8px';
+    manualDateInput=el('input');manualDateInput.type='date';
+    manualDateInput.value=data.nextDueDate||'';
+    manualDateInput.style.cssText='width:100%;font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--gold);border-radius:8px;padding:8px 12px;background:var(--bg);color:var(--text);outline:none;';
+    const manualNote=el('div');manualNote.style.cssText='font-size:11px;color:var(--brown-light);margin-top:4px;line-height:1.5;';
+    manualNote.textContent='Changing this will shift the entire schedule forward from this date.';
+    const manualClr=el('button');
+    manualClr.type='button';
+    manualClr.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--brown-light);cursor:pointer;margin-top:6px;-webkit-appearance:none;';
+    manualClr.textContent='✕ Clear date (move to Pending)';
+    manualClr.onclick=e=>{
+      e.preventDefault();
+      confirmAction(
+        'Clearing the next due date will move this card to Pending and remove it from future scheduling. Clear it?',
+        'cf4_noConfirmClearDate',
+        ()=>{
+          data.startDate='';data.nextDueDate='';
+          i7.value='';manualDateInput.value='';
+          nextDueDisplay.textContent='—';
+        }
+      );
+    };
+    let lastManualDate=data.nextDueDate;
+    manualDateInput.onchange=e=>{
       const newVal=e.target.value;
-      if(!newVal||newVal===lastConfirmedNextDate){data.nextDueDate=newVal;return;}
+      if(!newVal||newVal===lastManualDate){data.nextDueDate=newVal;return;}
       confirmAction(
         'Changing the due date will shift this card\'s entire schedule going forward. Continue?',
         'cf4_noConfirmChangeDate',
         ()=>{
-          data.nextDueDate=newVal;
-          lastConfirmedNextDate=newVal;
+          data.nextDueDate=newVal;lastManualDate=newVal;
           delete data.originalDueDate;
+          nextDueDisplay.textContent=formatNextDue(newVal,data.freq);
         }
       );
-      // Reset input if user cancels — will be overwritten by confirm if they proceed
-      setTimeout(()=>{if(i7b.value!==lastConfirmedNextDate)i7b.value=lastConfirmedNextDate;},300);
+      setTimeout(()=>{if(manualDateInput.value!==lastManualDate)manualDateInput.value=lastManualDate;},300);
     };
-    f7brow.append(i7b);f7b.append(l7b,f7bNote,f7brow);modal.appendChild(f7b);
+    manualWrap.append(manualDateInput,manualNote,manualClr);
+    reschedLink.onclick=e=>{
+      e.preventDefault();
+      manualVisible=!manualVisible;
+      manualWrap.style.display=manualVisible?'block':'none';
+      reschedLink.textContent=manualVisible?'Hide manual reschedule':'Reschedule manually';
+    };
+    f7b.append(l7b,nextDueDisplay,reschedLink,manualWrap);modal.appendChild(f7b);
   }
 
   // Time of day
@@ -2597,7 +2679,7 @@ function buildModal(data,isEdit){
     if(!is2d) data.timeOfDay2='';
   }
   // Also update when freq changes
-  sel3.addEventListener('change',updateTod2Visibility);
+  sel3.addEventListener('change',()=>{updateTod2Visibility();recalcNextDue();});
   updateTod2Visibility();
 
   // Mini — fixed for mobile: use a proper toggle button instead of checkbox
