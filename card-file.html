@@ -90,7 +90,7 @@ body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-he
 
 /* ── SIDE FLOWERS ── */
 .side-flowers{
-  position:fixed;bottom:0;width:56px;pointer-events:none;z-index:5;
+  position:fixed;bottom:0;width:56px;pointer-events:none;z-index:4;
 }
 .side-flowers-left{left:0;}
 .side-flowers-right{right:0;}
@@ -160,8 +160,8 @@ body.dark .card-supplies{border-top-color:rgba(255,255,255,0.15);}
 .badge-due{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,0.7);color:#c0392b;padding:2px 7px;border-radius:10px;margin-left:5px;}
 .badge-missed{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,0.7);color:#c0720a;padding:2px 7px;border-radius:10px;margin-left:5px;}
 .badge-carryover{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,0.7);color:#5048a8;padding:2px 7px;border-radius:10px;margin-left:5px;}
-.card-actions{display:flex;gap:4px;align-items:center;}
-.icon-btn{background:none;border:none;cursor:pointer;padding:5px 6px;color:rgba(0,0,0,0.45);font-size:15px;line-height:1;-webkit-appearance:none;transition:color .15s;}
+.card-actions{display:flex;gap:2px;align-items:center;}
+.icon-btn{background:none;border:none;cursor:pointer;padding:4px 5px;color:rgba(0,0,0,0.45);font-size:13px;line-height:1;-webkit-appearance:none;transition:color .15s;}
 body.dark .icon-btn{color:rgba(255,240,220,0.5);}
 .icon-btn:active{color:rgba(0,0,0,0.85);}
 .del-btn{color:rgba(180,60,60,0.55);}
@@ -225,7 +225,7 @@ body.dark .btn-primary{background:var(--gold);color:#2a1f18;}
 .btn-danger{background:#c0392b;color:#fff;}
 
 /* ── NOTIFICATIONS ── */
-.notif{background:var(--card-bg);border-bottom:3px solid var(--gold);padding:10px 15px;position:sticky;top:0;z-index:55;}
+.notif{background:var(--card-bg);border-bottom:3px solid var(--gold);padding:10px 15px;position:sticky;top:0;z-index:56;}
 .notif-body{max-width:700px;margin:0 auto;width:100%;}
 .notif-title{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;font-weight:700;}
 .notif-list{font-size:12px;color:var(--brown-mid);line-height:1.9;}
@@ -1110,11 +1110,10 @@ function buildSideFlowers(){
       svg.innerHTML=makeFlowers(W,side);
     }
 
-    // Set top based on header + notification height
+    // Set top based on header height only — notification renders in front of flowers
     requestAnimationFrame(()=>{
       const hdr=document.querySelector('.header');
-      const notif=document.querySelector('.notif');
-      const top=(hdr?hdr.offsetHeight:90)+(notif?notif.offsetHeight:0)+2;
+      const top=(hdr?hdr.offsetHeight:90)+2;
       div.style.top=top+'px';
       redraw();
     });
@@ -1122,8 +1121,7 @@ function buildSideFlowers(){
     if(window.ResizeObserver){
       const ro=new ResizeObserver(()=>{
         const hdr=document.querySelector('.header');
-        const notif=document.querySelector('.notif');
-        const top=(hdr?hdr.offsetHeight:90)+(notif?notif.offsetHeight:0)+2;
+        const top=(hdr?hdr.offsetHeight:90)+2;
         div.style.top=top+'px';
         redraw();
       });
@@ -2417,6 +2415,22 @@ function renderWalkthrough(body){
       'In Month and Year view, tap any day to jump to that day\'s task list.',
       'Only cards with a start date will appear in Schedule views.',
       'Cards in Pending (no start date) are invisible to the schedule.'
+    ]},
+    {title:'⧉ Duplicating a Card',steps:[
+      'Tap the <strong>⧉</strong> button on any card to duplicate it instantly.',
+      'The duplicate opens immediately in Edit view with all the same details — task name, frequency, room, time, supplies, and type.',
+      'The duplicate starts with no start date (Pending) and no completion history — a clean slate.',
+      'This is perfect for tasks you do in multiple rooms — create the first card, duplicate it, then change the room and any other details.',
+      'The name will have <strong>"— Copy"</strong> appended so you can easily tell which is new. Change it before saving!'
+    ]},
+    {title:'👤 Delegating Tasks',steps:[
+      'First, add your family members or helpers in <strong>⚙ Settings → Family Members & Helpers</strong>.',
+      'When creating or editing a card, a <strong>Delegate to</strong> dropdown will appear — choose who should do this task.',
+      'Delegated cards show a small <strong>"→ [Name]"</strong> badge so you can see at a glance who is responsible.',
+      'In <strong>Browse → By Delegate</strong>, you can see all tasks grouped by family member.',
+      'In <strong>Today</strong> view, a <strong>📤 Send [Name]\'s tasks</strong> button appears when a delegate has outstanding tasks.',
+      'Tapping the send button opens your Messages app with a pre-filled task list ready to send.',
+      '<em>Note: Sending tasks via text uses your phone\'s messaging service. Standard carrier rates may apply.</em>'
     ]},
     {title:'💾 Backing Up Your Cards',steps:[
       'Go to <strong>⚙ Settings</strong> → <strong>Export Backup</strong>.',
