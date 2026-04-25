@@ -460,6 +460,7 @@ let S={
   freqColors:{...DEFAULT_FREQ_COLORS},
   specialTypes:[...DEFAULT_SPECIAL.map(s=>({...s}))],
   areas:[...DEFAULT_AREAS],
+  delegates:[],
   darkMode:false,
   darkAccent:'#c06878',
   theme:'parchment',
@@ -469,7 +470,7 @@ let S={
   scheduleDate:new Date(),
   showAdd:false,editTask:null,showWelcome:false,showInstall:false,
   firstTime:false,firstTimeHowTo:false,
-  newTask:{name:'',area:'Kitchen',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:'',timeOfDay:'',timeOfDay2:''},
+  newTask:{name:'',area:'Kitchen',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:'',timeOfDay:'',timeOfDay2:'',delegate:''},
   nextId:200,
 };
 
@@ -933,7 +934,7 @@ function addTask(){
   if(t.startDate){t.nextDueDate=t.startDate;}
   else{t.nextDueDate='';}
   S.tasks.push(t);
-  S.newTask={name:'',area:S.areas[0]||'General',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:'',timeOfDay:'',timeOfDay2:''};
+  S.newTask={name:'',area:S.areas[0]||'General',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:'',timeOfDay:'',timeOfDay2:'',delegate:''};
   S.showAdd=false;save();render();
 }
 
@@ -1224,6 +1225,14 @@ function renderCard(task,showArea,opts={}){
     if(sp){const sl=el('div','card-special-label');sl.textContent=sp.label;inner.appendChild(sl);}
   }
 
+  // Delegate badge
+  if(task.delegate){
+    const db=el('div');
+    db.style.cssText='font-size:10px;color:var(--brown-light);font-style:italic;margin-bottom:2px;';
+    db.textContent='→ '+task.delegate;
+    inner.appendChild(db);
+  }
+
   // Task name
   const tn=el('div','card-task'+(doneOnDate?' done-text':''));
   tn.textContent=task.name;
@@ -1263,7 +1272,27 @@ function renderCard(task,showArea,opts={}){
   // No "Due" badge — if card shows here, user knows it's due
 
   const actions=el('div','card-actions');
-  // Carry-over button removed — use Schedule view to handle past days
+  // Duplicate button
+  const dupBtn=el('button','icon-btn');dupBtn.textContent='⧉';dupBtn.title='Duplicate this card';
+  dupBtn.onclick=()=>{
+    // Create a copy with cleared scheduling and history
+    const copy={
+      ...task,
+      id:S.nextId++,
+      name:task.name+' — Copy',
+      completions:[],
+      carryOvers:[],
+      skips:[],
+      startDate:'',
+      nextDueDate:'',
+      originalDueDate:undefined,
+    };
+    delete copy.originalDueDate;
+    S.tasks.push(copy);
+    // Open the copy in edit view immediately
+    S.editTask={...copy};
+    save();render();
+  };
   const editBtn=el('button','icon-btn');editBtn.textContent='✎';editBtn.title='Edit this card';
   editBtn.onclick=()=>{S.editTask={...task,completions:[...(task.completions||[])],carryOvers:[...(task.carryOvers||[])]};render();};
   const delBtn=el('button','icon-btn del-btn');delBtn.textContent='✕';delBtn.title='Delete this card';
@@ -1381,6 +1410,24 @@ function renderToday(body){
     const pb=el('div','progress-bar');
     const pf=el('div','progress-fill');pf.style.width=`${Math.round(doneCount/todayTotal*100)}%`;
     pb.appendChild(pf);pc.append(pr,pb);body.appendChild(pc);
+  }
+
+  // Delegate send buttons — show if any delegated tasks are due today
+  if((S.delegates||[]).length){
+    const delegatedToday=(S.delegates||[]).filter(name=>
+      S.tasks.some(t=>isActiveTask(t)&&wasPartOfToday(t)&&t.delegate===name&&!isDoneToday(t))
+    );
+    if(delegatedToday.length){
+      const sendRow=el('div');sendRow.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;';
+      delegatedToday.forEach(name=>{
+        const btn=el('button');
+        btn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;padding:8px 14px;border-radius:16px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);cursor:pointer;-webkit-appearance:none;';
+        btn.textContent=`📤 Send ${name}'s tasks`;
+        btn.onclick=()=>sendDelegateTasks(name);
+        sendRow.appendChild(btn);
+      });
+      body.appendChild(sendRow);
+    }
   }
 
   if(!dueTasks.length){
@@ -1725,9 +1772,11 @@ function renderYearView(body,d){
 function renderBrowse(body){
   backupWarningBanner(body);
   const toggle=el('div','browse-toggle');
-  ['area','freq'].forEach(mode=>{
+  const modes=[['area','By Area'],['freq','By Frequency/Type']];
+  if((S.delegates||[]).length) modes.push(['delegate','By Delegate']);
+  modes.forEach(([mode,label])=>{
     const b=el('button','browse-btn'+(S.browseMode===mode?' active':''));
-    b.textContent=mode==='area'?'By Area':'By Frequency/Type';
+    b.textContent=label;
     b.onclick=()=>{S.browseMode=mode;render();};
     toggle.appendChild(b);
   });
@@ -1798,6 +1847,39 @@ function renderBrowse(body){
       const tasks=activeTasks.filter(t=>t.area===area);if(!tasks.length)return;
       const ah=el('div','area-heading');ah.textContent=area;body.appendChild(ah);
       tasks.forEach(task=>body.appendChild(renderCard(task,false)));
+    });
+  }
+
+  // By Delegate view
+  if(S.browseMode==='delegate'){
+    const delegates=S.delegates||[];
+    if(!delegates.length){
+      const emp=el('div','empty');const tx=el('div','empty-text');
+      tx.textContent='No family members set up yet. Add them in Settings!';
+      emp.appendChild(tx);body.appendChild(emp);return;
+    }
+    // Unassigned tasks
+    const unassigned=activeTasks.filter(t=>!t.delegate);
+    if(unassigned.length){
+      const ah=el('div','area-heading');ah.textContent='My Tasks (unassigned)';body.appendChild(ah);
+      sortByFreq(unassigned).forEach(task=>body.appendChild(renderCard(task,true)));
+    }
+    delegates.forEach(name=>{
+      const dtasks=sortByFreq(activeTasks.filter(t=>t.delegate===name));
+      const ah=el('div','area-heading');
+      ah.style.cssText+=';display:flex;justify-content:space-between;align-items:center;';
+      const nameEl=el('span');nameEl.textContent='→ '+name;
+      const sendBtn=el('button');
+      sendBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;';
+      sendBtn.textContent='📤 Send today\'s tasks';
+      sendBtn.onclick=e=>{e.stopPropagation();sendDelegateTasks(name);};
+      ah.append(nameEl,sendBtn);body.appendChild(ah);
+      if(!dtasks.length){
+        const none=el('div');none.style.cssText='font-size:12px;color:var(--brown-light);padding:8px 0 12px;font-style:italic;';
+        none.textContent='No tasks assigned yet.';body.appendChild(none);
+      }else{
+        dtasks.forEach(task=>body.appendChild(renderCard(task,true)));
+      }
     });
   }
 }
@@ -2003,7 +2085,41 @@ function renderSettings(body){
   addAreaRow.append(areaInput,addAreaBtn);arSection.appendChild(addAreaRow);
   body.appendChild(arSection);
 
-  // Backup
+  // Family Members / Delegates
+  const dlSection=el('div','settings-section');
+  const dlTitle=el('div','settings-title');dlTitle.textContent='Family Members & Helpers';dlSection.appendChild(dlTitle);
+  const dlNote=el('div');dlNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:12px;line-height:1.6;';
+  dlNote.textContent='Add family members or helpers to delegate tasks to them. You can then assign cards and send their task list via text or email.';
+  dlSection.appendChild(dlNote);
+  (S.delegates||[]).forEach((name,i)=>{
+    const row=el('div','settings-row');
+    const l=el('div','settings-row-label');l.textContent='👤 '+name;
+    const actions=el('div');actions.style.cssText='display:flex;gap:8px;align-items:center;';
+    // Send today's tasks button
+    const sendBtn=el('button','settings-btn');sendBtn.textContent='📤 Send tasks';
+    sendBtn.onclick=()=>sendDelegateTasks(name);
+    const delBtn=el('button','settings-btn');delBtn.textContent='✕';delBtn.style.cssText+='color:#c0392b;padding:6px 10px;';
+    delBtn.onclick=()=>{
+      if(confirm(`Remove "${name}" from your family members?`)){
+        S.delegates.splice(i,1);save();render();
+      }
+    };
+    actions.append(sendBtn,delBtn);row.append(l,actions);dlSection.appendChild(row);
+  });
+  const addDlRow=el('div');addDlRow.style.cssText='display:flex;gap:8px;margin-top:12px;';
+  const dlInput=el('input');dlInput.placeholder='Add family member or helper...';
+  dlInput.style.cssText='flex:1;font-family:"Lato",sans-serif;font-size:14px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:var(--bg);color:var(--text);outline:none;';
+  const addDlBtn=el('button','settings-btn');addDlBtn.textContent='Add';addDlBtn.style.cssText+='background:var(--brown);color:var(--bg);border:none;';
+  addDlBtn.onclick=()=>{
+    const val=dlInput.value.trim();
+    if(val&&!(S.delegates||[]).includes(val)){
+      if(!S.delegates) S.delegates=[];
+      S.delegates.push(val);save();render();
+    }
+  };
+  dlInput.addEventListener('keydown',e=>{if(e.key==='Enter')addDlBtn.click();});
+  addDlRow.append(dlInput,addDlBtn);dlSection.appendChild(addDlRow);
+  body.appendChild(dlSection);
   const bs=el('div','settings-section');
   const bt=el('div','settings-title');bt.textContent='Backup & Restore';bs.appendChild(bt);
   const bwarn=el('div');bwarn.style.cssText='font-size:12px;color:#c0720a;background:rgba(200,100,0,0.08);border:1px solid rgba(200,100,0,0.2);border-radius:6px;padding:10px 12px;margin-bottom:14px;line-height:1.6;';
@@ -2036,7 +2152,26 @@ function renderSettings(body){
   body.appendChild(ss);
 }
 
-// Color picker modal
+// Send delegate's tasks via text/email
+function sendDelegateTasks(name){
+  const today=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const tasks=S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t)&&t.delegate===name&&!isDoneToday(t));
+  if(!tasks.length){
+    alert(`No outstanding tasks for ${name} today!`);return;
+  }
+  const todOrder=['dawn','morning','afternoon','evening',''];
+  const sorted=[...tasks].sort((a,b)=>todOrder.indexOf(a.timeOfDay||'')-todOrder.indexOf(b.timeOfDay||''));
+  const lines=sorted.map(t=>{
+    const tod=TIME_OF_DAY.find(x=>x.id===(t.timeOfDay||''));
+    const todLabel=tod&&tod.id?tod.label+' — ':'';
+    const time=t.time?` (${t.time})`:'';
+    const area=t.area?` [${t.area}]`:'';
+    return `• ${todLabel}${t.name}${area}${time}`;
+  }).join('\n');
+  const msg=`Hi ${name}! Here are your tasks for ${today}:\n\n${lines}\n\nThanks! 🌸\n\n(Sent from The Card File — standard carrier rates may apply)`;
+  // Open Messages/Mail with pre-filled message
+  window.location.href=`sms:?body=${encodeURIComponent(msg)}`;
+}
 function showColorPicker(type,id,currentColor){
   const bd=el('div','backdrop');
   bd.onclick=e=>{if(e.target===bd)bd.remove();};
@@ -2682,6 +2817,19 @@ function buildModal(data,isEdit){
   sel3.addEventListener('change',()=>{updateTod2Visibility();recalcNextDue();});
   updateTod2Visibility();
 
+  // Delegate — only show if there are family members set up
+  if((S.delegates||[]).length){
+    const fdel=el('div','field');
+    const ldel=el('label');ldel.textContent='Delegate to';
+    const seldel=el('select');
+    [['','No delegate (mine)'],...(S.delegates||[]).map(n=>[n,n])].forEach(([val,txt2])=>{
+      const o=document.createElement('option');o.value=val;o.textContent=txt2;
+      if((data.delegate||'')=== val)o.selected=true;seldel.appendChild(o);
+    });
+    seldel.onchange=e=>data.delegate=e.target.value;
+    fdel.append(ldel,seldel);modal.appendChild(fdel);
+  }
+
   // Mini — fixed for mobile: use a proper toggle button instead of checkbox
   const miniWrap=el('div');miniWrap.style.cssText='margin-bottom:14px;';
   const miniBtn=el('button');
@@ -2815,7 +2963,7 @@ function render(){
     tab.textContent=label;tab.onclick=()=>{S.tab=id;render();};tabs.appendChild(tab);
   });
   const settingsTab=el('div','tab settings-tab'+(S.tab==='settings'||S.tab==='howto'||S.tab==='walkthrough'?' active':''));
-  settingsTab.textContent='⚙ Settings';
+  settingsTab.innerHTML='<span style="font-size:15px;vertical-align:middle;margin-right:4px;">⚙</span><span style="vertical-align:middle;">Settings</span>';
   settingsTab.onclick=()=>{S.tab='settings';render();};tabs.appendChild(settingsTab);
   header.append(htop,tabs);app.appendChild(header);
 
