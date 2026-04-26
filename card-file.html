@@ -103,10 +103,7 @@ body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-he
 .tab{padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;}
 .tab.active{color:var(--bg);border-bottom-color:var(--gold);}
 body.dark .tab.active{color:var(--gold);}
-
-/* ── SETTINGS BUTTON ── */
-.settings-tab{background:rgba(255,255,255,0.08);border-radius:6px 6px 0 0;margin-left:4px;}
-.settings-tab.active{background:rgba(255,255,255,0.18);}
+.settings-tab{margin-left:2px;}
 
 /* ── BODY ── */
 .body{padding:16px 13px calc(90px + var(--safe-bottom));max-width:700px;margin:0 auto;}
@@ -492,7 +489,7 @@ let S={
   darkAccent:'#c06878',
   theme:'parchment',
   notificationDismissed:false,
-  browseMode:'area',freqFilter:'all',areaFilter:'all',
+  browseMode:'area',freqFilter:'all',areaFilter:'all',delegateSortMode:'person',
   scheduleView:'day',
   scheduleDate:new Date(),
   showAdd:false,editTask:null,showWelcome:false,showInstall:false,
@@ -1991,7 +1988,7 @@ function renderYearView(body,d){
 function renderBrowse(body){
   backupWarningBanner(body);
   const toggle=el('div','browse-toggle');
-  const modes=[['area','By Area'],['freq','By Frequency/Type']];
+  const modes=[['area','By Area/Room'],['freq','By Frequency/Type']];
   if((S.delegates||[]).length) modes.push(['delegate','By Delegate']);
   modes.forEach(([mode,label])=>{
     const b=el('button','browse-btn'+(S.browseMode===mode?' active':''));
@@ -2003,12 +2000,21 @@ function renderBrowse(body){
 
   const activeTasks=S.tasks.filter(t=>isActiveTask(t)||isFutureTask(t));
 
+  // ── BY FREQUENCY/TYPE ──
   if(S.browseMode==='freq'){
     const strip=el('div','filter-strip');
     const allBtn=el('button','filter-btn'+(S.freqFilter==='all'?' active':''));
     allBtn.textContent='All';
     if(S.freqFilter==='all'){allBtn.style.background='var(--brown)';allBtn.style.color='var(--bg)';allBtn.style.borderColor='var(--brown)';}
     allBtn.onclick=()=>{S.freqFilter='all';render();};strip.appendChild(allBtn);
+
+    // Unscheduled filter
+    const unschedBtn=el('button','filter-btn'+(S.freqFilter==='__unscheduled__'?' active':''));
+    unschedBtn.textContent='Unscheduled';
+    if(S.freqFilter==='__unscheduled__'){unschedBtn.style.background='#9a8870';unschedBtn.style.color='#fff';unschedBtn.style.borderColor='#9a8870';}
+    unschedBtn.onclick=()=>{S.freqFilter='__unscheduled__';render();setTimeout(()=>unschedBtn.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}),50);};
+    strip.appendChild(unschedBtn);
+
     FREQS.forEach(f=>{
       const b=el('button','filter-btn'+(S.freqFilter===f.id?' active':''));
       b.textContent=f.label;
@@ -2023,19 +2029,23 @@ function renderBrowse(body){
       b.onclick=()=>{S.freqFilter=sp.id;render();setTimeout(()=>b.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}),50);};
       strip.appendChild(b);
     });
-    // Mini filter
     const miniFilterBtn=el('button','filter-btn'+(S.freqFilter==='__mini__'?' active':''));
     miniFilterBtn.textContent='✦ Mini';
     if(S.freqFilter==='__mini__'){miniFilterBtn.style.background='#e8d800';miniFilterBtn.style.color='#3a3128';miniFilterBtn.style.borderColor='#e8d800';}
     miniFilterBtn.onclick=()=>{S.freqFilter='__mini__';render();setTimeout(()=>miniFilterBtn.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}),50);};
     strip.appendChild(miniFilterBtn);
     body.appendChild(strip);
-    // Scroll active filter into view after render
     requestAnimationFrame(()=>{
       const activeBtn=strip.querySelector('.filter-btn[style*="var(--brown)"], .filter-btn[style*="background: rgb"]');
       if(activeBtn) activeBtn.scrollIntoView({behavior:'instant',inline:'center',block:'nearest'});
     });
+
+    // Filter tasks — include pending/unscheduled for unscheduled filter
+    const allTasksForFreq=S.freqFilter==='__unscheduled__'
+      ?S.tasks.filter(t=>isPendingTask(t))
+      :[...activeTasks];
     let filtered=S.freqFilter==='all'?activeTasks:
+      S.freqFilter==='__unscheduled__'?S.tasks.filter(t=>isPendingTask(t)):
       S.freqFilter==='__mini__'?activeTasks.filter(t=>t.mini):
       S.specialTypes.find(s=>s.id===S.freqFilter)?activeTasks.filter(t=>t.special===S.freqFilter):
       activeTasks.filter(t=>t.freq===S.freqFilter);
@@ -2043,7 +2053,9 @@ function renderBrowse(body){
     const freqGrid=el('div','cards-grid');
     filtered.forEach(task=>freqGrid.appendChild(renderCard(task,true)));
     body.appendChild(freqGrid);
-  }else{
+
+  // ── BY AREA/ROOM ──
+  }else if(S.browseMode==='area'){
     const strip=el('div','filter-strip');
     const allBtn=el('button','filter-btn'+(S.areaFilter==='all'?' active':''));
     allBtn.textContent='All';
@@ -2058,54 +2070,92 @@ function renderBrowse(body){
       strip.appendChild(b);
     });
     body.appendChild(strip);
-    // Scroll active area filter into view after render
     requestAnimationFrame(()=>{
       const activeBtn=strip.querySelector('.filter-btn[style*="var(--brown)"]');
       if(activeBtn) activeBtn.scrollIntoView({behavior:'instant',inline:'center',block:'nearest'});
     });
     const areas=S.areaFilter==='all'?usedAreas:[S.areaFilter];
     areas.forEach(area=>{
-      const tasks=activeTasks.filter(t=>t.area===area);if(!tasks.length)return;
+      const tasks=sortByFreq(activeTasks.filter(t=>t.area===area));
+      if(!tasks.length)return;
       const ah=el('div','area-heading');ah.textContent=area;body.appendChild(ah);
       const grid=el('div','cards-grid');
       tasks.forEach(task=>grid.appendChild(renderCard(task,false)));
       body.appendChild(grid);
     });
-  }
 
-  // By Delegate view
-  if(S.browseMode==='delegate'){
+  // ── BY DELEGATE ──
+  }else if(S.browseMode==='delegate'){
     const delegates=S.delegates||[];
     if(!delegates.length){
       const emp=el('div','empty');const tx=el('div','empty-text');
       tx.textContent='No family members set up yet. Add them in Settings!';
       emp.appendChild(tx);body.appendChild(emp);return;
     }
-    // Unassigned tasks
-    const unassigned=activeTasks.filter(t=>!t.delegate);
-    if(unassigned.length){
-      const ah=el('div','area-heading');ah.textContent='My Tasks (unassigned)';body.appendChild(ah);
-      const grid=el('div','cards-grid');
-      sortByFreq(unassigned).forEach(task=>grid.appendChild(renderCard(task,true)));
-      body.appendChild(grid);
-    }
-    delegates.forEach(name=>{
-      const dtasks=sortByFreq(activeTasks.filter(t=>t.delegate===name));
+
+    // Sort mode toggle: by person or by area within person
+    const sortToggle=el('div');
+    sortToggle.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:11px;color:var(--brown-light);';
+    const sortLabel=el('span');sortLabel.textContent='Sort by:';
+    const freqSortBtn=el('button','filter-btn'+(S.delegateSortMode==='freq'?' active':''));
+    freqSortBtn.textContent='Frequency → Room';
+    if(S.delegateSortMode==='freq'){freqSortBtn.style.background='var(--brown)';freqSortBtn.style.color='var(--bg)';}
+    freqSortBtn.onclick=()=>{S.delegateSortMode='freq';render();};
+    const areaSortBtn=el('button','filter-btn'+(S.delegateSortMode==='area'?' active':''));
+    areaSortBtn.textContent='Room → Frequency';
+    if(S.delegateSortMode==='area'){areaSortBtn.style.background='var(--brown)';areaSortBtn.style.color='var(--bg)';}
+    areaSortBtn.onclick=()=>{S.delegateSortMode='area';render();};
+    sortToggle.append(sortLabel,freqSortBtn,areaSortBtn);
+    body.appendChild(sortToggle);
+
+    // Helper: render tasks for a person section
+    function renderPersonSection(name,tasks,isMe){
+      if(!tasks.length) return;
       const ah=el('div','area-heading');
       ah.style.cssText+=';display:flex;justify-content:space-between;align-items:center;';
-      const nameEl=el('span');nameEl.textContent='→ '+name;
-      const sendBtn=el('button');
-      sendBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;';
-      sendBtn.textContent='📤 Send today\'s tasks';
-      sendBtn.onclick=e=>{e.stopPropagation();sendDelegateTasks(name);};
-      ah.append(nameEl,sendBtn);body.appendChild(ah);
+      const nameEl=el('span');nameEl.textContent=(isMe?'👤 Me':('→ '+name));
+      ah.appendChild(nameEl);
+      if(!isMe){
+        const sendBtn=el('button');
+        sendBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;';
+        sendBtn.textContent='📤 Send today\'s tasks';
+        sendBtn.onclick=e=>{e.stopPropagation();sendDelegateTasks(name);};
+        ah.appendChild(sendBtn);
+      }
+      body.appendChild(ah);
+
+      if(S.delegateSortMode==='area'){
+        // Group by area, sort by freq within area
+        const areas=[...new Set(tasks.map(t=>t.area||'General'))].sort();
+        areas.forEach(area=>{
+          const areaTasks=sortByFreq(tasks.filter(t=>(t.area||'General')===area));
+          if(!areaTasks.length)return;
+          const aHead=el('div');aHead.style.cssText='font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--brown-light);margin:10px 0 6px;font-weight:600;padding-left:2px;';
+          aHead.textContent=area;body.appendChild(aHead);
+          const grid=el('div','cards-grid');
+          areaTasks.forEach(t=>grid.appendChild(renderCard(t,false)));
+          body.appendChild(grid);
+        });
+      }else{
+        // Sort by freq, then show area label within freq groups
+        const sorted=sortByFreq(tasks);
+        const grid=el('div','cards-grid');
+        sorted.forEach(t=>grid.appendChild(renderCard(t,true)));
+        body.appendChild(grid);
+      }
+    }
+
+    // "Me" section — tasks with no delegate
+    const myTasks=activeTasks.filter(t=>!t.delegate);
+    renderPersonSection('Me',myTasks,true);
+
+    // Each delegate
+    delegates.forEach(name=>{
+      const dtasks=activeTasks.filter(t=>t.delegate===name);
+      renderPersonSection(name,dtasks,false);
       if(!dtasks.length){
         const none=el('div');none.style.cssText='font-size:12px;color:var(--brown-light);padding:8px 0 12px;font-style:italic;';
         none.textContent='No tasks assigned yet.';body.appendChild(none);
-      }else{
-        const dGrid=el('div','cards-grid');
-        dtasks.forEach(task=>dGrid.appendChild(renderCard(task,true)));
-        body.appendChild(dGrid);
       }
     });
   }
@@ -3219,7 +3269,7 @@ function render(){
     tab.textContent=label;tab.onclick=()=>{S.tab=id;render();};tabs.appendChild(tab);
   });
   const settingsTab=el('div','tab settings-tab'+(S.tab==='settings'||S.tab==='howto'||S.tab==='walkthrough'?' active':''));
-  settingsTab.innerHTML='<span style="font-size:16px;">⚙</span><span>Settings</span>';
+  settingsTab.innerHTML='<span style="font-size:14px;margin-right:3px;">⚙</span>Settings';
   settingsTab.onclick=()=>{S.tab='settings';render();};tabs.appendChild(settingsTab);
   header.append(htop,tabs);app.appendChild(header);
 
