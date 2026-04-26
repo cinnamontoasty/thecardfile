@@ -3383,9 +3383,8 @@ function buildModal(data,isEdit){
   [['','Standard (frequency color)'],...S.specialTypes.map(s=>[s.id,s.label])].forEach(([val,txt2])=>{
     const o=document.createElement('option');o.value=val;o.textContent=txt2;if(val===data.special)o.selected=true;sel6.appendChild(o);
   });
-  sel6.onchange=e=>data.special=e.target.value;f6.append(l6,sel6);fieldsGrid.appendChild(f6);
-
-  modal.appendChild(fieldsGrid);
+  sel6.onchange=e=>data.special=e.target.value;f6.append(l6,sel6);fieldsGrid2.appendChild(f6);
+  modal.appendChild(fieldsGrid2);
 
   // Helper: show a confirmation dialog with optional "don't ask again" checkbox
   function confirmAction(msg,storageKey,onConfirm){
