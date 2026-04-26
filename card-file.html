@@ -661,16 +661,38 @@ function isDueOn(task,dateS){
 // No auto-advance of overdue tasks — all tasks stay on their original due date
 // Users handle past days via Schedule view (mark complete, skip, or ignore)
 function advanceOverdueTasks(){
-  // Intentionally empty for most frequencies — SHE philosophy: tasks stay where they are
-  // EXCEPTION: 2/D tasks always advance to today if nextDueDate is in the past
-  // This ensures the card rolls over regardless of completion status
+  // Universal rollover — ALL tasks advance to next occurrence on load
+  // The past is the past. No task ever waits to be dealt with.
   const today=todayStr();
   let changed=false;
   S.tasks.forEach(task=>{
-    if(task.freq!=='2d') return;
-    if(!task.nextDueDate||task.nextDueDate>=today) return;
-    task.nextDueDate=today;
-    changed=true;
+    if(!isActiveTask(task)) return;
+    if(!task.nextDueDate) return;
+    if(task.nextDueDate>=today) return;
+    // Already handled today — don't touch
+    if(isDoneOn(task,today)) return;
+    if((task.skips||[]).includes(today)) return;
+
+    const f=fById(task.freq);
+    // As-Needed tasks never advance
+    if(f.id==='an') return;
+
+    // Roll forward to next occurrence on or after today
+    let next=parseDate(task.nextDueDate);
+    if(!next){task.nextDueDate=today;changed=true;return;}
+
+    let iterations=0;
+    const step=Math.max(1,Math.ceil(f.days));
+    while(dateStr(next)<today&&iterations<500){
+      next=addDays(next,step);
+      iterations++;
+    }
+    const newDate=dateStr(next);
+    if(newDate!==task.nextDueDate){
+      task.nextDueDate=newDate;
+      delete task.originalDueDate;
+      changed=true;
+    }
   });
   if(changed) save();
 }
