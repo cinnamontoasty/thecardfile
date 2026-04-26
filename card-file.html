@@ -105,8 +105,8 @@ body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-he
 body.dark .tab.active{color:var(--gold);}
 
 /* ── SETTINGS BUTTON ── */
-.settings-tab{padding:9px 12px;background:rgba(255,255,255,0.08);border-radius:6px 6px 0 0;margin-left:4px;border:none;border-bottom:2px solid transparent;display:flex;align-items:center;gap:3px;}
-.settings-tab.active{background:rgba(255,255,255,0.18);color:var(--bg)!important;border-bottom-color:var(--gold)!important;}
+.settings-tab{background:rgba(255,255,255,0.08);border-radius:6px 6px 0 0;margin-left:4px;}
+.settings-tab.active{background:rgba(255,255,255,0.18);}
 
 /* ── BODY ── */
 .body{padding:16px 13px calc(90px + var(--safe-bottom));max-width:700px;margin:0 auto;}
@@ -224,6 +224,9 @@ body.dark .fab{background:var(--gold);color:#2a1f18;}
 /* ── MODALS ── */
 .backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:flex-end;}
 .modal{background:var(--card-bg);border-radius:16px 16px 0 0;padding:22px 18px calc(22px + var(--safe-bottom));width:100%;max-height:92vh;overflow-y:auto;animation:slideUp .28s ease;}
+@media(min-width:700px){.modal{border-radius:16px;max-height:85vh;max-width:900px;margin:auto;margin-bottom:0;}}
+.modal-fields-grid{display:grid;grid-template-columns:1fr;}
+@media(min-width:700px){.modal-fields-grid{grid-template-columns:repeat(2,1fr);gap:0 24px;}}
 @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
 .modal-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:3px;color:var(--text);}
 .modal-sub{font-size:12px;color:var(--brown-light);margin-bottom:18px;}
@@ -904,35 +907,38 @@ function showCardDetail(task,dateCtx){
   const overlay=el('div','card-detail-overlay');
   overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
   const panel=el('div','card-detail-panel');
-  // Panel always uses theme background for readability
-  // Card color shown only on the freq badge, not the whole panel
+  // Use card's actual background color
+  panel.style.background=cardBg(task);
 
-  // Freq color bar at top for visual identity
-  const colorBar=el('div');
-  colorBar.style.cssText=`height:8px;background:${cardBg(task)};border-radius:20px 20px 0 0;margin:-24px -22px 16px;`;
+  // Determine text colors based on card luminosity
+  const bgColor=cardColor(task);
+  const bgR=parseInt(bgColor.slice(1,3),16),bgG=parseInt(bgColor.slice(3,5),16),bgB=parseInt(bgColor.slice(5,7),16);
+  const bgLum=(bgR*0.299+bgG*0.587+bgB*0.114)/255;
+  const onDark=bgLum<0.50;
+  const textCol=onDark?'rgba(255,255,255,0.95)':'rgba(0,0,0,0.85)';
+  const labelCol=onDark?'rgba(255,255,255,0.65)':'rgba(0,0,0,0.50)';
+  const borderCol=onDark?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.12)';
+  panel.style.setProperty('--detail-text',textCol);
+  panel.style.setProperty('--detail-label',labelCol);
+  panel.style.setProperty('--detail-border',borderCol);
 
-  // Always use theme-appropriate text colors for readability in detail panel
-  // Panel background is always card-bg (not the card color), so use theme colors
-  const labelColor='var(--brown-light)';
-  const textColor='var(--text)';
-  const borderColor='var(--border)';
+  // Text colors based on card background luminosity
+  const labelColor=labelCol;
+  const textColor=textCol;
+  const borderColor=borderCol;
 
   // Close button
   const closeBtn=el('button','card-detail-close');
   closeBtn.textContent='×';closeBtn.onclick=()=>overlay.remove();
+  closeBtn.style.cssText+=onDark?'background:rgba(255,255,255,0.2);color:#fff;':'background:rgba(0,0,0,0.08);color:rgba(0,0,0,0.7);';
   panel.appendChild(closeBtn);
-  panel.appendChild(colorBar);
 
   // Frequency badge
   const freq=fById(task.freq);
   const color=cardColor(task);
   const freqBadge=el('div','card-detail-freq');
   freqBadge.textContent=`${freq.label} — ${freq.name}`;
-  freqBadge.style.cssText+=`background:${color};color:#fff;`;
-  // Luminosity check for badge text
-  const rr=parseInt(color.slice(1,3),16),gg=parseInt(color.slice(3,5),16),bb=parseInt(color.slice(5,7),16);
-  const lum=(rr*0.299+gg*0.587+bb*0.114)/255;
-  if(lum>0.62) freqBadge.style.color='rgba(0,0,0,0.78)';
+  freqBadge.style.cssText+=`background:rgba(255,255,255,0.25);color:${textCol};`;
   panel.appendChild(freqBadge);
 
   // Task name
@@ -1573,6 +1579,9 @@ function showTodayProgressPopup(dueTasks,doneCount,total){
     wrap.appendChild(g);
     return wrap;
   }
+
+  // Top garland always shown
+  modal.appendChild(makeGarland());
 
   if(doneTasks.length){
     modal.appendChild(makeGarland());
@@ -2829,17 +2838,19 @@ function buildModal(data,isEdit){
   const sub=el('div','modal-sub');sub.textContent=isEdit?'Modify this task':'Add a task to your card file';
   modal.append(title,sub);
 
+  // Two-column grid on wider screens
+  const fieldsGrid=el('div','modal-fields-grid');
+
   // Name
   const f1=el('div','field');const l1=el('label');l1.textContent='Task Name';
   const i1=el('input');i1.type='text';i1.value=data.name||'';i1.placeholder='e.g., Wipe stovetop';
-  i1.oninput=e=>data.name=e.target.value;f1.append(l1,i1);modal.appendChild(f1);
+  i1.oninput=e=>data.name=e.target.value;f1.append(l1,i1);fieldsGrid.appendChild(f1);
 
   // Area
   const f2=el('div','field');const l2=el('label');l2.textContent='Area / Room';
   const sel2=el('select');
   const allAreas=[...new Set([...S.areas,...(data.area?[data.area]:[])])].sort();
   allAreas.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;if(a===data.area)o.selected=true;sel2.appendChild(o);});
-  // Custom area option
   const customOpt=document.createElement('option');customOpt.value='__custom__';customOpt.textContent='+ Add new area...';sel2.appendChild(customOpt);
   sel2.onchange=e=>{
     if(e.target.value==='__custom__'){
@@ -2853,23 +2864,23 @@ function buildModal(data,isEdit){
       }else{sel2.value=data.area||allAreas[0];}
     }else{data.area=e.target.value;}
   };
-  f2.append(l2,sel2);modal.appendChild(f2);
+  f2.append(l2,sel2);fieldsGrid.appendChild(f2);
 
   // Frequency
   const f3=el('div','field');const l3=el('label');l3.textContent='Frequency';
   const sel3=el('select');
   FREQS.forEach(f=>{const o=document.createElement('option');o.value=f.id;o.textContent=`${f.label} — ${f.name}`;if(f.id===data.freq)o.selected=true;sel3.appendChild(o);});
-  sel3.onchange=e=>{data.freq=e.target.value;recalcNextDue();};f3.append(l3,sel3);modal.appendChild(f3);
+  sel3.onchange=e=>{data.freq=e.target.value;recalcNextDue();};f3.append(l3,sel3);fieldsGrid.appendChild(f3);
 
   // Time
   const f4=el('div','field');const l4=el('label');l4.textContent="Time (e.g., 5', 30', 1hr)";
   const i4=el('input');i4.type='text';i4.value=data.time||'';i4.placeholder="10'";
-  i4.oninput=e=>data.time=e.target.value;f4.append(l4,i4);modal.appendChild(f4);
+  i4.oninput=e=>data.time=e.target.value;f4.append(l4,i4);fieldsGrid.appendChild(f4);
 
   // Supplies
   const f5=el('div','field');const l5=el('label');l5.textContent='Equipment / Supplies';
   const ta=el('textarea');ta.value=data.supplies||'';ta.placeholder='e.g., Broom, dustpan, cleaner';
-  ta.oninput=e=>data.supplies=e.target.value;f5.append(l5,ta);modal.appendChild(f5);
+  ta.oninput=e=>data.supplies=e.target.value;f5.append(l5,ta);fieldsGrid.appendChild(f5);
 
   // Card type
   const f6=el('div','field');const l6=el('label');l6.textContent='Card Type';
@@ -2877,7 +2888,9 @@ function buildModal(data,isEdit){
   [['','Standard (frequency color)'],...S.specialTypes.map(s=>[s.id,s.label])].forEach(([val,txt2])=>{
     const o=document.createElement('option');o.value=val;o.textContent=txt2;if(val===data.special)o.selected=true;sel6.appendChild(o);
   });
-  sel6.onchange=e=>data.special=e.target.value;f6.append(l6,sel6);modal.appendChild(f6);
+  sel6.onchange=e=>data.special=e.target.value;f6.append(l6,sel6);fieldsGrid.appendChild(f6);
+
+  modal.appendChild(fieldsGrid);
 
   // Helper: show a confirmation dialog with optional "don't ask again" checkbox
   function confirmAction(msg,storageKey,onConfirm){
@@ -2981,15 +2994,15 @@ function buildModal(data,isEdit){
     let manualVisible=false;
     const manualWrap=el('div');manualWrap.style.display='none';
     manualWrap.style.marginTop='8px';
+    // Row: date input + clear button side by side
+    const manualRow=el('div');manualRow.style.cssText='display:flex;align-items:center;gap:8px;';
     manualDateInput=el('input');manualDateInput.type='date';
     manualDateInput.value=data.nextDueDate||'';
-    manualDateInput.style.cssText='width:100%;font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--gold);border-radius:8px;padding:8px 12px;background:var(--bg);color:var(--text);outline:none;';
-    const manualNote=el('div');manualNote.style.cssText='font-size:11px;color:var(--brown-light);margin-top:4px;line-height:1.5;';
-    manualNote.textContent='Changing this will shift the entire schedule forward from this date.';
+    manualDateInput.style.cssText='flex:1;font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--gold);border-radius:8px;padding:8px 12px;background:var(--bg);color:var(--text);outline:none;';
     const manualClr=el('button');
     manualClr.type='button';
-    manualClr.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--brown-light);cursor:pointer;margin-top:6px;-webkit-appearance:none;';
-    manualClr.textContent='✕ Clear date (move to Pending)';
+    manualClr.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--brown-light);cursor:pointer;white-space:nowrap;flex-shrink:0;-webkit-appearance:none;';
+    manualClr.textContent='✕ Clear';
     manualClr.onclick=e=>{
       e.preventDefault();
       confirmAction(
@@ -3002,22 +3015,17 @@ function buildModal(data,isEdit){
         }
       );
     };
-    let lastManualDate=data.nextDueDate;
-    manualDateInput.onchange=e=>{
+    const manualNote=el('div');manualNote.style.cssText='font-size:11px;color:var(--brown-light);margin-top:4px;line-height:1.5;';
+    manualNote.textContent='Changing this shifts the entire schedule forward from this date.';
+    // Update immediately on change — no confirmation needed
+    manualDateInput.oninput=e=>{
       const newVal=e.target.value;
-      if(!newVal||newVal===lastManualDate){data.nextDueDate=newVal;return;}
-      confirmAction(
-        'Changing the due date will shift this card\'s entire schedule going forward. Continue?',
-        'cf4_noConfirmChangeDate',
-        ()=>{
-          data.nextDueDate=newVal;lastManualDate=newVal;
-          delete data.originalDueDate;
-          nextDueDisplay.textContent=formatNextDue(newVal,data.freq);
-        }
-      );
-      setTimeout(()=>{if(manualDateInput.value!==lastManualDate)manualDateInput.value=lastManualDate;},300);
+      data.nextDueDate=newVal;
+      delete data.originalDueDate;
+      if(newVal) nextDueDisplay.textContent=formatNextDue(newVal,data.freq);
     };
-    manualWrap.append(manualDateInput,manualNote,manualClr);
+    manualRow.append(manualDateInput,manualClr);
+    manualWrap.append(manualRow,manualNote);
     reschedLink.onclick=e=>{
       e.preventDefault();
       manualVisible=!manualVisible;
