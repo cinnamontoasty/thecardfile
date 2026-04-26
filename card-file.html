@@ -664,11 +664,16 @@ function tasksDueOn(dateS){
   }
 
   return S.tasks.filter(t=>{
-    if(!isActiveTask(t)) return false;
+    // For future dates, include tasks starting on that date
+    const taskIsActive=isActiveTask(t);
+    const taskIsFuture=isFutureTask(t);
+    if(!taskIsActive&&!taskIsFuture) return false;
+    // Task must start on or before the requested date
     if(t.startDate>dateS) return false;
-    // Carry-overs
 
     if(isPast){
+      // Only active tasks in past view
+      if(!taskIsActive) return false;
       // Completed on that date counts
       if(isDoneOn(t,dateS)) return true;
       // Reconstruct from startDate cycle
@@ -683,9 +688,8 @@ function tasksDueOn(dateS){
       return Math.abs((parseDate(dateStr(predicted))-target)/86400000)<0.6;
     }else{
       // Today or future: task must be exactly on nextDueDate
-      // Overdue tasks stay in their original past day — never bleed forward
       if(t.nextDueDate===dateS) return true;
-      // For future dates beyond today, predict from nextDueDate if it's today or future
+      // For future dates, predict from nextDueDate
       if(dateS>todayStr()&&t.nextDueDate&&t.nextDueDate>=todayStr()&&t.nextDueDate<=dateS){
         const f=fById(t.freq);
         const start=parseDate(t.nextDueDate);
@@ -1033,127 +1037,126 @@ function deleteTask(id){
 
 // Card timer — starts a countdown based on task's time estimate
 function showCardTimer(task){
-  // Parse time estimate to seconds
   function parseTime(str){
     if(!str) return 0;
     const h=str.match(/(\d+\.?\d*)\s*hr/i);
-    const m=str.match(/(\d+\.?\d*)\s*['m]/i);
+    const m=str.match(/(\d+\.?\d*)[\s]*['\'′\u2019]/)||str.match(/(\d+\.?\d*)\s*min/i)||(!h&&str.match(/^(\d+\.?\d*)$/));
     return Math.round(((h?parseFloat(h[1]):0)*60+(m?parseFloat(m[1]):0))*60);
   }
   let totalSecs=parseTime(task.time);
   if(!totalSecs){
-    // Ask for duration if no time estimate
     const mins=prompt(`Start timer for "${task.name}"\n\nHow many minutes?`,'10');
     if(!mins) return;
     totalSecs=Math.round(parseFloat(mins)*60)||600;
   }
 
+  let keepRinging=localStorage.getItem('cf4_timerKeepRinging')!=='0';
+  let showOvertime=localStorage.getItem('cf4_timerOvertime')==='1';
+
   const overlay=el('div','card-detail-overlay');
   const panel=el('div','card-detail-panel');
-  panel.style.cssText='background:var(--card-bg);border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:32px 24px 48px;text-align:center;position:relative;';
+  panel.style.cssText='background:var(--card-bg);border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:28px 24px 44px;text-align:center;position:relative;';
 
+  let chimeInterval=null;
   const closeBtn=el('button','card-detail-close');
-  closeBtn.textContent='×';closeBtn.onclick=()=>{clearInterval(timer);overlay.remove();};
+  closeBtn.textContent='×';closeBtn.onclick=()=>{clearInterval(timer);if(chimeInterval)clearInterval(chimeInterval);overlay.remove();};
   panel.appendChild(closeBtn);
 
-  const taskName=el('div');taskName.style.cssText='font-family:"Playfair Display",serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;';
+  const taskName=el('div');taskName.style.cssText='font-family:"Playfair Display",serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px;';
   taskName.textContent=task.name;
-
-  const areaLabel=el('div');areaLabel.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:28px;';
-  areaLabel.textContent=task.area||'';
+  const areaLabel=el('div');areaLabel.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:24px;';
+  areaLabel.textContent=(task.area||'')+(task.time?' · '+task.time:'');
 
   const timeDisplay=el('div');
-  timeDisplay.style.cssText='font-family:"Playfair Display",serif;font-size:64px;font-weight:700;color:var(--gold);letter-spacing:.05em;margin-bottom:8px;line-height:1;';
-
-  const statusLabel=el('div');statusLabel.style.cssText='font-size:13px;color:var(--brown-light);margin-bottom:28px;height:20px;';
+  timeDisplay.style.cssText='font-family:"Playfair Display",serif;font-size:64px;font-weight:700;color:var(--gold);letter-spacing:.05em;margin-bottom:6px;line-height:1;';
+  const statusLabel=el('div');statusLabel.style.cssText='font-size:13px;color:var(--brown-light);margin-bottom:20px;height:20px;';
 
   function formatTime(s){
-    const m=Math.floor(Math.abs(s)/60);
-    const sec=Math.abs(s)%60;
-    const sign=s<0?'-':'';
-    return `${sign}${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    const mins=Math.floor(Math.abs(s)/60);const secs=Math.abs(s)%60;
+    return `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
   }
 
-  let remaining=totalSecs;
-  let running=true;
-  let overtime=false;
+  let remaining=totalSecs;let running=true;let timesUp=false;
   timeDisplay.textContent=formatTime(remaining);
 
-  const btnRow=el('div');btnRow.style.cssText='display:flex;gap:12px;justify-content:center;flex-wrap:wrap;';
-
-  const pauseBtn=el('button','btn btn-ghost');
-  pauseBtn.style.cssText='flex:0 1 140px;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:1px solid var(--border);cursor:pointer;-webkit-appearance:none;';
-  pauseBtn.textContent='⏸ Pause';
-  pauseBtn.onclick=()=>{
-    running=!running;
-    pauseBtn.textContent=running?'⏸ Pause':'▶ Resume';
-    statusLabel.textContent=running?'':' Paused';
-  };
-
-  const doneBtn=el('button','btn btn-primary');
-  doneBtn.style.cssText='flex:0 1 140px;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:none;cursor:pointer;-webkit-appearance:none;';
-  doneBtn.textContent='✓ Done';
-  doneBtn.onclick=()=>{clearInterval(timer);overlay.remove();showCompletionPopup(task);};
-
-  btnRow.append(pauseBtn,doneBtn);
-  panel.append(taskName,areaLabel,timeDisplay,statusLabel,btnRow);
-
-  // Audio context for chime — create immediately to satisfy user gesture requirement
   let audioCtx=null;
   try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}
+  if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume().catch(()=>{});
 
   function playChime(){
     if(!audioCtx) return;
-    // Resume in case it was suspended
     const resume=audioCtx.state==='suspended'?audioCtx.resume():Promise.resolve();
     resume.then(()=>{
-      [523,659,784,1047].forEach((freq,i)=>{
-        const osc=audioCtx.createOscillator();
-        const gain=audioCtx.createGain();
+      [523,659,784,1047].forEach((f,i)=>{
+        const osc=audioCtx.createOscillator();const gain=audioCtx.createGain();
         osc.connect(gain);gain.connect(audioCtx.destination);
-        osc.frequency.value=freq;osc.type='sine';
-        gain.gain.setValueAtTime(0,audioCtx.currentTime+i*0.18);
-        gain.gain.linearRampToValueAtTime(0.4,audioCtx.currentTime+i*0.18+0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+i*0.18+0.6);
-        osc.start(audioCtx.currentTime+i*0.18);
-        osc.stop(audioCtx.currentTime+i*0.18+0.8);
+        osc.frequency.value=f;osc.type='sine';
+        gain.gain.setValueAtTime(0,audioCtx.currentTime+i*0.2);
+        gain.gain.linearRampToValueAtTime(0.4,audioCtx.currentTime+i*0.2+0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+i*0.2+0.7);
+        osc.start(audioCtx.currentTime+i*0.2);osc.stop(audioCtx.currentTime+i*0.2+0.9);
       });
     }).catch(()=>{});
   }
 
+  const btnRow=el('div');btnRow.style.cssText='display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;';
+  const pauseBtn=el('button','btn btn-ghost');
+  pauseBtn.style.cssText='flex:0 1 140px;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:1px solid var(--border);cursor:pointer;-webkit-appearance:none;';
+  pauseBtn.textContent='⏸ Pause';
+  pauseBtn.onclick=()=>{running=!running;pauseBtn.textContent=running?'⏸ Pause':'▶ Resume';};
+  const doneBtn=el('button','btn btn-primary');
+  doneBtn.style.cssText='flex:0 1 140px;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:none;cursor:pointer;-webkit-appearance:none;';
+  doneBtn.textContent='✓ Done';
+  doneBtn.onclick=()=>{clearInterval(timer);if(chimeInterval)clearInterval(chimeInterval);overlay.remove();showCompletionPopup(task);};
+  btnRow.append(pauseBtn,doneBtn);
+
+  const toggleRow=el('div');toggleRow.style.cssText='display:flex;gap:16px;justify-content:center;flex-wrap:wrap;';
+  function makeToggle(label,key,initial,onChange){
+    const wrap=el('div');wrap.style.cssText='display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--brown-light);';
+    const cb=document.createElement('input');cb.type='checkbox';cb.checked=initial;
+    cb.style.cssText='accent-color:var(--gold);width:14px;height:14px;cursor:pointer;';
+    cb.onchange=()=>{localStorage.setItem(key,cb.checked?'1':'0');onChange(cb.checked);};
+    const lbl=el('span');lbl.textContent=label;
+    wrap.append(cb,lbl);
+    wrap.onclick=e=>{if(e.target!==cb){cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));}};
+    return wrap;
+  }
+  toggleRow.appendChild(makeToggle('Keep ringing until Done','cf4_timerKeepRinging',keepRinging,v=>{
+    keepRinging=v;if(!v&&chimeInterval){clearInterval(chimeInterval);chimeInterval=null;}
+  }));
+  toggleRow.appendChild(makeToggle('Show overtime','cf4_timerOvertime',showOvertime,v=>{showOvertime=v;}));
+
+  panel.append(taskName,areaLabel,timeDisplay,statusLabel,btnRow,toggleRow);
+
   const timer=setInterval(()=>{
     if(!running) return;
     remaining--;
-    timeDisplay.textContent=formatTime(remaining);
-    if(remaining===0){
-      playChime();
-      overtime=true;
+    if(!timesUp) timeDisplay.textContent=formatTime(remaining);
+    if(remaining===0&&!timesUp){
+      timesUp=true;
       timeDisplay.style.color='#c0392b';
-      statusLabel.textContent='⏰ Time\'s up! Keep going or tap Done.';
+      statusLabel.textContent='⏰ Time\'s up!';
       statusLabel.style.color='#c0392b';
+      playChime();
+      if(keepRinging) chimeInterval=setInterval(playChime,4000);
     }
-    if(remaining<0&&!overtime){overtime=true;}
+    if(timesUp&&showOvertime) timeDisplay.textContent='+'+formatTime(-(remaining));
   },1000);
 
-  // Unlock audio context immediately while we still have the user gesture
-  if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume().catch(()=>{});
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+}
 
-  const timerOverlay=overlay;
-
-  timerOverlay.appendChild(panel);
-  document.body.appendChild(timerOverlay);
+function saveEdit(){
   const idx=S.tasks.findIndex(t=>t.id===S.editTask.id);
   if(idx>=0){
     S.tasks[idx]={...S.editTask};
     const task=S.tasks[idx];
-    // If startDate is set and nextDueDate is missing, before startDate, or before today
-    // set nextDueDate to startDate so the card shows in the correct day's schedule
     if(task.startDate){
       if(!task.nextDueDate||task.nextDueDate<task.startDate){
         task.nextDueDate=task.startDate;
       }
     }else{
-      // No start date = pending, clear nextDueDate
       task.nextDueDate='';
     }
   }
@@ -1668,7 +1671,9 @@ function showTodayProgressPopup(dueTasks,doneCount,total){
 function renderToday(body){
   backupWarningBanner(body);
   const dueTasks=S.tasks.filter(t=>isActiveTask(t)&&isDueToday(t)&&!isDoneToday(t));
-  const todayTotal=S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t)).length;
+  const todayAll=S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t));
+  const skippedCount=todayAll.filter(t=>(t.skips||[]).includes(todayStr())).length;
+  const todayTotal=todayAll.length-skippedCount;
   const doneCount=S.tasks.filter(t=>isActiveTask(t)&&isDoneToday(t)).length;
 
   if(todayTotal>0){
