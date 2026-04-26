@@ -476,9 +476,9 @@ const DEFAULT_TASKS=[
   {id:8, name:'Wipe cupboard surfaces',area:'Master Bathroom',    freq:'m',  time:"10'",   supplies:'',                                   mini:false,special:'',       startDate:dateStr(addDays(new Date(),3)),nextDueDate:dateStr(addDays(new Date(),3)),completions:[],timeOfDay:'afternoon'},
   {id:9, name:'Replace air filter',    area:'Breezeway/Corridor', freq:'eom',time:"5'",    supplies:'',                                   mini:true, special:'',       startDate:dateStr(addDays(new Date(),4)),nextDueDate:dateStr(addDays(new Date(),4)),completions:[],timeOfDay:''},
   {id:10,name:'Wash outside windows',  area:'Backyard',           freq:'s',  time:'2 hr.', supplies:'Window cleaner, squeegee, hose',     mini:false,special:'',       startDate:dateStr(addDays(new Date(),5)),nextDueDate:dateStr(addDays(new Date(),5)),completions:[],timeOfDay:'morning'},
-  {id:11,name:'Empty dishwasher',       area:'Kitchen',            freq:'an', time:"5'",    supplies:'',                                   mini:false,special:'',       startDate:'',nextDueDate:'',completions:[],timeOfDay:''},
-  {id:12,name:'Start a load of laundry',area:'Whole House',        freq:'an', time:"5'",    supplies:'Detergent',                          mini:false,special:'',       startDate:'',nextDueDate:'',completions:[],timeOfDay:''},
-  {id:13,name:'Fold laundry',           area:'Whole House',        freq:'an', time:"20'",   supplies:'',                                   mini:false,special:'',       startDate:'',nextDueDate:'',completions:[],timeOfDay:''},
+  {id:11,name:'Empty dishwasher',       area:'Kitchen',            freq:'an', time:"5'",    supplies:'',                                   mini:true, special:'',       startDate:'',nextDueDate:'',completions:[],timeOfDay:''},
+  {id:12,name:'Start a load of laundry',area:'Laundry Room',       freq:'an', time:"5'",    supplies:'Detergent',                          mini:true, special:'',       startDate:'',nextDueDate:'',completions:[],timeOfDay:''},
+  {id:13,name:'Fold laundry',           area:'Laundry Room',       freq:'an', time:"10'",   supplies:'',                                   mini:false,special:'',       startDate:'',nextDueDate:'',completions:[],timeOfDay:''},
 ];
 
 // ══════════════════════════════════════════
@@ -1690,6 +1690,75 @@ function sectionHead(label,color,count){
 // ══════════════════════════════════════════
 // TAB: TODAY
 // ══════════════════════════════════════════
+// 2/D slot-specific completion popup
+function show2dSlotPopup(task,slotIndex){
+  const tod0=TIME_OF_DAY.find(t=>t.id===(task.timeOfDay||''));
+  const tod1=TIME_OF_DAY.find(t=>t.id===(task.timeOfDay2||''));
+  const slot0Label=tod0?tod0.label:'First slot';
+  const slot1Label=tod1?tod1.label:'Second slot';
+  const thisSlotLabel=slotIndex===0?slot0Label:slot1Label;
+
+  const bd=el('div','backdrop');
+  bd.onclick=e=>{if(e.target===bd)bd.remove();};
+  const modal=el('div','modal');
+  modal.style.cssText='background:var(--card-bg);border-radius:16px 16px 0 0;padding:22px 18px 32px;width:100%;max-height:70vh;overflow-y:auto;animation:slideUp .28s ease;';
+  const title=el('div','modal-title');title.textContent='Mark as Complete';
+  const sub=el('div','modal-sub');sub.textContent=task.name+' — '+thisSlotLabel;
+  modal.append(title,sub);
+
+  function mark2dSlot(markSlotIndex,asSkip){
+    bd.remove();
+    const t=S.tasks.find(x=>x.id===task.id);if(!t)return;
+    if(asSkip){
+      t.skips=[...(t.skips||[]),todayStr()+'_'+markSlotIndex];
+    }else{
+      const ts=todayStr()+'T12:00:00.000Z';
+      t.completions=[...(t.completions||[]),ts];
+    }
+    // Check if both slots are now handled
+    const compsToday=(t.completions||[]).filter(c=>c.startsWith(todayStr())).length;
+    const slot0skip=(t.skips||[]).some(s=>s===todayStr()+'_0');
+    const slot1skip=(t.skips||[]).some(s=>s===todayStr()+'_1');
+    const bothHandled=compsToday>=2||(compsToday>=1&&(slot0skip||slot1skip))||(slot0skip&&slot1skip);
+    if(bothHandled) t.nextDueDate=dateStr(addDays(parseDate(todayStr()),1));
+    save();render();
+  }
+
+  const opts=[
+    {label:`✓ Completed — ${thisSlotLabel}`,sub:'Mark this slot as done',fn:()=>mark2dSlot(slotIndex,false)},
+    {label:`→ Skip — ${thisSlotLabel}`,sub:'Skip just this slot',fn:()=>mark2dSlot(slotIndex,true)},
+  ];
+  // If other slot is also undone, offer to mark both
+  const otherIndex=slotIndex===0?1:0;
+  const otherLabel=slotIndex===0?slot1Label:slot0Label;
+  const compsToday=(task.completions||[]).filter(c=>c.startsWith(todayStr())).length;
+  const otherSlipDone=slotIndex===0?compsToday>=2:compsToday>=1;
+  if(!otherSlipDone){
+    opts.push({label:`✓ Completed both — ${slot0Label} & ${slot1Label}`,sub:'Mark both slots done for today',fn:()=>{
+      bd.remove();
+      const t=S.tasks.find(x=>x.id===task.id);if(!t)return;
+      // Add two completions
+      const ts=todayStr()+'T12:00:00.000Z';
+      t.completions=[...(t.completions||[]),ts,ts];
+      t.nextDueDate=dateStr(addDays(parseDate(todayStr()),1));
+      save();render();
+    }});
+  }
+
+  opts.forEach(opt=>{
+    const row=el('div');
+    row.style.cssText='padding:14px 0;border-bottom:1px dashed var(--border);cursor:pointer;border-radius:4px;';
+    row.onmouseenter=()=>row.style.background='var(--parchment-dark)';
+    row.onmouseleave=()=>row.style.background='';
+    const lbl=el('div');lbl.style.cssText='font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px;';lbl.textContent=opt.label;
+    const sub2=el('div');sub2.style.cssText='font-size:11px;color:var(--brown-light);';sub2.textContent=opt.sub;
+    row.append(lbl,sub2);row.onclick=opt.fn;modal.appendChild(row);
+  });
+
+  const cancel=el('button','btn btn-ghost');cancel.style.marginTop='16px';cancel.textContent='Cancel';cancel.onclick=()=>bd.remove();
+  modal.appendChild(cancel);bd.appendChild(modal);document.body.appendChild(bd);
+}
+
 // ── MINI TASKS POPUP ──
 function showMiniTasksPopup(){
   // Include all mini tasks — active, future, and pending
@@ -1964,22 +2033,13 @@ function renderToday(body){
       const grid=el('div','cards-grid');
       areaEntries.forEach(entry=>{
         const{task,slotIndex,slotDone}=entry;
-        const completionsToday=todayCompletions[task.id]||0;
         const card=renderCard(task,false,{
           showCarryOver:!slotDone,
           slotDone,
           slotIndex,
           on2dMark:task.freq==='2d'&&task.timeOfDay2?()=>{
-            const t=S.tasks.find(x=>x.id===task.id);if(!t)return;
-            const ts=todayStr()+'T12:00:00.000Z';
-            t.completions=[...(t.completions||[]),ts];
-            // Roll nextDueDate after both slots handled (2 completions OR any combo with skip)
-            const compsToday=(t.completions||[]).filter(c=>c.startsWith(todayStr())).length;
-            const slot0skip=(t.skips||[]).includes(todayStr()+'_0');
-            const slot1skip=(t.skips||[]).includes(todayStr()+'_1');
-            const bothHandled=compsToday>=2||(compsToday>=1&&(slot0skip||slot1skip));
-            if(bothHandled) t.nextDueDate=dateStr(addDays(parseDate(todayStr()),1));
-            save();render();
+            // Show slot-specific completion popup
+            show2dSlotPopup(task,slotIndex);
           }:null,
         });
         grid.appendChild(card);
@@ -2418,12 +2478,23 @@ function renderPending(body){
   backupWarningBanner(body);
   const pending=S.tasks.filter(t=>isPendingTask(t));
   const future=S.tasks.filter(t=>isFutureTask(t));
+  const asNeeded=S.tasks.filter(t=>isAsNeededTask(t));
 
-  if(!pending.length&&!future.length){
+  if(!pending.length&&!future.length&&!asNeeded.length){
     const emp=el('div','empty');
     const ic=el('div','empty-icon');ic.textContent='📋';
     const tx=el('div','empty-text');tx.textContent='No pending cards. All tasks are scheduled!';
     emp.append(ic,tx);body.appendChild(emp);return;
+  }
+
+  if(asNeeded.length){
+    body.appendChild(sectionHead('As-Needed','#b0a898',asNeeded.length));
+    const anNote=el('div');anNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
+    anNote.textContent='These tasks have no schedule — do them whenever you like. Tap ◇ As Needed in the header for quick access.';
+    body.appendChild(anNote);
+    const anGrid=el('div','cards-grid');
+    sortByFreq(asNeeded).forEach(task=>anGrid.appendChild(renderCard(task,true)));
+    body.appendChild(anGrid);
   }
 
   if(pending.length){
@@ -3685,26 +3756,28 @@ function render(){
     }
   };
   hr.append(hd,hdu);
+  htop.append(hleft,hr);
 
-  // Header popup buttons
+  // Header popup buttons — second row, below date/task count
+  const hbtns=el('div');
+  hbtns.style.cssText='display:flex;gap:6px;padding:4px 16px 0;flex-wrap:wrap;';
   const miniTasksBtn=el('button');
-  miniTasksBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;padding:5px 10px;border-radius:12px;border:1.5px solid #e8d800;background:rgba(232,216,0,0.15);color:#e8d800;cursor:pointer;-webkit-appearance:none;white-space:nowrap;margin-left:8px;';
+  miniTasksBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:4px 10px;border-radius:10px;border:1.5px solid #e8d800;background:rgba(232,216,0,0.15);color:#e8d800;cursor:pointer;-webkit-appearance:none;white-space:nowrap;letter-spacing:.06em;';
   miniTasksBtn.textContent='✦ Mini';
   miniTasksBtn.title='Show all mini tasks';
   miniTasksBtn.onclick=()=>showMiniTasksPopup();
-  hr.appendChild(miniTasksBtn);
+  hbtns.appendChild(miniTasksBtn);
 
   const asNeededTasks=S.tasks.filter(t=>isAsNeededTask(t));
   if(asNeededTasks.length){
     const anBtn=el('button');
-    anBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;padding:5px 10px;border-radius:12px;border:1.5px solid var(--border);background:rgba(176,168,152,0.15);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;white-space:nowrap;margin-left:6px;';
+    anBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:4px 10px;border-radius:10px;border:1.5px solid rgba(200,185,165,0.7);background:rgba(200,185,165,0.12);color:#c8b9a5;cursor:pointer;-webkit-appearance:none;white-space:nowrap;letter-spacing:.06em;';
     anBtn.textContent='◇ As Needed';
     anBtn.title='Show as-needed tasks';
     anBtn.onclick=()=>showAsNeededPopup();
-    hr.appendChild(anBtn);
+    hbtns.appendChild(anBtn);
   }
-
-  htop.append(hleft,hr);
+  header.appendChild(hbtns);
 
   const tabs=el('div','tabs');
   const mainTabs=[['today','Today'],['schedule','Schedule'],['browse','Browse'],['pending','Pending']];
