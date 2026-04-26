@@ -100,7 +100,7 @@ body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-he
 @media(min-width:1400px){.side-flowers{width:160px;}}
 .tabs{display:flex;overflow-x:auto;scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
-.tab{padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;}
+.tab{padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;line-height:1.2;}
 .tab.active{color:var(--bg);border-bottom-color:var(--gold);}
 body.dark .tab.active{color:var(--gold);}
 .settings-tab{margin-left:2px;}
@@ -464,16 +464,16 @@ const TIME_OF_DAY=[
 ];
 
 const DEFAULT_TASKS=[
-  {id:1,name:'Wipe down stovetop',area:'Kitchen',freq:'d',time:"5'",supplies:'Degreaser, microfiber',mini:false,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
-  {id:2,name:'Sweep kitchen floor',area:'Kitchen',freq:'d',time:"5'",supplies:'Broom, dustpan',mini:true,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
-  {id:3,name:'Clean kitchen sink',area:'Kitchen',freq:'2w',time:"10'",supplies:'Soft scrub, sponge',mini:true,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
-  {id:4,name:'Deep clean refrigerator',area:'Kitchen',freq:'m',time:"30'",supplies:'All-purpose cleaner',mini:false,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
-  {id:5,name:'Scrub toilet',area:'Downstairs Bath',freq:'w',time:"10'",supplies:'Toilet brush, cleaner',mini:false,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
-  {id:6,name:'Vacuum living room',area:'Living Room',freq:'w',time:"15'",supplies:'Vacuum',mini:false,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
-  {id:7,name:'Morning skincare routine',area:'Master Bathroom',freq:'2d',time:"10'",supplies:'',mini:false,special:'selfcare',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
-  {id:8,name:'Schedule annual physical',area:'Master Bedroom',freq:'y',time:"10'",supplies:'',mini:false,special:'medical',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
-  {id:9,name:'Review monthly budget',area:'Office',freq:'m',time:"30'",supplies:'',mini:false,special:'financial',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
-  {id:10,name:'Dust ceiling fan',area:'Living Room',freq:'m',time:"10'",supplies:'Duster, step stool',mini:true,special:'',startDate:todayStr(),nextDueDate:todayStr(),completions:[],carryOvers:[]},
+  {id:1, name:'Shine sink',            area:'Kitchen',            freq:'d',  time:"5'",    supplies:'Scrub brush, dish detergent',        mini:true, special:'',       startDate:todayStr(),nextDueDate:todayStr(),completions:[],timeOfDay:'evening'},
+  {id:2, name:'Wipe counters',         area:'Kitchen',            freq:'d',  time:"5'",    supplies:'Sponge, dish cloth',                 mini:true, special:'',       startDate:todayStr(),nextDueDate:todayStr(),completions:[],timeOfDay:'evening'},
+  {id:3, name:'Clutter police',        area:'Whole House',        freq:'d',  time:"10'",   supplies:'Basket or small box',                mini:true, special:'',       startDate:todayStr(),nextDueDate:todayStr(),completions:[],timeOfDay:'evening'},
+  {id:4, name:'Skin care routine',     area:'Master Bathroom',    freq:'2d', time:"5'",    supplies:'',                                   mini:false,special:'selfcare',startDate:todayStr(),nextDueDate:todayStr(),completions:[],timeOfDay:'morning',timeOfDay2:'evening'},
+  {id:5, name:'Vacuum high-traffic areas',area:'Whole House',     freq:'2w', time:"15'",   supplies:'Vacuum',                             mini:false,special:'',       startDate:todayStr(),nextDueDate:todayStr(),completions:[],timeOfDay:''},
+  {id:6, name:'Scrub bathtub',         area:'Hall Bathroom',      freq:'w',  time:"15'",   supplies:'Sponge, cleaner',                    mini:false,special:'',       startDate:dateStr(addDays(new Date(),1)),nextDueDate:dateStr(addDays(new Date(),1)),completions:[],timeOfDay:'afternoon'},
+  {id:7, name:'Dust surfaces',         area:'Living Room',        freq:'eow',time:"10'",   supplies:'Duster, microfiber cloth',           mini:false,special:'',       startDate:dateStr(addDays(new Date(),2)),nextDueDate:dateStr(addDays(new Date(),2)),completions:[],timeOfDay:'morning'},
+  {id:8, name:'Wipe cupboard surfaces',area:'Master Bathroom',    freq:'m',  time:"10'",   supplies:'',                                   mini:false,special:'',       startDate:dateStr(addDays(new Date(),3)),nextDueDate:dateStr(addDays(new Date(),3)),completions:[],timeOfDay:'afternoon'},
+  {id:9, name:'Replace air filter',    area:'Breezeway/Corridor', freq:'eom',time:"5'",    supplies:'',                                   mini:true, special:'',       startDate:dateStr(addDays(new Date(),4)),nextDueDate:dateStr(addDays(new Date(),4)),completions:[],timeOfDay:''},
+  {id:10,name:'Wash outside windows',  area:'Backyard',           freq:'s',  time:'2 hr.', supplies:'Window cleaner, squeegee, hose',     mini:false,special:'',       startDate:dateStr(addDays(new Date(),5)),nextDueDate:dateStr(addDays(new Date(),5)),completions:[],timeOfDay:'morning'},
 ];
 
 // ══════════════════════════════════════════
@@ -1031,8 +1031,10 @@ function addTask(){
 function deleteTask(id){
   const task=S.tasks.find(t=>t.id===id);
   const name=task?task.name:'this card';
-  if(!confirm(`Delete "${name}"?\n\nThis will permanently remove the card and all its history. It will NOT just remove it from the current view.\n\nThis cannot be undone.`))return;
-  S.tasks=S.tasks.filter(t=>t.id!==id);save();render();
+  if(!confirm(`Delete "${name}"?\n\nThis will permanently remove the card and all its history.\n\nThis cannot be undone.`))return;
+  S.tasks=S.tasks.filter(t=>t.id!==id);
+  S.editTask=null; // Close edit modal if open
+  save();render();
 }
 
 // Card timer — starts a countdown based on task's time estimate
@@ -1081,7 +1083,18 @@ function showCardTimer(task){
 
   let audioCtx=null;
   try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}
-  if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume().catch(()=>{});
+  // iOS Safari requires audio to be triggered within the user gesture stack
+  // Play a silent primer note immediately to unlock the AudioContext
+  if(audioCtx){
+    try{
+      const silentOsc=audioCtx.createOscillator();
+      const silentGain=audioCtx.createGain();
+      silentGain.gain.value=0; // completely silent
+      silentOsc.connect(silentGain);silentGain.connect(audioCtx.destination);
+      silentOsc.start();silentOsc.stop(audioCtx.currentTime+0.001);
+    }catch(e){}
+    if(audioCtx.state==='suspended') audioCtx.resume().catch(()=>{});
+  }
 
   function playChime(){
     if(!audioCtx) return;
@@ -2282,6 +2295,12 @@ function renderSettings(body){
   const spb=el('button','settings-btn');spb.textContent='Visit';
   spb.onclick=()=>window.open('https://github.com/sponsors/cinnamontoasty','_blank');
   sponsorRow.append(spd,spb);as.appendChild(sponsorRow);
+
+  // Version tag
+  const versionRow=el('div');
+  versionRow.style.cssText='text-align:center;padding:12px 0 4px;font-size:10px;color:var(--brown-light);letter-spacing:.06em;';
+  versionRow.textContent='The Card File · Updated April 26, 2026';
+  as.appendChild(versionRow);
   body.appendChild(as);
 
   // Appearance
@@ -3318,8 +3337,9 @@ function render(){
     const tab=el('div','tab'+(S.tab===id?' active':''));
     tab.textContent=label;tab.onclick=()=>{S.tab=id;render();};tabs.appendChild(tab);
   });
-  const settingsTab=el('div','tab settings-tab'+(S.tab==='settings'||S.tab==='howto'||S.tab==='walkthrough'?' active':''));
-  settingsTab.textContent='⚙  Settings';
+  const settingsTab=el('div','tab'+(S.tab==='settings'||S.tab==='howto'||S.tab==='walkthrough'?' active':''));
+  settingsTab.textContent='⚙ Settings';
+  settingsTab.style.marginLeft='2px';
   settingsTab.onclick=()=>{S.tab='settings';render();};tabs.appendChild(settingsTab);
   header.append(htop,tabs);app.appendChild(header);
 
