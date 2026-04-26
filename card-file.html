@@ -954,7 +954,12 @@ function save(){
 // EXPORT / IMPORT
 // ══════════════════════════════════════════
 function exportData(){
-  const data={tasks:S.tasks,freqColors:S.freqColors,specialTypes:S.specialTypes,areas:S.areas,delegates:S.delegates||[],nextId:S.nextId,exported:new Date().toISOString(),version:4};
+  const data={
+    tasks:S.tasks,freqColors:S.freqColors,specialTypes:S.specialTypes,
+    areas:S.areas,delegates:S.delegates||[],nextId:S.nextId,
+    dayEnd:parseInt(localStorage.getItem('cf4_dayEnd')||'0'),
+    exported:new Date().toISOString(),version:4
+  };
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='cardfile-backup-'+todayStr()+'.json';a.click();URL.revokeObjectURL(url);
@@ -974,6 +979,7 @@ function importData(){
           if(data.specialTypes)S.specialTypes=data.specialTypes;
           if(data.areas)S.areas=data.areas;
           if(data.delegates)S.delegates=data.delegates;
+          if(data.dayEnd!=null)localStorage.setItem('cf4_dayEnd',String(data.dayEnd));
           save();alert('✓ Card file restored successfully!');render();
         }else{alert('Invalid backup file.');}
       }catch{alert('Could not read backup file.');}
