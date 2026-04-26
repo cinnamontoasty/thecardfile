@@ -372,6 +372,7 @@ body.dark .undo-toast{background:#3a2828;color:var(--text);}
 // ══════════════════════════════════════════
 const FREQS=[
   {id:'an', label:'A/N', name:'As Needed',           days:0},
+  {id:'1x', label:'1X',  name:'One Time',            days:0},
   {id:'2d', label:'2/D', name:'Twice a Day',        days:0.5},
   {id:'d',  label:'D',   name:'Daily',               days:1},
   {id:'eod',label:'EOD', name:'Every Other Day',     days:2},
@@ -389,7 +390,7 @@ const FREQS=[
 ];
 
 const DEFAULT_FREQ_COLORS={
-  'an':'#b0a898','an':'#b0a898','2d':'#f5a880','d':'#f0e868','eod':'#d4b870','e3d':'#5a9e98',
+  'an':'#b0a898','an':'#b0a898','1x':'#a0aab8','2d':'#f5a880','d':'#f0e868','eod':'#d4b870','e3d':'#5a9e98',
   '3w':'#afa8d4','2w':'#4ab8d4','w':'#6a9fd4',
   'eow':'#7878cc','m':'#8dbdaa','2m':'#7ab898','eom':'#c4a882',
   's':'#a09060','2y':'#e8c4a0','y':'#c07050',
@@ -402,11 +403,11 @@ const THEMES={
   },
   'garden':{
     name:'🌸 Garden Party',
-    freqs:{'an':'#c0b8b0','2d':'#f9c8d4','d':'#fce8a0','eod':'#c8e8a8','e3d':'#70b8a8','3w':'#a8d8c0','2w':'#88c8d8','w':'#a8b8e8','eow':'#c8a8e0','m':'#e8a8c8','2m':'#88c8b0','eom':'#d4b888','s':'#b8c888','2y':'#f0c890','y':'#d88898'},
+    freqs:{'an':'#c0b8b0','1x':'#a8b4c0','2d':'#f9c8d4','d':'#fce8a0','eod':'#c8e8a8','e3d':'#70b8a8','3w':'#a8d8c0','2w':'#88c8d8','w':'#a8b8e8','eow':'#c8a8e0','m':'#e8a8c8','2m':'#88c8b0','eom':'#d4b888','s':'#b8c888','2y':'#f0c890','y':'#d88898'},
   },
   'ocean':{
     name:'🌊 Ocean Breeze',
-    freqs:{'an':'#b8b0a8','2d':'#f0e8c8','d':'#e8f4a0','eod':'#a8e4d8','e3d':'#3a9888','3w':'#70c8e8','2w':'#50a8d8','w':'#6888c8','eow':'#d96060','m':'#88c0b0','2m':'#70b898','eom':'#c8d8a8','s':'#a8b890','2y':'#e8d8b0','y':'#c09060'},
+    freqs:{'an':'#b8b0a8','1x':'#a0aab8','2d':'#f0e8c8','d':'#e8f4a0','eod':'#a8e4d8','e3d':'#3a9888','3w':'#70c8e8','2w':'#50a8d8','w':'#6888c8','eow':'#d96060','m':'#88c0b0','2m':'#70b898','eom':'#c8d8a8','s':'#a8b890','2y':'#e8d8b0','y':'#c09060'},
   },
   'autumn':{
     name:'🍁 Autumn Harvest',
@@ -414,11 +415,11 @@ const THEMES={
   },
   'lavender':{
     name:'💜 Lavender Fields',
-    freqs:{'an':'#c0b8c0','2d':'#f8d8f0','d':'#f0e8a8','eod':'#d8c8f0','e3d':'#5a9890','3w':'#b898e0','2w':'#9878c8','w':'#6888c8','eow':'#c8a8e0','m':'#e0b8d8','2m':'#78b898','eom':'#88b898','s':'#b0a0c0','2y':'#e8d8b8','y':'#987888'},
+    freqs:{'an':'#c0b8c0','1x':'#a8b0c0','2d':'#f8d8f0','d':'#f0e8a8','eod':'#d8c8f0','e3d':'#5a9890','3w':'#b898e0','2w':'#9878c8','w':'#6888c8','eow':'#c8a8e0','m':'#e0b8d8','2m':'#78b898','eom':'#88b898','s':'#b0a0c0','2y':'#e8d8b8','y':'#987888'},
   },
   'sunrise':{
     name:'🌅 Sunrise',
-    freqs:{'an':'#b8b0a0','2d':'#f8d898','d':'#f8f060','eod':'#f8b870','e3d':'#5aa898','3w':'#f09060','2w':'#e86858','w':'#5898d8','eow':'#e05090','m':'#88b898','2m':'#68a888','eom':'#c878b8','s':'#a878a0','2y':'#f0c880','y':'#c07060'},
+    freqs:{'an':'#b8b0a0','1x':'#a0a8b8','2d':'#f8d898','d':'#f8f060','eod':'#f8b870','e3d':'#5aa898','3w':'#f09060','2w':'#e86858','w':'#5898d8','eow':'#e05090','m':'#88b898','2m':'#68a888','eom':'#c878b8','s':'#a878a0','2y':'#f0c880','y':'#c07060'},
   },
 };
 
@@ -526,7 +527,7 @@ let S={
   darkAccent:'#c06878',
   theme:'parchment',
   notificationDismissed:false,
-  browseMode:'area',freqFilter:'all',areaFilter:'all',delegateSortMode:'freq',delegateFilter:'__me__',
+  browseMode:'area',freqFilter:'all',areaFilter:'all',delegateSortMode:'freq',delegateFilter:'__me__',showCompletedOnce:false,
   scheduleView:'day',
   scheduleDate:new Date(),
   showAdd:false,editTask:null,showWelcome:false,showInstall:false,
@@ -618,11 +619,11 @@ function nextMonthDay(fromDate,day,skipMonths){
 // Enhanced calcNextDueDate — respects pinned weekday or month-day if set
 function calcNextDueDate(task,completedOnDate){
   const f=fById(task.freq);
-  if(f.days<1&&f.id!=='an'){
+  if(f.days<1&&f.id!=='an'&&f.id!=='1x'){
     return dateStr(addDays(parseDate(completedOnDate)||new Date(),1));
   }
-  // As-Needed: never schedule a future date
-  if(f.id==='an') return '';
+  // As-Needed and One-Time: never schedule a future date
+  if(f.id==='an'||f.id==='1x') return '';
   const anchor=parseDate(task.originalDueDate||task.nextDueDate)||parseDate(completedOnDate)||new Date();
   if(task.originalDueDate) delete task.originalDueDate;
 
@@ -669,14 +670,24 @@ function isAsNeededTask(task){
   return task.freq==='an';
 }
 
+function isOneTimeTask(task){
+  return task.freq==='1x';
+}
+
+function isOneTimeDone(task){
+  return isOneTimeTask(task)&&(task.completions||[]).length>0;
+}
+
 function isActiveTask(task){
-  if(isAsNeededTask(task)) return true; // As-needed are always available regardless of start date
+  if(isAsNeededTask(task)) return true;
+  if(isOneTimeTask(task)) return true; // Always available once created
   if(!task.startDate) return false;
   return task.startDate<=todayStr();
 }
 
 function isPendingTask(task){
-  if(isAsNeededTask(task)) return false; // As-needed never go to pending
+  if(isAsNeededTask(task)) return false;
+  if(isOneTimeTask(task)) return false; // Has its own section
   return !task.startDate;
 }
 
@@ -706,8 +717,8 @@ function advanceOverdueTasks(){
     if((task.skips||[]).includes(today)) return;
 
     const f=fById(task.freq);
-    // As-Needed tasks never advance
-    if(f.id==='an') return;
+    // As-Needed and One-Time tasks never advance
+    if(f.id==='an'||f.id==='1x') return;
 
     // Roll forward to next occurrence on or after today
     let next=parseDate(task.nextDueDate);
@@ -2407,7 +2418,7 @@ function renderBrowse(body){
   body.appendChild(toggle);
 
   // Include pending/unscheduled in all views
-  const allTasksForBrowse=S.tasks.filter(t=>isActiveTask(t)||isFutureTask(t)||isPendingTask(t)||isAsNeededTask(t));
+  const allTasksForBrowse=S.tasks.filter(t=>isActiveTask(t)||isFutureTask(t)||isPendingTask(t)||isAsNeededTask(t)||isOneTimeTask(t));
 
   // ── BY FREQUENCY/TYPE ──
   if(S.browseMode==='freq'){
@@ -2564,12 +2575,46 @@ function renderPending(body){
   const pending=S.tasks.filter(t=>isPendingTask(t));
   const future=S.tasks.filter(t=>isFutureTask(t));
   const asNeeded=S.tasks.filter(t=>isAsNeededTask(t));
+  const oneTime=S.tasks.filter(t=>isOneTimeTask(t));
+  const oneTimePending=oneTime.filter(t=>!isOneTimeDone(t));
+  const oneTimeDone=oneTime.filter(t=>isOneTimeDone(t));
 
-  if(!pending.length&&!future.length&&!asNeeded.length){
+  if(!pending.length&&!future.length&&!asNeeded.length&&!oneTime.length){
     const emp=el('div','empty');
     const ic=el('div','empty-icon');ic.textContent='📋';
     const tx=el('div','empty-text');tx.textContent='No pending cards. All tasks are scheduled!';
     emp.append(ic,tx);body.appendChild(emp);return;
+  }
+
+  // One-Time tasks
+  if(oneTime.length){
+    body.appendChild(sectionHead('One-Time Tasks','#a0aab8',oneTimePending.length));
+    const otNote=el('div');otNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
+    otNote.textContent='Tasks that only need to be done once. Once completed they\'re recorded forever.';
+    body.appendChild(otNote);
+    if(oneTimePending.length){
+      const otGrid=el('div','cards-grid');
+      sortByFreq(oneTimePending).forEach(task=>otGrid.appendChild(renderCard(task,true)));
+      body.appendChild(otGrid);
+    }
+    if(oneTimeDone.length){
+      // Show/hide toggle for completed one-time tasks
+      const toggleRow=el('div');toggleRow.style.cssText='display:flex;align-items:center;gap:8px;margin:10px 0;cursor:pointer;';
+      const toggleBtn=el('button');
+      toggleBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;color:var(--brown-light);background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;cursor:pointer;-webkit-appearance:none;';
+      toggleBtn.textContent=(S.showCompletedOnce?'Hide':'Show')+` completed one-time tasks (${oneTimeDone.length})`;
+      toggleBtn.onclick=()=>{S.showCompletedOnce=!S.showCompletedOnce;render();};
+      toggleRow.appendChild(toggleBtn);body.appendChild(toggleRow);
+      if(S.showCompletedOnce){
+        const doneGrid=el('div','cards-grid');
+        sortByFreq(oneTimeDone).forEach(task=>{
+          const card=renderCard(task,true);
+          card.style.opacity='0.5';
+          doneGrid.appendChild(card);
+        });
+        body.appendChild(doneGrid);
+      }
+    }
   }
 
   if(asNeeded.length){
@@ -3148,6 +3193,15 @@ function renderWalkthrough(body){
       'In <strong>Today</strong> view, a <strong>📤 Send [Name]\'s tasks</strong> button appears when a delegate has outstanding tasks.',
       'Tapping the send button opens your Messages app with a pre-filled task list ready to send.',
       '<em>Note: Sending tasks via text uses your phone\'s messaging service. Standard carrier rates may apply.</em>'
+    ]},
+    {title:'1X One-Time Tasks',steps:[
+      'Need to track a one-time project or repair? Choose <strong>1X — One Time</strong> as the frequency.',
+      'Great for things like: repair the toilet, replace the carpet, clean out the garage, call the plumber.',
+      'Set a start date to schedule it for a specific day — it will appear in Today view on that day.',
+      'Once marked complete, it\'s done forever. No future due dates, no repeating. Just a permanent record.',
+      'Find your one-time tasks in the <strong>Pending</strong> tab under <strong>One-Time Tasks</strong>.',
+      'Completed one-time tasks are hidden by default — tap <strong>Show completed one-time tasks</strong> to see your full history.',
+      'One-time tasks also appear in Browse and in Schedule past-day view so you can always find the record of when they were done.'
     ]},
     {title:'↕ Ordering Your Cards',steps:[
       'Within each room, you can arrange your cards in whatever order makes sense for how you clean.',
