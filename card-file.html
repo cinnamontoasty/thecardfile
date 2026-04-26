@@ -661,9 +661,18 @@ function isDueOn(task,dateS){
 // No auto-advance of overdue tasks — all tasks stay on their original due date
 // Users handle past days via Schedule view (mark complete, skip, or ignore)
 function advanceOverdueTasks(){
-  // Intentionally empty — SHE philosophy: tasks stay where they are
-  // D tasks appear every day naturally via their frequency
-  // All other frequencies stay in Schedule past day view for user action
+  // Intentionally empty for most frequencies — SHE philosophy: tasks stay where they are
+  // EXCEPTION: 2/D tasks always advance to today if nextDueDate is in the past
+  // This ensures the card rolls over regardless of completion status
+  const today=todayStr();
+  let changed=false;
+  S.tasks.forEach(task=>{
+    if(task.freq!=='2d') return;
+    if(!task.nextDueDate||task.nextDueDate>=today) return;
+    task.nextDueDate=today;
+    changed=true;
+  });
+  if(changed) save();
 }
 
 function isDueToday(task){
@@ -1086,7 +1095,17 @@ function showCardDetail(task,dateCtx){
   const isPast=dateCtx&&dateCtx<todayStr();
   const isDone=isPast?isDoneForDay(task,dateCtx):isDoneToday(task);
   markBtn.textContent=isDone?'✓ Done':'○ Mark complete';
-  if(!isDone) markBtn.onclick=()=>{overlay.remove();showCompletionPopup(task,isPast?dateCtx:null);};
+  if(!isDone) markBtn.onclick=()=>{
+    overlay.remove();
+    // For 2/D tasks with two time slots, use the slot-specific popup
+    if(task.freq==='2d'&&task.timeOfDay&&task.timeOfDay2&&!isPast){
+      // Determine which slot to show based on completions today
+      const compsToday=(task.completions||[]).filter(c=>c.startsWith(todayStr())).length;
+      show2dSlotPopup(task,compsToday>=1?1:0);
+    }else{
+      showCompletionPopup(task,isPast?dateCtx:null);
+    }
+  };
   const timerBtn=el('button','btn btn-ghost');
   timerBtn.style.cssText='flex:1;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:1px solid var(--border);cursor:pointer;-webkit-appearance:none;';
   timerBtn.textContent=task.time?`⏱ ${task.time} timer`:'⏱ Timer';
@@ -3064,6 +3083,15 @@ function renderWalkthrough(body){
       'Tapping the send button opens your Messages app with a pre-filled task list ready to send.',
       '<em>Note: Sending tasks via text uses your phone\'s messaging service. Standard carrier rates may apply.</em>'
     ]},
+    {title:'↩ Undoing Completions & Skips',steps:[
+      'Made a mistake? Marked the wrong card complete or skipped something by accident? No problem!',
+      'Go to <strong>Schedule → Day view</strong> and navigate to today\'s date.',
+      'Cards you completed or skipped today show an <strong>Undo</strong> button in their footer.',
+      'Tap <strong>Undo</strong> to reverse a completion — the card goes back to due, and the completion is removed from its history.',
+      'Tap <strong>Undo</strong> on a skipped card to remove the skip and restore the card to due.',
+      'You can also edit a card\'s completion history directly: tap ✎ Edit → scroll to <strong>Completion History</strong> at the bottom — you can change a completion date or remove it entirely.',
+      'Tip: if you marked a card complete with the wrong date, use the Completion History editor to correct it.'
+    ]},
     {title:'◇ As-Needed Tasks',steps:[
       'Don\'t want to stick to a fixed schedule for a task? Choose <strong>A/N — As Needed</strong> as the frequency when creating or editing a card.',
       'As-needed tasks are never automatically scheduled. No due date, no reminders — they\'re just available whenever you need them.',
@@ -3758,27 +3786,6 @@ function render(){
   hr.append(hd,hdu);
   htop.append(hleft,hr);
 
-  // Header popup buttons — second row, below date/task count
-  const hbtns=el('div');
-  hbtns.style.cssText='display:flex;gap:6px;padding:4px 16px 0;flex-wrap:wrap;';
-  const miniTasksBtn=el('button');
-  miniTasksBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:4px 10px;border-radius:10px;border:1.5px solid #e8d800;background:rgba(232,216,0,0.15);color:#e8d800;cursor:pointer;-webkit-appearance:none;white-space:nowrap;letter-spacing:.06em;';
-  miniTasksBtn.textContent='✦ Mini';
-  miniTasksBtn.title='Show all mini tasks';
-  miniTasksBtn.onclick=()=>showMiniTasksPopup();
-  hbtns.appendChild(miniTasksBtn);
-
-  const asNeededTasks=S.tasks.filter(t=>isAsNeededTask(t));
-  if(asNeededTasks.length){
-    const anBtn=el('button');
-    anBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:4px 10px;border-radius:10px;border:1.5px solid rgba(200,185,165,0.7);background:rgba(200,185,165,0.12);color:#c8b9a5;cursor:pointer;-webkit-appearance:none;white-space:nowrap;letter-spacing:.06em;';
-    anBtn.textContent='◇ As Needed';
-    anBtn.title='Show as-needed tasks';
-    anBtn.onclick=()=>showAsNeededPopup();
-    hbtns.appendChild(anBtn);
-  }
-  header.appendChild(hbtns);
-
   const tabs=el('div','tabs');
   const mainTabs=[['today','Today'],['schedule','Schedule'],['browse','Browse'],['pending','Pending']];
   mainTabs.forEach(([id,label])=>{
@@ -3789,7 +3796,27 @@ function render(){
   settingsTab.textContent='⚙ Settings';
   settingsTab.style.marginLeft='2px';
   settingsTab.onclick=()=>{S.tab='settings';render();};tabs.appendChild(settingsTab);
-  header.append(htop,tabs);app.appendChild(header);
+
+  // Popup buttons — third child, between title row and tabs
+  const hbtns=el('div');
+  hbtns.style.cssText='display:flex;gap:6px;padding:3px 14px 4px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,0.08);';
+  const miniTasksBtn=el('button');
+  miniTasksBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:3px 10px;border-radius:10px;border:1.5px solid #e8d800;background:rgba(232,216,0,0.15);color:#e8d800;cursor:pointer;-webkit-appearance:none;white-space:nowrap;letter-spacing:.06em;';
+  miniTasksBtn.textContent='✦ Mini';
+  miniTasksBtn.title='Show all mini tasks';
+  miniTasksBtn.onclick=()=>showMiniTasksPopup();
+  hbtns.appendChild(miniTasksBtn);
+  const asNeededTasks=S.tasks.filter(t=>isAsNeededTask(t));
+  if(asNeededTasks.length){
+    const anBtn=el('button');
+    anBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:3px 10px;border-radius:10px;border:1.5px solid rgba(200,185,165,0.7);background:rgba(200,185,165,0.12);color:#c8b9a5;cursor:pointer;-webkit-appearance:none;white-space:nowrap;letter-spacing:.06em;';
+    anBtn.textContent='◇ As Needed';
+    anBtn.title='Show as-needed tasks';
+    anBtn.onclick=()=>showAsNeededPopup();
+    hbtns.appendChild(anBtn);
+  }
+
+  header.append(htop,hbtns,tabs);app.appendChild(header);
 
   // Daily notification — appears AFTER header, only if not dismissed
   if(S._notification&&!S.notificationDismissed){
