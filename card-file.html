@@ -455,39 +455,74 @@ const COLOR_PALETTE=[
 const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-// Sort tasks — user-defined sortOrder wins, frequency as secondary
+// Sort tasks by frequency order (daily first, yearly last), then by name
+// Day-order for Today view is handled separately via cf4_order_DATE
 function sortByFreq(tasks){
   const freqOrder=FREQS.map(f=>f.id);
   return [...tasks].sort((a,b)=>{
-    // Primary: user-defined sortOrder
-    const aOrd=a.sortOrder??999;
-    const bOrd=b.sortOrder??999;
-    if(aOrd!==bOrd) return aOrd-bOrd;
-    // Secondary: frequency order
     const fi=freqOrder.indexOf(a.freq)-freqOrder.indexOf(b.freq);
     if(fi!==0) return fi;
     return a.name.localeCompare(b.name);
   });
 }
 
-// Move a task up or down within its area
-function moveTask(id,direction){
-  const task=S.tasks.find(t=>t.id===id);if(!task)return;
-  const areamates=sortByFreq(S.tasks.filter(t=>t.area===task.area));
-  const idx=areamates.findIndex(t=>t.id===id);
-  const swapIdx=direction==='up'?idx-1:idx+1;
-  if(swapIdx<0||swapIdx>=areamates.length)return;
-  const swapTask=areamates[swapIdx];
-  // Swap sortOrder values
-  const tmp=task.sortOrder??idx;
-  task.sortOrder=swapTask.sortOrder??swapIdx;
-  swapTask.sortOrder=tmp;
-  // Ensure they're actually different
-  if(task.sortOrder===swapTask.sortOrder){
-    task.sortOrder=swapIdx;
-    swapTask.sortOrder=idx;
+// ── DAY ORDER SYSTEM ──
+// Stores task ID order per date: cf4_order_YYYY-MM-DD = [id, id, id, ...]
+function getDayOrder(dateStr){
+  try{
+    const raw=localStorage.getItem('cf4_order_'+dateStr);
+    return raw?JSON.parse(raw):null;
+  }catch{return null;}
+}
+
+function saveDayOrder(dateStr,ids){
+  localStorage.setItem('cf4_order_'+dateStr,JSON.stringify(ids));
+}
+
+// Get or build the day order for today
+// Carries forward from yesterday if available, then adjusts for today's tasks
+function getTodayOrder(todayTasks){
+  const today=todayStr();
+  let order=getDayOrder(today);
+  const todayIds=todayTasks.map(t=>t.id);
+
+  if(!order){
+    // Try to carry forward from yesterday
+    const yesterday=dateStr(addDays(new Date(),-1));
+    const yOrder=getDayOrder(yesterday);
+    if(yOrder){
+      // Keep yesterday's order for tasks that are also due today
+      order=yOrder.filter(id=>todayIds.includes(id));
+    }else{
+      order=[];
+    }
   }
-  save();render();
+
+  // Add any tasks not yet in order (new tasks due today)
+  todayIds.forEach(id=>{if(!order.includes(id))order.push(id);});
+  // Remove any tasks no longer due today
+  order=order.filter(id=>todayIds.includes(id));
+
+  saveDayOrder(today,order);
+  return order;
+}
+
+// Move a task up or down within its time-of-day + room group in Today view
+function moveTodayTask(id,direction,groupIds){
+  const today=todayStr();
+  let order=getDayOrder(today)||groupIds;
+  // Only work within the group
+  const groupInOrder=order.filter(oid=>groupIds.includes(oid));
+  const idx=groupInOrder.indexOf(id);
+  const swapIdx=direction==='up'?idx-1:idx+1;
+  if(swapIdx<0||swapIdx>=groupInOrder.length)return;
+  // Swap in the full order array
+  const fullIdxA=order.indexOf(groupInOrder[idx]);
+  const fullIdxB=order.indexOf(groupInOrder[swapIdx]);
+  if(fullIdxA<0||fullIdxB<0)return;
+  [order[fullIdxA],order[fullIdxB]]=[order[fullIdxB],order[fullIdxA]];
+  saveDayOrder(today,order);
+  render();
 }
 
 const TIME_OF_DAY=[
@@ -532,7 +567,7 @@ let S={
   scheduleDate:new Date(),
   showAdd:false,editTask:null,showWelcome:false,showInstall:false,
   firstTime:false,firstTimeHowTo:false,
-  newTask:{name:'',area:'Kitchen',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:'',timeOfDay:'',timeOfDay2:'',delegate:'',sortOrder:0},
+  newTask:{name:'',area:'Kitchen',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:'',timeOfDay:'',timeOfDay2:'',delegate:''},
   nextId:200,
 };
 
@@ -1187,11 +1222,8 @@ function addTask(){
   const t={...S.newTask,id:S.nextId++,name:S.newTask.name.trim(),supplies:S.newTask.supplies.trim(),completions:[]};
   if(t.startDate){t.nextDueDate=t.startDate;}
   else{t.nextDueDate='';}
-  // Auto-assign sortOrder: highest in same area + 1
-  const sameArea=S.tasks.filter(x=>x.area===t.area);
-  t.sortOrder=sameArea.length?Math.max(...sameArea.map(x=>x.sortOrder||0))+1:0;
   S.tasks.push(t);
-  S.newTask={name:'',area:S.areas[0]||'General',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:'',timeOfDay:'',timeOfDay2:'',delegate:'',sortOrder:0};
+  S.newTask={name:'',area:S.areas[0]||'General',freq:'w',time:'',supplies:'',mini:false,special:'',startDate:'',timeOfDay:'',timeOfDay2:'',delegate:''};
   S.showAdd=false;save();render();
 }
 
@@ -1718,16 +1750,6 @@ function renderCard(task,showArea,opts={}){
   // No "Due" badge — if card shows here, user knows it's due
 
   const actions=el('div','card-actions');
-  // Up/Down reorder buttons
-  const areamates=sortByFreq(S.tasks.filter(t=>t.area===task.area&&isActiveTask(t)));
-  const taskIdx=areamates.findIndex(t=>t.id===task.id);
-  const upBtn=el('button','icon-btn');upBtn.textContent='↑';upBtn.title='Move up within room';
-  upBtn.style.opacity=taskIdx<=0?'0.25':'1';
-  upBtn.onclick=e=>{e.stopPropagation();if(taskIdx>0)moveTask(task.id,'up');};
-  const dnBtn=el('button','icon-btn');dnBtn.textContent='↓';dnBtn.title='Move down within room';
-  dnBtn.style.opacity=taskIdx>=areamates.length-1?'0.25':'1';
-  dnBtn.onclick=e=>{e.stopPropagation();if(taskIdx<areamates.length-1)moveTask(task.id,'down');};
-  actions.append(upBtn,dnBtn);
   // Duplicate button
   const dupBtn=el('button','icon-btn');dupBtn.textContent='⧉';dupBtn.title='Duplicate this card';
   dupBtn.onclick=()=>{
@@ -1753,17 +1775,37 @@ function renderCard(task,showArea,opts={}){
   const delBtn=el('button','icon-btn del-btn');delBtn.textContent='✕';delBtn.title='Delete this card';
   delBtn.onclick=()=>deleteTask(task.id);
   const chk=el('button','check-btn'+(doneOnDate?' done':''));
-  chk.textContent=doneOnDate?'✓':'';
+  if(doneOnDate){
+    chk.textContent='✓';
+  }else if(opts.orderNum!=null){
+    chk.textContent=String(opts.orderNum);
+    chk.style.fontSize='13px';
+    chk.style.fontWeight='700';
+    chk.style.fontFamily='"Lato",sans-serif';
+  }else{
+    chk.textContent='';
+  }
   chk.title=doneOnDate?'Completed':'Mark complete';
   chk.onclick=()=>{
     if(doneOnDate)return;
     if(opts.on2dMark){
-      // 2/D dual slot — use direct mark without popup
-      opts.on2dMark();
+      show2dSlotPopup(task,opts.slotIndex||0);
     }else{
       showCompletionPopup(task,isPastDate?dateCtx:null);
     }
   };
+
+  // ↑ ↓ reorder buttons — Today view only, within time+room group
+  if(opts.groupIds&&opts.groupIds.length>1){
+    const groupIdx=opts.groupIds.indexOf(task.id);
+    const upBtn=el('button','icon-btn');upBtn.textContent='↑';upBtn.title='Move up';
+    upBtn.style.opacity=groupIdx<=0?'0.25':'1';
+    upBtn.onclick=e=>{e.stopPropagation();moveTodayTask(task.id,'up',opts.groupIds);};
+    const dnBtn=el('button','icon-btn');dnBtn.textContent='↓';dnBtn.title='Move down';
+    dnBtn.style.opacity=groupIdx>=opts.groupIds.length-1?'0.25':'1';
+    dnBtn.onclick=e=>{e.stopPropagation();moveTodayTask(task.id,'down',opts.groupIds);};
+    actions.append(upBtn,dnBtn);
+  }
   actions.append(dupBtn,editBtn,delBtn,chk);
   footer.append(lfoot,actions);inner.appendChild(footer);
   card.appendChild(inner);
@@ -2076,17 +2118,22 @@ function renderToday(body){
     emp.append(ic,tx);body.appendChild(emp);return;
   }
 
-  // Build the list of task+slot combinations to show
-  // For 2/D tasks with two slots, show once in each slot
-  // Track per-slot completion using todayStr+slot key
+  // Build slot entries using day order
+  const allDueIds=dueTasks.map(t=>t.id);
+  const dayOrder=getTodayOrder(dueTasks);
+
+  // Sort dueTasks by day order
+  const orderedDueTasks=[...dueTasks].sort((a,b)=>{
+    return dayOrder.indexOf(a.id)-dayOrder.indexOf(b.id);
+  });
+
   const todayCompletions=S.tasks.reduce((acc,t)=>{
     const count=(t.completions||[]).filter(c=>c.startsWith(todayStr())).length;
     acc[t.id]=count;return acc;
   },{});
 
-  // Build slot entries — each entry is {task, slotId, slotIndex (0=first, 1=second)}
   const slotEntries=[];
-  dueTasks.forEach(task=>{
+  orderedDueTasks.forEach(task=>{
     if(task.freq==='2d'&&task.timeOfDay&&task.timeOfDay2&&task.timeOfDay!==task.timeOfDay2){
       const completionsToday=todayCompletions[task.id]||0;
       const skipsToday=(task.skips||[]).filter(s=>s.startsWith&&s.startsWith(todayStr()+'_')||s===todayStr()).length;
@@ -2121,20 +2168,20 @@ function renderToday(body){
       const areaEntries=todEntries.filter(e=>(e.task.area||'General')===area);
       if(!areaEntries.length)return;
       const aHead=el('div','area-heading');aHead.textContent=area;body.appendChild(aHead);
-      // Sort by frequency within each area
-      areaEntries.sort((a,b)=>{
-        const freqOrder=FREQS.map(f=>f.id);
-        return freqOrder.indexOf(a.task.freq)-freqOrder.indexOf(b.task.freq);
-      });
+      // Sort by day order within this time+room group
+      const groupIds=areaEntries.map(e=>e.task.id);
+      areaEntries.sort((a,b)=>dayOrder.indexOf(a.task.id)-dayOrder.indexOf(b.task.id));
+      const orderedGroupIds=areaEntries.map(e=>e.task.id);
       const grid=el('div','cards-grid');
-      areaEntries.forEach(entry=>{
+      areaEntries.forEach((entry,entryIdx)=>{
         const{task,slotIndex,slotDone}=entry;
         const card=renderCard(task,false,{
           showCarryOver:!slotDone,
           slotDone,
           slotIndex,
+          orderNum:entryIdx+1,
+          groupIds:orderedGroupIds,
           on2dMark:task.freq==='2d'&&task.timeOfDay2?()=>{
-            // Show slot-specific completion popup
             show2dSlotPopup(task,slotIndex);
           }:null,
         });
