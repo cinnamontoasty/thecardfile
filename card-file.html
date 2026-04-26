@@ -804,7 +804,7 @@ function markDone(id,onDateStr,originalDueDateStr){
   if(originalDueDateStr) task.originalDueDate=originalDueDateStr;
   task.nextDueDate=calcNextDueDate(task,anchorDate);
   save();render();
-  showUndoToast(`"${task.name}" marked complete`);
+  // Undo available via Schedule → Today view
 }
 
 function undoLastCompletion(){
@@ -865,7 +865,7 @@ function showCompletionPopup(task,dateContext){
         // Record today as completion date but anchor schedule to original due date
         markDone(task.id,todayStr(),dateContext);
       }},
-      {label:`↷ Skip this day`,sub:'Records this day as skipped — no schedule change',fn:()=>{
+      {label:`→ Skip this day`,sub:'Records this day as skipped — no schedule change',fn:()=>{
         bd.remove();
         const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
         // Just record the skip — don't change nextDueDate
@@ -877,7 +877,7 @@ function showCompletionPopup(task,dateContext){
   }else{
     opts=[
       {label:`✓ Completed today`,sub:todayLabel,fn:()=>{bd.remove();markDone(task.id,todayStr());}},
-      {label:`↷ Skip this time`,sub:'Advance to next due date without marking complete',fn:()=>{
+      {label:`→ Skip this time`,sub:'Advance to next due date without marking complete',fn:()=>{
         bd.remove();
         const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
         t.skips=[...(t.skips||[]),todayStr()];
@@ -1098,22 +1098,27 @@ function showCardTimer(task){
   btnRow.append(pauseBtn,doneBtn);
   panel.append(taskName,areaLabel,timeDisplay,statusLabel,btnRow);
 
-  // Audio context for chime
+  // Audio context for chime — create immediately to satisfy user gesture requirement
+  let audioCtx=null;
+  try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}
+
   function playChime(){
-    try{
-      const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    if(!audioCtx) return;
+    // Resume in case it was suspended
+    const resume=audioCtx.state==='suspended'?audioCtx.resume():Promise.resolve();
+    resume.then(()=>{
       [523,659,784,1047].forEach((freq,i)=>{
-        const osc=ctx.createOscillator();
-        const gain=ctx.createGain();
-        osc.connect(gain);gain.connect(ctx.destination);
+        const osc=audioCtx.createOscillator();
+        const gain=audioCtx.createGain();
+        osc.connect(gain);gain.connect(audioCtx.destination);
         osc.frequency.value=freq;osc.type='sine';
-        gain.gain.setValueAtTime(0,ctx.currentTime+i*0.18);
-        gain.gain.linearRampToValueAtTime(0.3,ctx.currentTime+i*0.18+0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.18+0.5);
-        osc.start(ctx.currentTime+i*0.18);
-        osc.stop(ctx.currentTime+i*0.18+0.6);
+        gain.gain.setValueAtTime(0,audioCtx.currentTime+i*0.18);
+        gain.gain.linearRampToValueAtTime(0.4,audioCtx.currentTime+i*0.18+0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+i*0.18+0.6);
+        osc.start(audioCtx.currentTime+i*0.18);
+        osc.stop(audioCtx.currentTime+i*0.18+0.8);
       });
-    }catch(e){}
+    }).catch(()=>{});
   }
 
   const timer=setInterval(()=>{
@@ -1130,16 +1135,26 @@ function showCardTimer(task){
     if(remaining<0&&!overtime){overtime=true;}
   },1000);
 
-  overlay.appendChild(panel);
-  document.body.appendChild(overlay);
-}
+  // Unlock audio context immediately while we still have the user gesture
+  if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume().catch(()=>{});
 
-function saveEdit(){
+  const timerOverlay=overlay;
+
+  timerOverlay.appendChild(panel);
+  document.body.appendChild(timerOverlay);
   const idx=S.tasks.findIndex(t=>t.id===S.editTask.id);
   if(idx>=0){
     S.tasks[idx]={...S.editTask};
-    if(S.tasks[idx].startDate&&!S.tasks[idx].nextDueDate){
-      S.tasks[idx].nextDueDate=S.tasks[idx].startDate;
+    const task=S.tasks[idx];
+    // If startDate is set and nextDueDate is missing, before startDate, or before today
+    // set nextDueDate to startDate so the card shows in the correct day's schedule
+    if(task.startDate){
+      if(!task.nextDueDate||task.nextDueDate<task.startDate){
+        task.nextDueDate=task.startDate;
+      }
+    }else{
+      // No start date = pending, clear nextDueDate
+      task.nextDueDate='';
     }
   }
   S.editTask=null;save();render();
@@ -1451,17 +1466,46 @@ function renderCard(task,showArea,opts={}){
     lastEl.textContent='Done today';
     lastEl.style.color='#4a9e5c';
   }else if(skippedToday){
-    lastEl.textContent='↷ Skipped today';
+    lastEl.textContent='→ Skipped today';
     lastEl.style.color='var(--brown-light)';
     lastEl.style.fontStyle='italic';
   }else if(carriedToday){
-    lastEl.textContent='↷ Carried over to tomorrow';
+    lastEl.textContent='→ Moved to tomorrow';
     lastEl.style.color='var(--brown-light)';
     lastEl.style.fontStyle='italic';
   }else{
     lastEl.textContent=ds===null?'Never done':ds===0?'Done today':`${ds}d ago`;
   }
   lfoot.appendChild(lastEl);
+
+  // Undo button — show for completed or skipped cards when viewing today
+  if(isViewingToday&&(doneViewDate||skippedToday)){
+    const undoBtn=el('button');
+    undoBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;margin-left:6px;-webkit-appearance:none;';
+    undoBtn.textContent='Undo';
+    undoBtn.onclick=e=>{
+      e.stopPropagation();
+      const t=S.tasks.find(x=>x.id===task.id);if(!t)return;
+      if(doneViewDate){
+        // Remove the most recent completion recorded today
+        const todayComps=(t.completions||[]).filter(c=>c.startsWith(todayStr()));
+        if(todayComps.length){
+          const lastToday=todayComps[todayComps.length-1];
+          t.completions=(t.completions||[]).filter(c=>c!==lastToday);
+          // Restore previous nextDueDate — roll back one cycle
+          const f=fById(t.freq);
+          t.nextDueDate=t.nextDueDate?dateStr(addDays(parseDate(t.nextDueDate),-Math.ceil(f.days))):todayStr();
+        }
+      }else if(skippedToday){
+        // Remove today's skip record
+        t.skips=(t.skips||[]).filter(d=>d!==todayStr());
+        // Restore nextDueDate to today
+        t.nextDueDate=todayStr();
+      }
+      save();render();
+    };
+    lfoot.appendChild(undoBtn);
+  }
   // No "Due" badge — if card shows here, user knows it's due
 
   const actions=el('div','card-actions');
@@ -1528,11 +1572,15 @@ function showTodayProgressPopup(dueTasks,doneCount,total){
   bd.onclick=e=>{if(e.target===bd)bd.remove();};
   const modal=el('div','modal');
   const title=el('div','modal-title');title.textContent='Today at a Glance';
-  const sub=el('div','modal-sub');sub.textContent=`${doneCount} of ${total} active tasks done today`;
-  modal.append(title,sub);
 
   const doneTasks=S.tasks.filter(t=>isActiveTask(t)&&isDoneToday(t));
-  const outstanding=dueTasks.filter(t=>!isDoneToday(t));
+  const skippedTasks=S.tasks.filter(t=>isActiveTask(t)&&(t.skips||[]).includes(todayStr()));
+  const outstanding=dueTasks.filter(t=>!isDoneToday(t)&&!(t.skips||[]).includes(todayStr()));
+  // Total excludes skipped tasks
+  const effectiveTotal=total-skippedTasks.length;
+  const sub=el('div','modal-sub');
+  sub.textContent=`${doneCount} of ${effectiveTotal} tasks done today${skippedTasks.length?` · ${skippedTasks.length} skipped`:''}`;
+  modal.append(title,sub);
 
   // Full-width garland that spans whatever width the modal is
   function makeGarland(){
@@ -1580,11 +1628,10 @@ function showTodayProgressPopup(dueTasks,doneCount,total){
     return wrap;
   }
 
-  // Top garland always shown
+  // Top garland
   modal.appendChild(makeGarland());
 
   if(doneTasks.length){
-    modal.appendChild(makeGarland());
     const dh=el('div');dh.style.cssText='font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#4a9e5c;margin:8px 0 4px;text-align:center;';
     dh.textContent='✓ Completed today';
     modal.appendChild(dh);
@@ -1597,6 +1644,14 @@ function showTodayProgressPopup(dueTasks,doneCount,total){
     oh.textContent='◌ Still outstanding';
     modal.appendChild(oh);
     modal.appendChild(makeGrid(outstanding,false));
+    modal.appendChild(makeGarland());
+  }
+
+  if(skippedTasks.length){
+    const sh=el('div');sh.style.cssText='font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brown-light);margin:8px 0 4px;text-align:center;';
+    sh.textContent='→ Skipped today';
+    modal.appendChild(sh);
+    modal.appendChild(makeGrid(skippedTasks,false,true));
     modal.appendChild(makeGarland());
   }
 
@@ -1858,7 +1913,7 @@ function renderWeekView(body,d){
         const hatch=el('div');
         hatch.style.cssText='position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(150,150,150,0.15) 0px,rgba(150,150,150,0.15) 2px,transparent 2px,transparent 8px);pointer-events:none;border-radius:3px;';
         mc.style.position='relative';
-        mc.textContent='↷ '+task.name;
+        mc.textContent='→ '+task.name;
         mc.title=task.name+' — skipped';
         mc.appendChild(hatch);
       }else{
@@ -3326,7 +3381,7 @@ function render(){
         statusIcon='✓ ';
         textStyle='text-decoration:line-through;opacity:0.5;';
       }else if(skipped){
-        statusIcon='↷ ';
+        statusIcon='→ ';
         textStyle='opacity:0.6;font-style:italic;';
       }
 
