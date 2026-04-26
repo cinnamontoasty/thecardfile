@@ -373,6 +373,7 @@ const FREQS=[
   {id:'w',  label:'W',   name:'Weekly',              days:7},
   {id:'eow',label:'EOW', name:'Every Other Week',    days:14},
   {id:'m',  label:'M',   name:'Monthly',             days:30},
+  {id:'2m', label:'2/M', name:'Twice a Month',       days:15},
   {id:'eom',label:'EOM', name:'Every Other Month',   days:60},
   {id:'s',  label:'S',   name:'Seasonal/Quarterly',  days:91},
   {id:'2y', label:'2/Y', name:'Twice a Year',        days:182},
@@ -382,34 +383,34 @@ const FREQS=[
 const DEFAULT_FREQ_COLORS={
   '2d':'#f5a880','d':'#f0e868','eod':'#d4b870','e3d':'#5a9e98',
   '3w':'#afa8d4','2w':'#4ab8d4','w':'#6a9fd4',
-  'eow':'#7878cc','m':'#8dbdaa','eom':'#c4a882',
+  'eow':'#7878cc','m':'#8dbdaa','2m':'#7ab898','eom':'#c4a882',
   's':'#a09060','2y':'#e8c4a0','y':'#c07050',
 };
 
 const THEMES={
   'parchment':{
     name:'🍂 Classic Parchment',
-    freqs:{'2d':'#f5a880','d':'#f0e868','eod':'#d4b870','e3d':'#5a9e98','3w':'#afa8d4','2w':'#4ab8d4','w':'#6a9fd4','eow':'#7878cc','m':'#8dbdaa','eom':'#c4a882','s':'#a09060','2y':'#e8c4a0','y':'#c07050'},
+    freqs:{'2d':'#f5a880','d':'#f0e868','eod':'#d4b870','e3d':'#5a9e98','3w':'#afa8d4','2w':'#4ab8d4','w':'#6a9fd4','eow':'#7878cc','m':'#8dbdaa','2m':'#7ab898','eom':'#c4a882','s':'#a09060','2y':'#e8c4a0','y':'#c07050'},
   },
   'garden':{
     name:'🌸 Garden Party',
-    freqs:{'2d':'#f9c8d4','d':'#fce8a0','eod':'#c8e8a8','e3d':'#70b8a8','3w':'#a8d8c0','2w':'#88c8d8','w':'#a8b8e8','eow':'#c8a8e0','m':'#e8a8c8','eom':'#d4b888','s':'#b8c888','2y':'#f0c890','y':'#d88898'},
+    freqs:{'2d':'#f9c8d4','d':'#fce8a0','eod':'#c8e8a8','e3d':'#70b8a8','3w':'#a8d8c0','2w':'#88c8d8','w':'#a8b8e8','eow':'#c8a8e0','m':'#e8a8c8','2m':'#88c8b0','eom':'#d4b888','s':'#b8c888','2y':'#f0c890','y':'#d88898'},
   },
   'ocean':{
     name:'🌊 Ocean Breeze',
-    freqs:{'2d':'#f0e8c8','d':'#e8f4a0','eod':'#a8e4d8','e3d':'#3a9888','3w':'#70c8e8','2w':'#50a8d8','w':'#6888c8','eow':'#d96060','m':'#88c0b0','eom':'#c8d8a8','s':'#a8b890','2y':'#e8d8b0','y':'#c09060'},
+    freqs:{'2d':'#f0e8c8','d':'#e8f4a0','eod':'#a8e4d8','e3d':'#3a9888','3w':'#70c8e8','2w':'#50a8d8','w':'#6888c8','eow':'#d96060','m':'#88c0b0','2m':'#70b898','eom':'#c8d8a8','s':'#a8b890','2y':'#e8d8b0','y':'#c09060'},
   },
   'autumn':{
     name:'🍁 Autumn Harvest',
-    freqs:{'2d':'#f8d898','d':'#f8e878','eod':'#e8a870','e3d':'#6a9888','3w':'#d87858','2w':'#c05840','w':'#7888b8','eow':'#886838','m':'#98a868','eom':'#788858','s':'#586840','2y':'#e8c890','y':'#b07848'},
+    freqs:{'2d':'#f8d898','d':'#f8e878','eod':'#e8a870','e3d':'#6a9888','3w':'#d87858','2w':'#c05840','w':'#7888b8','eow':'#886838','m':'#98a868','2m':'#78b888','eom':'#788858','s':'#586840','2y':'#e8c890','y':'#b07848'},
   },
   'lavender':{
     name:'💜 Lavender Fields',
-    freqs:{'2d':'#f8d8f0','d':'#f0e8a8','eod':'#d8c8f0','e3d':'#5a9890','3w':'#b898e0','2w':'#9878c8','w':'#6888c8','eow':'#c8a8e0','m':'#e0b8d8','eom':'#88b898','s':'#b0a0c0','2y':'#e8d8b8','y':'#987888'},
+    freqs:{'2d':'#f8d8f0','d':'#f0e8a8','eod':'#d8c8f0','e3d':'#5a9890','3w':'#b898e0','2w':'#9878c8','w':'#6888c8','eow':'#c8a8e0','m':'#e0b8d8','2m':'#78b898','eom':'#88b898','s':'#b0a0c0','2y':'#e8d8b8','y':'#987888'},
   },
   'sunrise':{
     name:'🌅 Sunrise',
-    freqs:{'2d':'#f8d898','d':'#f8f060','eod':'#f8b870','e3d':'#5aa898','3w':'#f09060','2w':'#e86858','w':'#5898d8','eow':'#e05090','m':'#88b898','eom':'#c878b8','s':'#a878a0','2y':'#f0c880','y':'#c07060'},
+    freqs:{'2d':'#f8d898','d':'#f8f060','eod':'#f8b870','e3d':'#5aa898','3w':'#f09060','2w':'#e86858','w':'#5898d8','eow':'#e05090','m':'#88b898','2m':'#68a888','eom':'#c878b8','s':'#a878a0','2y':'#f0c880','y':'#c07060'},
   },
 };
 
@@ -547,20 +548,76 @@ function cardBg(task){
   return `linear-gradient(135deg,${c}${a1} 0%,${c}${a2} 100%)`;
 }
 
-// Rolling due date calculation — always advances from the ORIGINAL due date
-// This keeps the schedule anchored (true to the SHE card file system)
-// e.g. weekly task due Monday, completed Tuesday → next due following Monday
+// Get next occurrence of a specific weekday (0=Sun..6=Sat) on or after fromDate
+function nextWeekday(fromDate,weekday){
+  const d=new Date(parseDate(dateStr(fromDate)));
+  const diff=(weekday-d.getDay()+7)%7;
+  return dateStr(addDays(d,diff===0?7:diff));
+}
+
+// Get next occurrence of a specific day-of-month on or after fromDate
+function nextMonthDay(fromDate,day,skipMonths){
+  const d=parseDate(dateStr(fromDate));
+  let year=d.getFullYear(),month=d.getMonth();
+  // Try this month first
+  const daysInThisMonth=new Date(year,month+1,0).getDate();
+  const clamped=Math.min(day,daysInThisMonth);
+  if(d.getDate()<clamped){
+    return `${year}-${String(month+1).padStart(2,'0')}-${String(clamped).padStart(2,'0')}`;
+  }
+  // Move to next cycle
+  month+=(skipMonths||1);
+  if(month>11){year+=Math.floor(month/12);month=month%12;}
+  const daysInNext=new Date(year,month+1,0).getDate();
+  const clampedNext=Math.min(day,daysInNext);
+  return `${year}-${String(month+1).padStart(2,'0')}-${String(clampedNext).padStart(2,'0')}`;
+}
+
+// Enhanced calcNextDueDate — respects pinned weekday or month-day if set
 function calcNextDueDate(task,completedOnDate){
   const f=fById(task.freq);
-  // For 2/D (twice a day), always roll from completion date
   if(f.days<1){
     return dateStr(addDays(parseDate(completedOnDate)||new Date(),1));
   }
-  // Use originalDueDate if set (carry-over case) to preserve anchor
-  // Otherwise use current nextDueDate
   const anchor=parseDate(task.originalDueDate||task.nextDueDate)||parseDate(completedOnDate)||new Date();
-  // Clear originalDueDate after use
   if(task.originalDueDate) delete task.originalDueDate;
+
+  // Weekly frequencies with pinned weekday(s)
+  if(f.id==='w'&&task.weekday!=null){
+    return nextWeekday(addDays(anchor,1),task.weekday);
+  }
+  if(f.id==='2w'&&task.weekdays&&task.weekdays.length===2){
+    const [d1,d2]=task.weekdays.slice().sort((a,b)=>a-b);
+    const next1=nextWeekday(addDays(anchor,1),d1);
+    const next2=nextWeekday(addDays(anchor,1),d2);
+    return next1<next2?next1:next2;
+  }
+  if(f.id==='3w'&&task.weekdays&&task.weekdays.length===3){
+    const candidates=task.weekdays.map(d=>nextWeekday(addDays(anchor,1),d));
+    return candidates.sort()[0];
+  }
+
+  // Monthly frequencies with pinned day-of-month
+  if(f.id==='m'&&task.monthday){
+    return nextMonthDay(addDays(anchor,1),task.monthday,1);
+  }
+  if(f.id==='2m'&&task.monthday){
+    // Two dates per month — monthday and monthday2
+    const d1=task.monthday;
+    const d2=task.monthday2||null;
+    const base=addDays(anchor,1);
+    const next1=nextMonthDay(base,d1,1);
+    if(d2){
+      const next2=nextMonthDay(base,d2,1);
+      return next1<next2?next1:next2;
+    }
+    return next1;
+  }
+  if(f.id==='eom'&&task.monthday){
+    return nextMonthDay(addDays(anchor,1),task.monthday,2);
+  }
+
+  // Default rolling logic
   return dateStr(addDays(anchor,Math.ceil(f.days)));
 }
 
@@ -1078,8 +1135,29 @@ function showCardTimer(task){
     return `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
   }
 
-  let remaining=totalSecs;let running=true;let timesUp=false;
+  let remaining=totalSecs;let running=false;let timesUp=false;
   timeDisplay.textContent=formatTime(remaining);
+
+  // Editable time display — show edit link
+  const timeRow=el('div');timeRow.style.cssText='display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:6px;';
+  timeRow.appendChild(timeDisplay);
+  const editTimeBtn=el('button');
+  editTimeBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;color:var(--brown-light);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;-webkit-appearance:none;';
+  editTimeBtn.textContent='✎ Change';
+  editTimeBtn.onclick=()=>{
+    const mins=prompt('Set timer duration (minutes):',String(Math.round(totalSecs/60)));
+    if(mins&&!isNaN(parseFloat(mins))){
+      totalSecs=Math.round(parseFloat(mins)*60)||60;
+      remaining=totalSecs;
+      timesUp=false;
+      timeDisplay.style.color='var(--gold)';
+      timeDisplay.textContent=formatTime(remaining);
+      statusLabel.textContent='Ready to start';
+      statusLabel.style.color='var(--brown-light)';
+      if(chimeInterval){clearInterval(chimeInterval);chimeInterval=null;}
+    }
+  };
+  timeRow.appendChild(editTimeBtn);
 
   let audioCtx=null;
   try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}
@@ -1115,8 +1193,12 @@ function showCardTimer(task){
   const btnRow=el('div');btnRow.style.cssText='display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;';
   const pauseBtn=el('button','btn btn-ghost');
   pauseBtn.style.cssText='flex:0 1 140px;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:1px solid var(--border);cursor:pointer;-webkit-appearance:none;';
-  pauseBtn.textContent='⏸ Pause';
-  pauseBtn.onclick=()=>{running=!running;pauseBtn.textContent=running?'⏸ Pause':'▶ Resume';};
+  pauseBtn.textContent='▶ Start';
+  pauseBtn.onclick=()=>{
+    running=!running;
+    pauseBtn.textContent=running?'⏸ Pause':'▶ Resume';
+    if(running&&statusLabel.textContent==='Ready to start') statusLabel.textContent='';
+  };
   const doneBtn=el('button','btn btn-primary');
   doneBtn.style.cssText='flex:0 1 140px;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:none;cursor:pointer;-webkit-appearance:none;';
   doneBtn.textContent='✓ Done';
@@ -1139,7 +1221,8 @@ function showCardTimer(task){
   }));
   toggleRow.appendChild(makeToggle('Show overtime','cf4_timerOvertime',showOvertime,v=>{showOvertime=v;}));
 
-  panel.append(taskName,areaLabel,timeDisplay,statusLabel,btnRow,toggleRow);
+  statusLabel.textContent='Ready to start';
+  panel.append(taskName,areaLabel,timeRow,statusLabel,btnRow,toggleRow);
 
   const timer=setInterval(()=>{
     if(!running) return;
@@ -2784,6 +2867,26 @@ function renderWalkthrough(body){
       'Tapping the send button opens your Messages app with a pre-filled task list ready to send.',
       '<em>Note: Sending tasks via text uses your phone\'s messaging service. Standard carrier rates may apply.</em>'
     ]},
+    {title:'⏱ Using the Timer',steps:[
+      'Tap any card to open its detail view, then tap the <strong>⏱ Timer</strong> button.',
+      'The timer opens showing the card\'s time estimate (e.g. "5\' timer"). It starts <strong>paused</strong> — tap <strong>▶ Start</strong> when you\'re ready to begin.',
+      'Tap <strong>✎ Change</strong> next to the time display to adjust the duration before starting.',
+      '<strong>⏸ Pause / ▶ Resume</strong> — pause and restart the timer at any point.',
+      'When time is up, the timer chimes and shows "⏰ Time\'s up!" in red.',
+      '<strong>Keep ringing until Done</strong> — toggle on to have the chime repeat every 4 seconds until you tap Done. Toggle off for a single chime.',
+      '<strong>Show overtime</strong> — toggle on to keep counting up after time\'s up, showing how much extra time you\'re taking.',
+      'Tap <strong>✓ Done</strong> to mark the task complete. Your timer preferences are remembered for next time.',
+      'Cards without a time estimate will ask you how many minutes to set before starting.'
+    ]},
+    {title:'📅 Scheduling by Day or Date',steps:[
+      'For <strong>W (Weekly)</strong> tasks, you can optionally pick a specific day of the week — Monday, Thursday, etc. Leave blank to use the start date as the anchor.',
+      'For <strong>2/W (Twice a Week)</strong> tasks, you can optionally pick two days. For <strong>3/W</strong>, pick three days.',
+      'For <strong>M (Monthly)</strong>, <strong>2/M (Twice a Month)</strong>, and <strong>EOM (Every Other Month)</strong> tasks, you can optionally pick a day of the month (1–31).',
+      'For <strong>2/M</strong>, you can pick two days per month — for example the 1st and the 15th.',
+      'Days 29–31 automatically adjust for shorter months — February 31st becomes February 28th (or 29th in a leap year).',
+      'If you add or change a day after the card is already scheduled, the next due date recalculates immediately to the next upcoming occurrence of that day.',
+      'Clearing the day returns the card to rolling from its current next due date — no pinned day, just frequency-based rolling.'
+    ]},
     {title:'💾 Backing Up Your Cards',steps:[
       'Go to <strong>⚙ Settings</strong> → <strong>Export Backup</strong>.',
       'A .json file will download to your Downloads folder.',
@@ -3047,9 +3150,31 @@ function buildModal(data,isEdit){
   // Auto-recalc next due date display when start date or frequency changes
   function recalcNextDue(){
     if(!data.startDate) return;
-    // Set nextDueDate to startDate (first occurrence)
+    // Set base nextDueDate to startDate first
     data.nextDueDate=data.startDate;
-    if(nextDueDisplay) nextDueDisplay.textContent=formatNextDue(data.startDate,data.freq);
+    // Then apply day-of-week or day-of-month if set
+    const freq=data.freq||sel3.value;
+    if(['w','2w','3w'].includes(freq)){
+      if(freq==='w'&&data.weekday!=null){
+        data.nextDueDate=nextWeekday(parseDate(data.startDate),data.weekday);
+      }else if(freq==='2w'&&data.weekdays&&data.weekdays.filter(d=>d!=null).length===2){
+        const candidates=data.weekdays.filter(d=>d!=null).map(d=>nextWeekday(parseDate(data.startDate),d));
+        data.nextDueDate=candidates.sort()[0];
+      }else if(freq==='3w'&&data.weekdays&&data.weekdays.filter(d=>d!=null).length===3){
+        const candidates=data.weekdays.filter(d=>d!=null).map(d=>nextWeekday(parseDate(data.startDate),d));
+        data.nextDueDate=candidates.sort()[0];
+      }
+    }else if(['m','2m','eom'].includes(freq)){
+      if(data.monthday){
+        const skipMonths=freq==='eom'?2:1;
+        const d=parseDate(data.startDate);
+        const daysInMonth=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+        const clamped=Math.min(data.monthday,daysInMonth);
+        const tryDate=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(clamped).padStart(2,'0')}`;
+        data.nextDueDate=tryDate>=data.startDate?tryDate:nextMonthDay(d,data.monthday,skipMonths);
+      }
+    }
+    if(nextDueDisplay) nextDueDisplay.textContent=formatNextDue(data.nextDueDate,data.freq);
     if(manualDateInput) manualDateInput.value=data.nextDueDate;
   }
 
@@ -3181,8 +3306,90 @@ function buildModal(data,isEdit){
     if(!is2d) data.timeOfDay2='';
   }
   // Also update when freq changes
-  sel3.addEventListener('change',()=>{updateTod2Visibility();recalcNextDue();});
+  sel3.addEventListener('change',()=>{updateTod2Visibility();recalcNextDue();updateDayFields();});
   updateTod2Visibility();
+
+  // ── DAY OF WEEK (W, 2/W, 3/W) ──
+  const WDAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const dayFieldWrap=el('div');modal.appendChild(dayFieldWrap);
+
+  // ── DAY OF MONTH (M, 2/M, EOM) ──
+  const monthFieldWrap=el('div');modal.appendChild(monthFieldWrap);
+
+  function updateDayFields(){
+    const freq=data.freq||sel3.value;
+    dayFieldWrap.innerHTML='';
+    monthFieldWrap.innerHTML='';
+
+    // Week-based frequencies
+    if(['w','2w','3w'].includes(freq)){
+      const count=freq==='w'?1:freq==='2w'?2:3;
+      const label=el('label');label.textContent=(count>1?'Days':'Day')+' of Week (optional)';
+      label.style.cssText='display:block;font-size:12px;font-weight:700;color:var(--brown-mid);margin-bottom:6px;';
+      const note=el('div');note.style.cssText='font-size:11px;color:var(--brown-light);margin-bottom:8px;';
+      note.textContent='Leave blank to use the start date as anchor.';
+      dayFieldWrap.append(label,note);
+      const row=el('div');row.style.cssText='display:flex;gap:8px;flex-wrap:wrap;';
+      const keys=count===1?['weekday']:count===2?['weekdays0','weekdays1']:['weekdays0','weekdays1','weekdays2'];
+      keys.forEach((key,i)=>{
+        const sel=el('select');
+        sel.style.cssText='font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--text);flex:1;min-width:120px;-webkit-appearance:auto;';
+        [['','Any day'],...WDAYS.map((d,j)=>[String(j),d])].forEach(([val,txt2])=>{
+          const o=document.createElement('option');o.value=val;o.textContent=txt2;
+          // Get current value
+          const cur=count===1?(data.weekday!=null?String(data.weekday):''):(data.weekdays&&data.weekdays[i]!=null?String(data.weekdays[i]):'');
+          if(cur===val) o.selected=true;
+          sel.appendChild(o);
+        });
+        sel.onchange=e=>{
+          const v=e.target.value===''?null:parseInt(e.target.value);
+          if(count===1){data.weekday=v;}
+          else{if(!data.weekdays)data.weekdays=[];data.weekdays[i]=v;}
+          recalcNextDue();
+        };
+        row.appendChild(sel);
+      });
+      dayFieldWrap.appendChild(row);
+    }
+
+    // Month-based frequencies
+    if(['m','2m','eom'].includes(freq)){
+      const count=freq==='2m'?2:1;
+      const label=el('label');label.textContent=`Day${count>1?' 1':''} of Month (optional, 1–31)`;
+      label.style.cssText='display:block;font-size:12px;font-weight:700;color:var(--brown-mid);margin-bottom:6px;';
+      const note=el('div');note.style.cssText='font-size:11px;color:var(--brown-light);margin-bottom:8px;';
+      note.textContent='Leave blank to use the start date. Dates 29–31 adjust for shorter months.';
+      monthFieldWrap.append(label,note);
+
+      function makeMonthDayInput(currentVal,onCh,lbl2){
+        const wrap=el('div');wrap.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;';
+        if(lbl2){const l=el('span');l.style.cssText='font-size:12px;color:var(--brown-mid);min-width:50px;';l.textContent=lbl2;wrap.appendChild(l);}
+        const inp=el('input');inp.type='number';inp.min='1';inp.max='31';
+        inp.value=currentVal||'';inp.placeholder='e.g. 15';
+        inp.style.cssText='font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--bg);color:var(--text);width:80px;-webkit-appearance:none;';
+        inp.oninput=e=>{
+          const v=parseInt(e.target.value);
+          onCh(isNaN(v)?null:Math.max(1,Math.min(31,v)));
+          recalcNextDue();
+        };
+        const clrBtn=el('button');clrBtn.type='button';
+        clrBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:0;-webkit-appearance:none;';
+        clrBtn.textContent='✕ Clear';
+        clrBtn.onclick=e=>{e.preventDefault();inp.value='';onCh(null);recalcNextDue();};
+        wrap.append(inp,clrBtn);
+        return wrap;
+      }
+
+      monthFieldWrap.appendChild(makeMonthDayInput(data.monthday,v=>data.monthday=v,null));
+      if(count===2){
+        const l2=el('label');l2.textContent='Day 2 of Month (optional)';
+        l2.style.cssText='display:block;font-size:12px;font-weight:700;color:var(--brown-mid);margin:8px 0 6px;';
+        monthFieldWrap.appendChild(l2);
+        monthFieldWrap.appendChild(makeMonthDayInput(data.monthday2,v=>data.monthday2=v,null));
+      }
+    }
+  }
+  updateDayFields();
 
   // Delegate — only show if there are family members set up
   if((S.delegates||[]).length){
