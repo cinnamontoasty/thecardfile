@@ -109,14 +109,15 @@ body.dark .tab.active{color:var(--gold);}
 .settings-tab.active{background:rgba(255,255,255,0.12);color:var(--bg)!important;border-color:var(--gold)!important;}
 
 /* ── BODY ── */
-.body{padding:16px 13px calc(90px + var(--safe-bottom));max-width:1400px;margin:0 auto;}
+.body{padding:16px 13px calc(90px + var(--safe-bottom));max-width:700px;margin:0 auto;}
+/* On wider screens, add padding to clear side flowers */
+@media(min-width:700px){.body{max-width:900px;padding-left:72px;padding-right:72px;}}
+@media(min-width:900px){.body{max-width:1100px;padding-left:106px;padding-right:106px;}}
+@media(min-width:1100px){.body{max-width:1300px;padding-left:138px;padding-right:138px;}}
+@media(min-width:1400px){.body{max-width:1600px;padding-left:178px;padding-right:178px;}}
 /* Two-column card layout on wider screens */
-@media(min-width:750px){
-  .cards-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0 16px;}
-}
-@media(min-width:1200px){
-  .cards-grid{grid-template-columns:repeat(3,1fr);}
-}
+@media(min-width:750px){.cards-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0 16px;}}
+@media(min-width:1200px){.cards-grid{grid-template-columns:repeat(3,1fr);}}
 
 /* ── PROGRESS ── */
 .progress-card{background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:12px 15px;margin-bottom:14px;box-shadow:1px 2px 6px rgba(0,0,0,0.06);}
@@ -339,14 +340,12 @@ body.dark .undo-toast{background:#3a2828;color:var(--text);}
 //   - Custom frequencies (add/delete in Settings)
 //   - Custom card types (add/delete in Settings)
 //
-// Pass 3 — Delegate feature:
-//   - Add family members/helpers in Settings
-//   - Delegate field on cards (assign to a family member)
-//   - "By Delegate" filter in Browse view
-//   - "Send [Name]'s tasks" button — opens Messages/Mail
-//     with today's delegated task list pre-filled
-//   - Disclaimer: "Sending tasks via text uses your phone's
-//     messaging service. Standard carrier rates may apply."
+// Pass 3 — Delegate feature: ✅ COMPLETE
+//   - Add family members/helpers in Settings ✅
+//   - Delegate field on cards (assign to a family member) ✅
+//   - "By Delegate" filter in Browse view ✅
+//   - "Send [Name]'s tasks" button — opens Messages/Mail ✅
+//   - Disclaimer: carrier rates may apply ✅
 //
 // Pass 4 — Shared delegate URL:
 //   - Generate a personal read-only URL for each delegate
@@ -581,47 +580,15 @@ function isFutureTask(task){
 function isDueOn(task,dateS){
   if(!isActiveTask(task)) return false;
   if(!task.nextDueDate) return false;
-  // Check carry-overs
-  if((task.carryOvers||[]).includes(dateS)) return true;
-  // Due exactly on this date
-  if(task.nextDueDate===dateS) return true;
-  return false;
+  return task.nextDueDate===dateS;
 }
 
-// Auto-advance overdue tasks to next occurrence on load
-// SHE philosophy: only D (daily) tasks auto-advance
-// All other frequencies stay on their original day in Schedule view
+// No auto-advance of overdue tasks — all tasks stay on their original due date
+// Users handle past days via Schedule view (mark complete, skip, or ignore)
 function advanceOverdueTasks(){
-  const today=todayStr();
-  let changed=false;
-  S.tasks.forEach(task=>{
-    if(!isActiveTask(task)) return;
-    if(!task.nextDueDate) return;
-    if(task.nextDueDate>=today) return;
-    if(isDoneOn(task,today)) return;
-    if((task.carryOvers||[]).includes(today)) return;
-    if((task.skips||[]).includes(today)) return;
-
-    // Only auto-advance daily tasks
-    const f=fById(task.freq);
-    if(f.days>=2) return; // Leave weekly, monthly, etc. on their original day
-
-    // Roll daily (and 2/D) tasks forward to today
-    let next=parseDate(task.nextDueDate);
-    if(!next){task.nextDueDate=today;changed=true;return;}
-    let iterations=0;
-    while(dateStr(next)<today&&iterations<500){
-      next=addDays(next,Math.max(1,Math.ceil(f.days)));
-      iterations++;
-    }
-    const newDate=dateStr(next);
-    if(newDate!==task.nextDueDate){
-      task.nextDueDate=newDate;
-      delete task.originalDueDate;
-      changed=true;
-    }
-  });
-  if(changed) save();
+  // Intentionally empty — SHE philosophy: tasks stay where they are
+  // D tasks appear every day naturally via their frequency
+  // All other frequencies stay in Schedule past day view for user action
 }
 
 function isDueToday(task){
@@ -635,15 +602,11 @@ function isDueToday(task){
 // and tasks whose nextDueDate is in the past (slipped through advance)
 function wasPartOfToday(task){
   if(!isActiveTask(task)) return false;
-  // Completed today AND was actually due today (not a past-day completion)
+  // Completed today and was due today (not a past-day task completed today)
   if(isDoneOn(task,todayStr())){
-    // Only count as part of today if it was originally due today
-    // (not a past-day task completed today, which stays in its original day)
-    const wasDueToday=isDueOn(task,todayStr())||
-      (task.carryOvers||[]).includes(todayStr());
+    const wasDueToday=task.nextDueDate===todayStr()||
+      isDueOn(task,todayStr());
     if(wasDueToday) return true;
-    // Check if it was due today before completion rolled it forward
-    // by seeing if nextDueDate is now in the future by exactly one cycle
     const f=fById(task.freq);
     const expectedNext=dateStr(addDays(parseDate(todayStr()),Math.ceil(f.days)));
     if(task.nextDueDate===expectedNext) return true;
@@ -651,9 +614,6 @@ function wasPartOfToday(task){
   }
   // Skipped today
   if((task.skips||[]).includes(todayStr())) return true;
-  // Carried over to tomorrow — was due today
-  const tomorrow=dateStr(addDays(new Date(),1));
-  if((task.carryOvers||[]).includes(tomorrow)) return true;
   // Currently still due today
   if(isDueOn(task,todayStr())) return true;
   return false;
@@ -707,7 +667,6 @@ function tasksDueOn(dateS){
     if(!isActiveTask(t)) return false;
     if(t.startDate>dateS) return false;
     // Carry-overs
-    if((t.carryOvers||[]).includes(dateS)) return true;
 
     if(isPast){
       // Completed on that date counts
@@ -829,7 +788,6 @@ function markDone(id,onDateStr,originalDueDateStr){
   S_undo={
     taskId:id,
     completions:[...(task.completions||[])],
-    carryOvers:[...(task.carryOvers||[])],
     nextDueDate:task.nextDueDate,
     originalDueDate:task.originalDueDate,
     label:task.name,
@@ -837,7 +795,6 @@ function markDone(id,onDateStr,originalDueDateStr){
   // Record completion with actual date done
   const ts=dStr+'T12:00:00.000Z';
   task.completions=[...(task.completions||[]),ts];
-  task.carryOvers=(task.carryOvers||[]).filter(d=>d!==dStr);
   // Roll schedule from original due date anchor, not from today
   if(originalDueDateStr) task.originalDueDate=originalDueDateStr;
   task.nextDueDate=calcNextDueDate(task,anchorDate);
@@ -850,7 +807,6 @@ function undoLastCompletion(){
   const task=S.tasks.find(t=>t.id===S_undo.taskId);
   if(task){
     task.completions=S_undo.completions;
-    task.carryOvers=S_undo.carryOvers;
     task.nextDueDate=S_undo.nextDueDate;
     save();
   }
@@ -948,9 +904,20 @@ function showCardDetail(task,dateCtx){
   const panel=el('div','card-detail-panel');
   panel.style.background=cardBg(task);
 
+  // Set text colors based on card background luminosity
+  const bgColor=cardColor(task);
+  const bgR=parseInt(bgColor.slice(1,3),16),bgG=parseInt(bgColor.slice(3,5),16),bgB=parseInt(bgColor.slice(5,7),16);
+  const bgLum=(bgR*0.299+bgG*0.587+bgB*0.114)/255;
+  const isDarkCard=bgLum<0.45;
+  // For dark cards use lighter label colors; for light cards use darker
+  const labelColor=isDarkCard?'rgba(255,255,255,0.6)':'var(--brown-light)';
+  const textColor=isDarkCard?'rgba(255,255,255,0.92)':'var(--text)';
+  const borderColor=isDarkCard?'rgba(255,255,255,0.2)':'var(--border)';
+
   // Close button
   const closeBtn=el('button','card-detail-close');
   closeBtn.textContent='×';closeBtn.onclick=()=>overlay.remove();
+  closeBtn.style.cssText+=isDarkCard?'background:rgba(255,255,255,0.2);color:#fff;':'';
   panel.appendChild(closeBtn);
 
   // Frequency badge
@@ -966,14 +933,18 @@ function showCardDetail(task,dateCtx){
   panel.appendChild(freqBadge);
 
   // Task name
-  const name=el('div','card-detail-name');name.textContent=task.name;panel.appendChild(name);
+  const name=el('div','card-detail-name');
+  name.textContent=task.name;
+  name.style.color=textColor;
+  panel.appendChild(name);
 
   // Detail rows
   function row(label,value){
     if(!value) return;
     const r=el('div','card-detail-row');
-    const l=el('div','card-detail-label');l.textContent=label;
-    const v=el('div');v.style.cssText='font-size:15px;color:var(--text);flex:1;line-height:1.5;';v.textContent=value;
+    r.style.borderBottomColor=borderColor;
+    const l=el('div','card-detail-label');l.textContent=label;l.style.color=labelColor;
+    const v=el('div');v.style.cssText=`font-size:15px;color:${textColor};flex:1;line-height:1.5;`;v.textContent=value;
     r.append(l,v);panel.appendChild(r);
   }
 
@@ -1015,7 +986,7 @@ function showCardDetail(task,dateCtx){
   const editBtn=el('button','btn btn-primary');
   editBtn.style.cssText='flex:1;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:none;cursor:pointer;-webkit-appearance:none;';
   editBtn.textContent='✎ Edit';
-  editBtn.onclick=()=>{overlay.remove();S.editTask={...task,completions:[...(task.completions||[])],carryOvers:[...(task.carryOvers||[])]};render();};
+  editBtn.onclick=()=>{overlay.remove();S.editTask={...task,completions:[...(task.completions||[])]};render();};
   const markBtn=el('button','btn btn-ghost');
   markBtn.style.cssText='flex:1;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:1px solid var(--border);cursor:pointer;-webkit-appearance:none;';
   const isPast=dateCtx&&dateCtx<todayStr();
@@ -1029,18 +1000,9 @@ function showCardDetail(task,dateCtx){
   document.body.appendChild(overlay);
 }
 
-function carryOver(id){
-  // Preserve the original due date before carry-over
-  // so calcNextDueDate can roll forward from the correct anchor
-  if(!task.originalDueDate) task.originalDueDate=task.nextDueDate;
-  task.carryOvers=[...(task.carryOvers||[]).filter(d=>d!==todayStr()),tomorrow];
-  if(task.nextDueDate===todayStr()) task.nextDueDate=tomorrow;
-  save();render();
-}
-
 function addTask(){
   if(!S.newTask.name.trim())return;
-  const t={...S.newTask,id:S.nextId++,name:S.newTask.name.trim(),supplies:S.newTask.supplies.trim(),completions:[],carryOvers:[]};
+  const t={...S.newTask,id:S.nextId++,name:S.newTask.name.trim(),supplies:S.newTask.supplies.trim(),completions:[]};
   // If startDate set, calculate first nextDueDate = startDate; else leave blank (pending)
   if(t.startDate){t.nextDueDate=t.startDate;}
   else{t.nextDueDate='';}
@@ -1363,7 +1325,7 @@ function renderCard(task,showArea,opts={}){
   const lastEl=el('span','card-last');
   const isViewingToday=dateCtx===todayStr();
   const skippedToday=isViewingToday&&(task.skips||[]).includes(todayStr());
-  const carriedToday=isViewingToday&&(task.carryOvers||[]).includes(dateStr(addDays(new Date(),1)));
+  const carriedToday=false; // carry-over feature removed
   const doneViewDate=isViewingToday&&isDoneToday(task);
 
   if(isPastDate){
@@ -1396,7 +1358,6 @@ function renderCard(task,showArea,opts={}){
       id:S.nextId++,
       name:task.name+' — Copy',
       completions:[],
-      carryOvers:[],
       skips:[],
       startDate:'',
       nextDueDate:'',
@@ -1409,7 +1370,7 @@ function renderCard(task,showArea,opts={}){
     save();render();
   };
   const editBtn=el('button','icon-btn');editBtn.textContent='✎';editBtn.title='Edit this card';
-  editBtn.onclick=()=>{S.editTask={...task,completions:[...(task.completions||[])],carryOvers:[...(task.carryOvers||[])]};render();};
+  editBtn.onclick=()=>{S.editTask={...task,completions:[...(task.completions||[])]};render();};
   const delBtn=el('button','icon-btn del-btn');delBtn.textContent='✕';delBtn.title='Delete this card';
   delBtn.onclick=()=>deleteTask(task.id);
   const chk=el('button','check-btn'+(doneOnDate?' done':''));
@@ -1424,7 +1385,7 @@ function renderCard(task,showArea,opts={}){
       showCompletionPopup(task,isPastDate?dateCtx:null);
     }
   };
-  actions.append(editBtn,delBtn,chk);
+  actions.append(dupBtn,editBtn,delBtn,chk);
   footer.append(lfoot,actions);inner.appendChild(footer);
   card.appendChild(inner);
   return card;
@@ -1612,7 +1573,6 @@ function renderToday(body){
             const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
             const ts=todayStr()+'T12:00:00.000Z';
             t.completions=[...(t.completions||[]),ts];
-            t.carryOvers=(t.carryOvers||[]).filter(d=>d!==todayStr());
             if((t.completions||[]).filter(c=>c.startsWith(todayStr())).length>=2){
               t.nextDueDate=calcNextDueDate(t,todayStr());
             }
@@ -3165,7 +3125,7 @@ function render(){
     sorted.forEach(task=>{
       const done=isDoneToday(task);
       const skipped=(task.skips||[]).includes(todayStr())||
-        (task.carryOvers||[]).includes(dateStr(addDays(new Date(),1)));
+        false; // carry-over feature removed
       const d=el('div');
       const color=cardColor(task);
 
