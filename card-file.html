@@ -105,8 +105,8 @@ body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-he
 body.dark .tab.active{color:var(--gold);}
 
 /* ── SETTINGS BUTTON ── */
-.settings-tab{padding:9px 14px;background:transparent;border-radius:6px 6px 0 0;margin-left:4px;border:1px solid rgba(255,255,255,0.15);border-bottom:none;display:flex;align-items:center;gap:4px;line-height:1;}
-.settings-tab.active{background:rgba(255,255,255,0.12);color:var(--bg)!important;border-color:var(--gold)!important;}
+.settings-tab{padding:7px 12px;background:transparent;border-radius:6px 6px 0 0;margin-left:4px;border:1px solid rgba(255,255,255,0.15);border-bottom:2px solid transparent;display:flex;align-items:center;gap:3px;}
+.settings-tab.active{background:rgba(255,255,255,0.12);color:var(--bg)!important;border-color:var(--gold)!important;border-bottom-color:var(--gold)!important;}
 
 /* ── BODY ── */
 .body{padding:16px 13px calc(90px + var(--safe-bottom));max-width:700px;margin:0 auto;}
@@ -682,9 +682,11 @@ function tasksDueOn(dateS){
       const predicted=addDays(start,Math.round(cycles*f.days));
       return Math.abs((parseDate(dateStr(predicted))-target)/86400000)<0.6;
     }else{
-      // Future: use nextDueDate logic
+      // Today or future: task must be exactly on nextDueDate
+      // Overdue tasks stay in their original past day — never bleed forward
       if(t.nextDueDate===dateS) return true;
-      if(t.nextDueDate&&t.nextDueDate<=dateS){
+      // For future dates beyond today, predict from nextDueDate if it's today or future
+      if(dateS>todayStr()&&t.nextDueDate&&t.nextDueDate>=todayStr()&&t.nextDueDate<=dateS){
         const f=fById(t.freq);
         const start=parseDate(t.nextDueDate);
         const target=parseDate(dateS);
@@ -905,19 +907,21 @@ function showCardDetail(task,dateCtx){
   panel.style.background=cardBg(task);
 
   // Set text colors based on card background luminosity
+  // Use the freq color as proxy for background brightness
   const bgColor=cardColor(task);
   const bgR=parseInt(bgColor.slice(1,3),16),bgG=parseInt(bgColor.slice(3,5),16),bgB=parseInt(bgColor.slice(5,7),16);
   const bgLum=(bgR*0.299+bgG*0.587+bgB*0.114)/255;
-  const isDarkCard=bgLum<0.45;
-  // For dark cards use lighter label colors; for light cards use darker
-  const labelColor=isDarkCard?'rgba(255,255,255,0.6)':'var(--brown-light)';
-  const textColor=isDarkCard?'rgba(255,255,255,0.92)':'var(--text)';
-  const borderColor=isDarkCard?'rgba(255,255,255,0.2)':'var(--border)';
+  // Special types always have their own vivid color — check that too
+  const isDarkCard=bgLum<0.40;
+  const isLightCard=bgLum>0.65;
+  const labelColor=isDarkCard?'rgba(255,255,255,0.7)':isLightCard?'rgba(0,0,0,0.5)':'var(--brown-light)';
+  const textColor=isDarkCard?'rgba(255,255,255,0.95)':isLightCard?'rgba(0,0,0,0.85)':'var(--text)';
+  const borderColor=isDarkCard?'rgba(255,255,255,0.18)':isLightCard?'rgba(0,0,0,0.1)':'var(--border)';
 
   // Close button
   const closeBtn=el('button','card-detail-close');
   closeBtn.textContent='×';closeBtn.onclick=()=>overlay.remove();
-  closeBtn.style.cssText+=isDarkCard?'background:rgba(255,255,255,0.2);color:#fff;':'';
+  closeBtn.style.cssText+=isDarkCard?'background:rgba(255,255,255,0.2);color:#fff;':isLightCard?'background:rgba(0,0,0,0.08);color:rgba(0,0,0,0.7);':'';
   panel.appendChild(closeBtn);
 
   // Frequency badge
@@ -993,7 +997,11 @@ function showCardDetail(task,dateCtx){
   const isDone=isPast?isDoneForDay(task,dateCtx):isDoneToday(task);
   markBtn.textContent=isDone?'✓ Done':'○ Mark complete';
   if(!isDone) markBtn.onclick=()=>{overlay.remove();showCompletionPopup(task,isPast?dateCtx:null);};
-  actions.append(editBtn,markBtn);
+  const timerBtn=el('button','btn btn-ghost');
+  timerBtn.style.cssText='flex:1;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:1px solid var(--border);cursor:pointer;-webkit-appearance:none;';
+  timerBtn.textContent=task.time?`⏱ ${task.time} timer`:'⏱ Timer';
+  timerBtn.onclick=()=>{overlay.remove();showCardTimer(task);};
+  actions.append(timerBtn,editBtn,markBtn);
   panel.appendChild(actions);
 
   overlay.appendChild(panel);
@@ -1016,6 +1024,109 @@ function deleteTask(id){
   const name=task?task.name:'this card';
   if(!confirm(`Delete "${name}"?\n\nThis will permanently remove the card and all its history. It will NOT just remove it from the current view.\n\nThis cannot be undone.`))return;
   S.tasks=S.tasks.filter(t=>t.id!==id);save();render();
+}
+
+// Card timer — starts a countdown based on task's time estimate
+function showCardTimer(task){
+  // Parse time estimate to seconds
+  function parseTime(str){
+    if(!str) return 0;
+    const h=str.match(/(\d+\.?\d*)\s*hr/i);
+    const m=str.match(/(\d+\.?\d*)\s*['m]/i);
+    return Math.round(((h?parseFloat(h[1]):0)*60+(m?parseFloat(m[1]):0))*60);
+  }
+  let totalSecs=parseTime(task.time);
+  if(!totalSecs){
+    // Ask for duration if no time estimate
+    const mins=prompt(`Start timer for "${task.name}"\n\nHow many minutes?`,'10');
+    if(!mins) return;
+    totalSecs=Math.round(parseFloat(mins)*60)||600;
+  }
+
+  const overlay=el('div','card-detail-overlay');
+  const panel=el('div','card-detail-panel');
+  panel.style.cssText='background:var(--card-bg);border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:32px 24px 48px;text-align:center;position:relative;';
+
+  const closeBtn=el('button','card-detail-close');
+  closeBtn.textContent='×';closeBtn.onclick=()=>{clearInterval(timer);overlay.remove();};
+  panel.appendChild(closeBtn);
+
+  const taskName=el('div');taskName.style.cssText='font-family:"Playfair Display",serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;';
+  taskName.textContent=task.name;
+
+  const areaLabel=el('div');areaLabel.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:28px;';
+  areaLabel.textContent=task.area||'';
+
+  const timeDisplay=el('div');
+  timeDisplay.style.cssText='font-family:"Playfair Display",serif;font-size:64px;font-weight:700;color:var(--gold);letter-spacing:.05em;margin-bottom:8px;line-height:1;';
+
+  const statusLabel=el('div');statusLabel.style.cssText='font-size:13px;color:var(--brown-light);margin-bottom:28px;height:20px;';
+
+  function formatTime(s){
+    const m=Math.floor(Math.abs(s)/60);
+    const sec=Math.abs(s)%60;
+    const sign=s<0?'-':'';
+    return `${sign}${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  }
+
+  let remaining=totalSecs;
+  let running=true;
+  let overtime=false;
+  timeDisplay.textContent=formatTime(remaining);
+
+  const btnRow=el('div');btnRow.style.cssText='display:flex;gap:12px;justify-content:center;flex-wrap:wrap;';
+
+  const pauseBtn=el('button','btn btn-ghost');
+  pauseBtn.style.cssText='flex:0 1 140px;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:1px solid var(--border);cursor:pointer;-webkit-appearance:none;';
+  pauseBtn.textContent='⏸ Pause';
+  pauseBtn.onclick=()=>{
+    running=!running;
+    pauseBtn.textContent=running?'⏸ Pause':'▶ Resume';
+    statusLabel.textContent=running?'':' Paused';
+  };
+
+  const doneBtn=el('button','btn btn-primary');
+  doneBtn.style.cssText='flex:0 1 140px;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:none;cursor:pointer;-webkit-appearance:none;';
+  doneBtn.textContent='✓ Done';
+  doneBtn.onclick=()=>{clearInterval(timer);overlay.remove();showCompletionPopup(task);};
+
+  btnRow.append(pauseBtn,doneBtn);
+  panel.append(taskName,areaLabel,timeDisplay,statusLabel,btnRow);
+
+  // Audio context for chime
+  function playChime(){
+    try{
+      const ctx=new(window.AudioContext||window.webkitAudioContext)();
+      [523,659,784,1047].forEach((freq,i)=>{
+        const osc=ctx.createOscillator();
+        const gain=ctx.createGain();
+        osc.connect(gain);gain.connect(ctx.destination);
+        osc.frequency.value=freq;osc.type='sine';
+        gain.gain.setValueAtTime(0,ctx.currentTime+i*0.18);
+        gain.gain.linearRampToValueAtTime(0.3,ctx.currentTime+i*0.18+0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.18+0.5);
+        osc.start(ctx.currentTime+i*0.18);
+        osc.stop(ctx.currentTime+i*0.18+0.6);
+      });
+    }catch(e){}
+  }
+
+  const timer=setInterval(()=>{
+    if(!running) return;
+    remaining--;
+    timeDisplay.textContent=formatTime(remaining);
+    if(remaining===0){
+      playChime();
+      overtime=true;
+      timeDisplay.style.color='#c0392b';
+      statusLabel.textContent='⏰ Time\'s up! Keep going or tap Done.';
+      statusLabel.style.color='#c0392b';
+    }
+    if(remaining<0&&!overtime){overtime=true;}
+  },1000);
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
 }
 
 function saveEdit(){
@@ -1897,7 +2008,9 @@ function renderBrowse(body){
       S.specialTypes.find(s=>s.id===S.freqFilter)?activeTasks.filter(t=>t.special===S.freqFilter):
       activeTasks.filter(t=>t.freq===S.freqFilter);
     if(!filtered.length){const emp=el('div','empty');const tx=el('div','empty-text');tx.textContent='No cards here yet.';emp.appendChild(tx);body.appendChild(emp);return;}
-    filtered.forEach(task=>body.appendChild(renderCard(task,true)));
+    const freqGrid=el('div','cards-grid');
+    filtered.forEach(task=>freqGrid.appendChild(renderCard(task,true)));
+    body.appendChild(freqGrid);
   }else{
     const strip=el('div','filter-strip');
     const allBtn=el('button','filter-btn'+(S.areaFilter==='all'?' active':''));
@@ -1922,7 +2035,9 @@ function renderBrowse(body){
     areas.forEach(area=>{
       const tasks=activeTasks.filter(t=>t.area===area);if(!tasks.length)return;
       const ah=el('div','area-heading');ah.textContent=area;body.appendChild(ah);
-      tasks.forEach(task=>body.appendChild(renderCard(task,false)));
+      const grid=el('div','cards-grid');
+      tasks.forEach(task=>grid.appendChild(renderCard(task,false)));
+      body.appendChild(grid);
     });
   }
 
@@ -1938,7 +2053,9 @@ function renderBrowse(body){
     const unassigned=activeTasks.filter(t=>!t.delegate);
     if(unassigned.length){
       const ah=el('div','area-heading');ah.textContent='My Tasks (unassigned)';body.appendChild(ah);
-      sortByFreq(unassigned).forEach(task=>body.appendChild(renderCard(task,true)));
+      const grid=el('div','cards-grid');
+      sortByFreq(unassigned).forEach(task=>grid.appendChild(renderCard(task,true)));
+      body.appendChild(grid);
     }
     delegates.forEach(name=>{
       const dtasks=sortByFreq(activeTasks.filter(t=>t.delegate===name));
@@ -1954,7 +2071,9 @@ function renderBrowse(body){
         const none=el('div');none.style.cssText='font-size:12px;color:var(--brown-light);padding:8px 0 12px;font-style:italic;';
         none.textContent='No tasks assigned yet.';body.appendChild(none);
       }else{
-        dtasks.forEach(task=>body.appendChild(renderCard(task,true)));
+        const dGrid=el('div','cards-grid');
+        dtasks.forEach(task=>dGrid.appendChild(renderCard(task,true)));
+        body.appendChild(dGrid);
       }
     });
   }
@@ -1977,26 +2096,29 @@ function renderPending(body){
 
   if(pending.length){
     body.appendChild(sectionHead('Unscheduled','#9a8870',pending.length));
-    const note=el('div');note.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
-    note.textContent='These cards have no start date. Edit them to schedule.';
-    body.appendChild(note);
-    pending.forEach(task=>body.appendChild(renderCard(task,true)));
+    const pendNote=el('div');pendNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
+    pendNote.textContent='These cards have no start date. Edit them to schedule.';
+    body.appendChild(pendNote);
+    const pendGrid=el('div','cards-grid');
+    pending.forEach(task=>pendGrid.appendChild(renderCard(task,true)));
+    body.appendChild(pendGrid);
   }
 
   if(future.length){
     body.appendChild(sectionHead('Scheduled — Not Yet Active','#6a9fd4',future.length));
-    const note=el('div');note.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
-    note.textContent='These cards will become active on their start date.';
-    body.appendChild(note);
+    const futNote=el('div');futNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
+    futNote.textContent='These cards will become active on their start date.';
+    body.appendChild(futNote);
     future.sort((a,b)=>a.startDate.localeCompare(b.startDate));
+    const futGrid=el('div','cards-grid');
     future.forEach(task=>{
       const card=renderCard(task,true);
-      // Add start date label
       const sd=el('div');sd.style.cssText='font-size:10px;color:rgba(0,0,0,0.55);padding:4px 20px 6px;font-family:"Lato",sans-serif;font-style:italic;';
       sd.textContent='Starts: '+parseDate(task.startDate).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
       card.appendChild(sd);
-      body.appendChild(card);
+      futGrid.appendChild(card);
     });
+    body.appendChild(futGrid);
   }
 }
 
@@ -3066,7 +3188,7 @@ function render(){
     tab.textContent=label;tab.onclick=()=>{S.tab=id;render();};tabs.appendChild(tab);
   });
   const settingsTab=el('div','tab settings-tab'+(S.tab==='settings'||S.tab==='howto'||S.tab==='walkthrough'?' active':''));
-  settingsTab.innerHTML='<span style="font-size:15px;vertical-align:middle;margin-right:4px;">⚙</span><span style="vertical-align:middle;">Settings</span>';
+  settingsTab.innerHTML='<span style="font-size:16px;">⚙</span><span>Settings</span>';
   settingsTab.onclick=()=>{S.tab='settings';render();};tabs.appendChild(settingsTab);
   header.append(htop,tabs);app.appendChild(header);
 
