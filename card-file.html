@@ -958,6 +958,10 @@ function exportData(){
     tasks:S.tasks,freqColors:S.freqColors,specialTypes:S.specialTypes,
     areas:S.areas,delegates:S.delegates||[],nextId:S.nextId,
     dayEnd:parseInt(localStorage.getItem('cf4_dayEnd')||'0'),
+    timerKeepRinging:localStorage.getItem('cf4_timerKeepRinging'),
+    timerOvertime:localStorage.getItem('cf4_timerOvertime'),
+    noConfirmClearDate:localStorage.getItem('cf4_noConfirmClearDate'),
+    noConfirmChangeDate:localStorage.getItem('cf4_noConfirmChangeDate'),
     exported:new Date().toISOString(),version:4
   };
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -980,6 +984,10 @@ function importData(){
           if(data.areas)S.areas=data.areas;
           if(data.delegates)S.delegates=data.delegates;
           if(data.dayEnd!=null)localStorage.setItem('cf4_dayEnd',String(data.dayEnd));
+          if(data.timerKeepRinging!=null)localStorage.setItem('cf4_timerKeepRinging',data.timerKeepRinging);
+          if(data.timerOvertime!=null)localStorage.setItem('cf4_timerOvertime',data.timerOvertime);
+          if(data.noConfirmClearDate!=null)localStorage.setItem('cf4_noConfirmClearDate',data.noConfirmClearDate);
+          if(data.noConfirmChangeDate!=null)localStorage.setItem('cf4_noConfirmChangeDate',data.noConfirmChangeDate);
           save();alert('✓ Card file restored successfully!');render();
         }else{alert('Invalid backup file.');}
       }catch{alert('Could not read backup file.');}
