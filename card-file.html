@@ -476,6 +476,9 @@ const DEFAULT_TASKS=[
   {id:8, name:'Wipe cupboard surfaces',area:'Master Bathroom',    freq:'m',  time:"10'",   supplies:'',                                   mini:false,special:'',       startDate:dateStr(addDays(new Date(),3)),nextDueDate:dateStr(addDays(new Date(),3)),completions:[],timeOfDay:'afternoon'},
   {id:9, name:'Replace air filter',    area:'Breezeway/Corridor', freq:'eom',time:"5'",    supplies:'',                                   mini:true, special:'',       startDate:dateStr(addDays(new Date(),4)),nextDueDate:dateStr(addDays(new Date(),4)),completions:[],timeOfDay:''},
   {id:10,name:'Wash outside windows',  area:'Backyard',           freq:'s',  time:'2 hr.', supplies:'Window cleaner, squeegee, hose',     mini:false,special:'',       startDate:dateStr(addDays(new Date(),5)),nextDueDate:dateStr(addDays(new Date(),5)),completions:[],timeOfDay:'morning'},
+  {id:11,name:'Empty dishwasher',       area:'Kitchen',            freq:'an', time:"5'",    supplies:'',                                   mini:false,special:'',       startDate:'',nextDueDate:'',completions:[],timeOfDay:''},
+  {id:12,name:'Start a load of laundry',area:'Whole House',        freq:'an', time:"5'",    supplies:'Detergent',                          mini:false,special:'',       startDate:'',nextDueDate:'',completions:[],timeOfDay:''},
+  {id:13,name:'Fold laundry',           area:'Whole House',        freq:'an', time:"20'",   supplies:'',                                   mini:false,special:'',       startDate:'',nextDueDate:'',completions:[],timeOfDay:''},
 ];
 
 // ══════════════════════════════════════════
@@ -503,7 +506,13 @@ let S={
 // ══════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════
-function todayStr(){const n=new Date();return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;}
+function todayStr(){
+  const n=new Date();
+  // Respect "day ends at" setting — if current hour is before cutoff, still count as previous day
+  const dayEnd=parseInt(localStorage.getItem('cf4_dayEnd')||'0');
+  const useDate=dayEnd>0&&n.getHours()<dayEnd?new Date(n.getTime()-86400000):n;
+  return `${useDate.getFullYear()}-${String(useDate.getMonth()+1).padStart(2,'0')}-${String(useDate.getDate()).padStart(2,'0')}`;
+}
 function dateStr(d){
   if(!(d instanceof Date))return d;
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -629,13 +638,13 @@ function isAsNeededTask(task){
 }
 
 function isActiveTask(task){
+  if(isAsNeededTask(task)) return true; // As-needed are always available regardless of start date
   if(!task.startDate) return false;
-  if(isAsNeededTask(task)) return true; // As-needed tasks are always "active" once started
   return task.startDate<=todayStr();
 }
 
 function isPendingTask(task){
-  if(isAsNeededTask(task)) return false; // As-needed tasks are not pending
+  if(isAsNeededTask(task)) return false; // As-needed never go to pending
   return !task.startDate;
 }
 
@@ -668,10 +677,16 @@ function isDueToday(task){
 // and tasks whose nextDueDate is in the past (slipped through advance)
 function wasPartOfToday(task){
   if(!isActiveTask(task)) return false;
-  // Completed today and was due today (not a past-day task completed today)
+  // For 2/D tasks: part of today if ANY completion recorded today
+  if(task.freq==='2d'){
+    if((task.completions||[]).some(c=>c.startsWith(todayStr()))) return true;
+    if((task.skips||[]).some(s=>s.startsWith(todayStr()))) return true;
+    if(isDueOn(task,todayStr())) return true;
+    return false;
+  }
+  // Completed today and was due today
   if(isDoneOn(task,todayStr())){
-    const wasDueToday=task.nextDueDate===todayStr()||
-      isDueOn(task,todayStr());
+    const wasDueToday=task.nextDueDate===todayStr()||isDueOn(task,todayStr());
     if(wasDueToday) return true;
     const f=fById(task.freq);
     const expectedNext=dateStr(addDays(parseDate(todayStr()),Math.ceil(f.days)));
@@ -1677,7 +1692,8 @@ function sectionHead(label,color,count){
 // ══════════════════════════════════════════
 // ── MINI TASKS POPUP ──
 function showMiniTasksPopup(){
-  const tasks=S.tasks.filter(t=>t.mini&&isActiveTask(t)&&!isAsNeededTask(t));
+  // Include all mini tasks — active, future, and pending
+  const tasks=S.tasks.filter(t=>t.mini&&!isAsNeededTask(t));
   showTaskListPopup('✦ Mini Tasks','Quick 5–10 minute pick-up tasks',tasks,'#e8d800','rgba(232,216,0,0.12)');
 }
 
@@ -1907,13 +1923,16 @@ function renderToday(body){
   const slotEntries=[];
   dueTasks.forEach(task=>{
     if(task.freq==='2d'&&task.timeOfDay&&task.timeOfDay2&&task.timeOfDay!==task.timeOfDay2){
-      // 2/D with two different slots
       const completionsToday=todayCompletions[task.id]||0;
-      // First slot — show as done if at least 1 completion today
-      slotEntries.push({task,slotId:task.timeOfDay,slotIndex:0,slotDone:completionsToday>=1});
-      // Second slot — show as done if 2 completions today
-      // Only show second slot if first slot is done (or both if first is done)
-      slotEntries.push({task,slotId:task.timeOfDay2,slotIndex:1,slotDone:completionsToday>=2});
+      const skipsToday=(task.skips||[]).filter(s=>s.startsWith&&s.startsWith(todayStr()+'_')||s===todayStr()).length;
+      // First slot: done after 1+ completions OR explicitly skipped (slot 0)
+      const slot0skipped=(task.skips||[]).includes(todayStr()+'_0');
+      const slot1skipped=(task.skips||[]).includes(todayStr()+'_1');
+      const slot0done=completionsToday>=1||slot0skipped;
+      const slot1done=completionsToday>=2||(completionsToday>=1&&slot1skipped)||slot1skipped;
+      // Always show BOTH slots independently
+      slotEntries.push({task,slotId:task.timeOfDay,slotIndex:0,slotDone:slot0done});
+      slotEntries.push({task,slotId:task.timeOfDay2,slotIndex:1,slotDone:slot1done});
     }else{
       slotEntries.push({task,slotId:task.timeOfDay||'',slotIndex:0,slotDone:isDoneToday(task)});
     }
@@ -1951,12 +1970,15 @@ function renderToday(body){
           slotDone,
           slotIndex,
           on2dMark:task.freq==='2d'&&task.timeOfDay2?()=>{
-            const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
+            const t=S.tasks.find(x=>x.id===task.id);if(!t)return;
             const ts=todayStr()+'T12:00:00.000Z';
             t.completions=[...(t.completions||[]),ts];
-            if((t.completions||[]).filter(c=>c.startsWith(todayStr())).length>=2){
-              t.nextDueDate=calcNextDueDate(t,todayStr());
-            }
+            // Roll nextDueDate after both slots handled (2 completions OR any combo with skip)
+            const compsToday=(t.completions||[]).filter(c=>c.startsWith(todayStr())).length;
+            const slot0skip=(t.skips||[]).includes(todayStr()+'_0');
+            const slot1skip=(t.skips||[]).includes(todayStr()+'_1');
+            const bothHandled=compsToday>=2||(compsToday>=1&&(slot0skip||slot1skip));
+            if(bothHandled) t.nextDueDate=dateStr(addDays(parseDate(todayStr()),1));
             save();render();
           }:null,
         });
@@ -2240,7 +2262,7 @@ function renderBrowse(body){
   body.appendChild(toggle);
 
   // Include pending/unscheduled in all views
-  const allTasksForBrowse=S.tasks.filter(t=>isActiveTask(t)||isFutureTask(t)||isPendingTask(t));
+  const allTasksForBrowse=S.tasks.filter(t=>isActiveTask(t)||isFutureTask(t)||isPendingTask(t)||isAsNeededTask(t));
 
   // ── BY FREQUENCY/TYPE ──
   if(S.browseMode==='freq'){
@@ -2484,7 +2506,29 @@ function renderSettings(body){
   dmToggle.append(dmInput,dmSlider);
   dmRow.append(dmd,dmToggle);apps.appendChild(dmRow);
 
-  // Global accent color (applies to both light and dark mode)
+  // Day ends at setting
+  const dayEndRow=el('div','settings-row');
+  const dayEndD=el('div');
+  const dayEndL=el('div','settings-row-label');dayEndL.textContent='My day ends at';
+  const dayEndS=el('div','settings-row-sub');dayEndS.textContent='Cards roll to tomorrow after this time. Useful for night owls!';
+  dayEndD.append(dayEndL,dayEndS);
+  const dayEndSel=el('select');
+  dayEndSel.style.cssText='font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--text);-webkit-appearance:auto;';
+  const dayEndOptions=[
+    [0,'Midnight (12:00 AM)'],
+    [1,'1:00 AM'],[2,'2:00 AM'],[3,'3:00 AM'],[4,'4:00 AM'],
+  ];
+  const currentDayEnd=parseInt(localStorage.getItem('cf4_dayEnd')||'0');
+  dayEndOptions.forEach(([val,label])=>{
+    const o=document.createElement('option');o.value=String(val);o.textContent=label;
+    if(val===currentDayEnd)o.selected=true;
+    dayEndSel.appendChild(o);
+  });
+  dayEndSel.onchange=e=>{
+    localStorage.setItem('cf4_dayEnd',e.target.value);
+    render();
+  };
+  dayEndRow.append(dayEndD,dayEndSel);apps.appendChild(dayEndRow);
   const ACCENTS=[
     {color:'#c06878',name:'Deep Rose'},
     {color:'#8878c8',name:'Soft Violet'},
@@ -2948,6 +2992,23 @@ function renderWalkthrough(body){
       'In <strong>Today</strong> view, a <strong>📤 Send [Name]\'s tasks</strong> button appears when a delegate has outstanding tasks.',
       'Tapping the send button opens your Messages app with a pre-filled task list ready to send.',
       '<em>Note: Sending tasks via text uses your phone\'s messaging service. Standard carrier rates may apply.</em>'
+    ]},
+    {title:'◇ As-Needed Tasks',steps:[
+      'Don\'t want to stick to a fixed schedule for a task? Choose <strong>A/N — As Needed</strong> as the frequency when creating or editing a card.',
+      'As-needed tasks are never automatically scheduled. No due date, no reminders — they\'re just available whenever you need them.',
+      'You can find them in <strong>Browse → By Frequency/Type → A/N</strong> filter, or in the <strong>By Area/Room</strong> view.',
+      'Tap the <strong>◇ As Needed</strong> button in the header to see all your as-needed tasks grouped by room.',
+      'Tap any task in the list to open its card detail — you can start a timer, mark it complete, or edit it.',
+      'Completed as-needed tasks are recorded in history and show up in Schedule past-day view so you can track when you last did them.',
+      'Great examples: emptying the dishwasher, doing laundry, tasks that happen whenever they happen!'
+    ]},
+    {title:'✦ Mini Tasks Popup',steps:[
+      'Got 5–10 minutes and don\'t know where to start? Tap the <strong>✦ Mini</strong> button in the header.',
+      'This shows all your mini tasks grouped by room — quick pick-up tasks you can do in a few minutes.',
+      'Tap any task to open its card detail and optionally start a timer.',
+      'When you mark a mini task complete, it recalculates its next due date and records the completion — it will also appear in your Today at a Glance summary.',
+      'Mini tasks can be any frequency — daily, weekly, or even as-needed. Any card with the <strong>✦ Mini</strong> toggle on will appear here.',
+      'This popup is perfect for spontaneous cleaning sessions — just tap, do, mark done!'
     ]},
     {title:'⏱ Using the Timer',steps:[
       'Tap any card to open its detail view, then tap the <strong>⏱ Timer</strong> button.',
