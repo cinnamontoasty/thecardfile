@@ -1528,6 +1528,7 @@ function showTodayProgressPopup(dueTasks,doneCount,total){
   const doneTasks=S.tasks.filter(t=>isActiveTask(t)&&isDoneToday(t));
   const outstanding=dueTasks.filter(t=>!isDoneToday(t));
 
+  // Full-width garland that spans whatever width the modal is
   function makeGarland(){
     const isLight=!S.darkMode;
     const acc=S.darkAccent||'#c06878';
@@ -1535,42 +1536,65 @@ function showTodayProgressPopup(dueTasks,doneCount,total){
     const lighter=`rgb(${Math.min(255,ra+55)},${Math.min(255,ga+55)},${Math.min(255,ba+55)})`;
     const rc=isLight?'#f0b0c0':lighter,rd=isLight?'#d4788a':acc;
     const dp=isLight?'#b8a0d4':lighter,dc=isLight?'#e8d840':lighter;
+    const sf2=isLight?'#f5c842':lighter;
     const lc=isLight?'#7a9a6a':'#907878';
+    // Use wide viewBox with many flowers so it truly fills any width
+    const VW=1200;
+    const positions=Array.from({length:30},(_,i)=>20+i*(VW-40)/29);
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-    svg.setAttribute('viewBox','0 0 400 16');svg.setAttribute('preserveAspectRatio','xMidYMid meet');
-    svg.style.cssText='width:100%;height:14px;display:block;margin:8px 0;';
-    svg.innerHTML=`<path d="M0 8 Q200 2 400 8" stroke="${lc}" stroke-width="1" fill="none" opacity=".5"/>
-      ${[20,60,100,140,180,220,260,300,340,380].map((x,i)=>{
-        if(i%3===0)return `<circle cx="${x}" cy="8" r="4" fill="${rc}" opacity=".85"/><circle cx="${x}" cy="8" r="2.2" fill="${rd}" opacity=".9"/>`;
-        if(i%3===1)return Array.from({length:8},(_,j)=>{const a=j*45*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*5}" cy="${8+Math.sin(a)*5}" rx="2.5" ry="1.2" fill="${dp}" opacity=".8" transform="rotate(${j*45} ${x+Math.cos(a)*5} ${8+Math.sin(a)*5})"/>`;}).join('')+`<circle cx="${x}" cy="8" r="2.5" fill="${dc}"/>`;
-        return Array.from({length:8},(_,j)=>{const a=j*45*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*4}" cy="${8+Math.sin(a)*4}" rx="2" ry="1" fill="${isLight?'#f5c842':lighter}" opacity=".85" transform="rotate(${j*45} ${x+Math.cos(a)*4} ${8+Math.sin(a)*4})"/>`;}).join('')+`<circle cx="${x}" cy="8" r="2" fill="#8B6914"/>`;
+    svg.setAttribute('viewBox',`0 0 ${VW} 18`);
+    svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+    svg.style.cssText='width:100%;height:14px;display:block;margin:10px 0;';
+    svg.innerHTML=`<path d="M0 9 Q${VW/2} 3 ${VW} 9" stroke="${lc}" stroke-width="1" fill="none" opacity=".5"/>
+      ${positions.map((x,i)=>{
+        if(i%3===0)return `<circle cx="${x}" cy="9" r="4.5" fill="${rc}" opacity=".85"/><circle cx="${x}" cy="9" r="2.5" fill="${rd}" opacity=".9"/>`;
+        if(i%3===1)return Array.from({length:8},(_,j)=>{const a=j*45*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*5}" cy="${9+Math.sin(a)*5}" rx="2.8" ry="1.3" fill="${dp}" opacity=".8" transform="rotate(${j*45} ${x+Math.cos(a)*5} ${9+Math.sin(a)*5})"/>`;}).join('')+`<circle cx="${x}" cy="9" r="2.5" fill="${dc}"/>`;
+        return Array.from({length:8},(_,j)=>{const a=j*45*Math.PI/180;return `<ellipse cx="${x+Math.cos(a)*4.5}" cy="${9+Math.sin(a)*4.5}" rx="2.2" ry="1.1" fill="${sf2}" opacity=".85" transform="rotate(${j*45} ${x+Math.cos(a)*4.5} ${9+Math.sin(a)*4.5})"/>`;}).join('')+`<circle cx="${x}" cy="9" r="2.2" fill="#8B6914"/>`;
       }).join('')}
-      ${[40,80,120,160,200,240,280,320,360].map(x=>`<ellipse cx="${x}" cy="8" rx="8" ry="3.5" fill="${lc}" opacity=".5" transform="rotate(15 ${x} 8)"/>`).join('')}`;
+      ${positions.filter((_,i)=>i%2===0).map(x=>`<ellipse cx="${x}" cy="9" rx="9" ry="4" fill="${lc}" opacity=".45" transform="rotate(15 ${x} 9)"/>`).join('')}`;
     return svg;
   }
 
-  if(doneTasks.length){
-    const dh=el('div');dh.style.cssText='font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#4a9e5c;margin:12px 0 6px;';dh.textContent='✓ Completed today';
-    modal.appendChild(dh);modal.appendChild(makeGarland());
-    const dg=el('div');dg.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:2px 12px;';
-    doneTasks.forEach(t=>{
-      const d=el('div');d.style.cssText='font-size:12px;line-height:1.8;color:var(--brown-light);text-decoration:line-through;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
-      d.textContent=t.name;dg.appendChild(d);
+  // Responsive grid — more columns as modal gets wider
+  function makeGrid(tasks,done){
+    const wrap=el('div');
+    wrap.style.cssText='width:100%;';
+    // Use CSS grid with auto-fill so it adapts to modal width
+    const g=el('div');
+    g.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1px 16px;width:100%;';
+    tasks.forEach(t=>{
+      const d=el('div');
+      d.style.cssText=`font-size:13px;line-height:1.9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${done?'text-decoration:line-through;opacity:0.55;':''}`;
+      const color=done?'var(--brown-light)':cardColor(t);
+      const freqLabel=fById(t.freq).label;
+      d.innerHTML=`<span style="color:${color};font-weight:700;">${freqLabel}</span> ${t.name}`;
+      g.appendChild(d);
     });
-    modal.appendChild(dg);modal.appendChild(makeGarland());
+    wrap.appendChild(g);
+    return wrap;
+  }
+
+  if(doneTasks.length){
+    modal.appendChild(makeGarland());
+    const dh=el('div');dh.style.cssText='font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#4a9e5c;margin:8px 0 4px;text-align:center;';
+    dh.textContent='✓ Completed today';
+    modal.appendChild(dh);
+    modal.appendChild(makeGrid(doneTasks,true));
+    modal.appendChild(makeGarland());
   }
 
   if(outstanding.length){
-    const oh=el('div');oh.style.cssText='font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin:12px 0 6px;';oh.textContent='◌ Still outstanding';
-    modal.appendChild(oh);modal.appendChild(makeGarland());
-    const og=el('div');og.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:2px 12px;';
-    outstanding.forEach(t=>{
-      const d=el('div');d.style.cssText='font-size:12px;line-height:1.8;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
-      const color=cardColor(t);
-      d.innerHTML=`<span style="color:${color};font-weight:700;">${fById(t.freq).label}</span> ${t.name}`;
-      og.appendChild(d);
-    });
-    modal.appendChild(og);modal.appendChild(makeGarland());
+    const oh=el('div');oh.style.cssText='font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin:8px 0 4px;text-align:center;';
+    oh.textContent='◌ Still outstanding';
+    modal.appendChild(oh);
+    modal.appendChild(makeGrid(outstanding,false));
+    modal.appendChild(makeGarland());
+  }
+
+  if(!doneTasks.length&&!outstanding.length){
+    const all=el('div');all.style.cssText='text-align:center;padding:20px;font-size:14px;color:#4a9e5c;font-weight:700;';
+    all.textContent='🌸 Everything done for today!';
+    modal.appendChild(all);
   }
 
   const cancel=el('button','btn btn-ghost');cancel.style.marginTop='12px';cancel.textContent='Close';cancel.onclick=()=>bd.remove();
@@ -3232,12 +3256,10 @@ function render(){
     const topGarland=makeGarland();bd2.appendChild(topGarland);
     bd2.appendChild(t);
 
-    // Tasks in columns — with done/skipped/pending status
-    // Use wasPartOfToday so completed/carried tasks stay visible
+    // Tasks in columns — responsive auto-fill grid, more columns on wider screens
     const allDueTasks=S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t));
-    const numCols=Math.min(3,Math.ceil(allDueTasks.length/3));
     const list=el('div');
-    list.style.cssText=`display:grid;grid-template-columns:repeat(${Math.max(1,numCols)},1fr);gap:2px 16px;margin:8px 0;`;
+    list.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:2px 16px;margin:8px 0;width:100%;';
 
     // Sort by timeOfDay then name for consistent order
     const todOrder=['dawn','morning','afternoon','evening',''];
