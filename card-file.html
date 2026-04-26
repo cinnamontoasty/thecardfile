@@ -364,6 +364,7 @@ body.dark .undo-toast{background:#3a2828;color:var(--text);}
 // CONSTANTS
 // ══════════════════════════════════════════
 const FREQS=[
+  {id:'an', label:'A/N', name:'As Needed',           days:0},
   {id:'2d', label:'2/D', name:'Twice a Day',        days:0.5},
   {id:'d',  label:'D',   name:'Daily',               days:1},
   {id:'eod',label:'EOD', name:'Every Other Day',     days:2},
@@ -381,7 +382,7 @@ const FREQS=[
 ];
 
 const DEFAULT_FREQ_COLORS={
-  '2d':'#f5a880','d':'#f0e868','eod':'#d4b870','e3d':'#5a9e98',
+  'an':'#b0a898','an':'#b0a898','2d':'#f5a880','d':'#f0e868','eod':'#d4b870','e3d':'#5a9e98',
   '3w':'#afa8d4','2w':'#4ab8d4','w':'#6a9fd4',
   'eow':'#7878cc','m':'#8dbdaa','2m':'#7ab898','eom':'#c4a882',
   's':'#a09060','2y':'#e8c4a0','y':'#c07050',
@@ -390,27 +391,27 @@ const DEFAULT_FREQ_COLORS={
 const THEMES={
   'parchment':{
     name:'🍂 Classic Parchment',
-    freqs:{'2d':'#f5a880','d':'#f0e868','eod':'#d4b870','e3d':'#5a9e98','3w':'#afa8d4','2w':'#4ab8d4','w':'#6a9fd4','eow':'#7878cc','m':'#8dbdaa','2m':'#7ab898','eom':'#c4a882','s':'#a09060','2y':'#e8c4a0','y':'#c07050'},
+    freqs:{'an':'#b0a898','2d':'#f5a880','d':'#f0e868','eod':'#d4b870','e3d':'#5a9e98','3w':'#afa8d4','2w':'#4ab8d4','w':'#6a9fd4','eow':'#7878cc','m':'#8dbdaa','2m':'#7ab898','eom':'#c4a882','s':'#a09060','2y':'#e8c4a0','y':'#c07050'},
   },
   'garden':{
     name:'🌸 Garden Party',
-    freqs:{'2d':'#f9c8d4','d':'#fce8a0','eod':'#c8e8a8','e3d':'#70b8a8','3w':'#a8d8c0','2w':'#88c8d8','w':'#a8b8e8','eow':'#c8a8e0','m':'#e8a8c8','2m':'#88c8b0','eom':'#d4b888','s':'#b8c888','2y':'#f0c890','y':'#d88898'},
+    freqs:{'an':'#c0b8b0','2d':'#f9c8d4','d':'#fce8a0','eod':'#c8e8a8','e3d':'#70b8a8','3w':'#a8d8c0','2w':'#88c8d8','w':'#a8b8e8','eow':'#c8a8e0','m':'#e8a8c8','2m':'#88c8b0','eom':'#d4b888','s':'#b8c888','2y':'#f0c890','y':'#d88898'},
   },
   'ocean':{
     name:'🌊 Ocean Breeze',
-    freqs:{'2d':'#f0e8c8','d':'#e8f4a0','eod':'#a8e4d8','e3d':'#3a9888','3w':'#70c8e8','2w':'#50a8d8','w':'#6888c8','eow':'#d96060','m':'#88c0b0','2m':'#70b898','eom':'#c8d8a8','s':'#a8b890','2y':'#e8d8b0','y':'#c09060'},
+    freqs:{'an':'#b8b0a8','2d':'#f0e8c8','d':'#e8f4a0','eod':'#a8e4d8','e3d':'#3a9888','3w':'#70c8e8','2w':'#50a8d8','w':'#6888c8','eow':'#d96060','m':'#88c0b0','2m':'#70b898','eom':'#c8d8a8','s':'#a8b890','2y':'#e8d8b0','y':'#c09060'},
   },
   'autumn':{
     name:'🍁 Autumn Harvest',
-    freqs:{'2d':'#f8d898','d':'#f8e878','eod':'#e8a870','e3d':'#6a9888','3w':'#d87858','2w':'#c05840','w':'#7888b8','eow':'#886838','m':'#98a868','2m':'#78b888','eom':'#788858','s':'#586840','2y':'#e8c890','y':'#b07848'},
+    freqs:{'an':'#b8a898','2d':'#f8d898','d':'#f8e878','eod':'#e8a870','e3d':'#6a9888','3w':'#d87858','2w':'#c05840','w':'#7888b8','eow':'#886838','m':'#98a868','2m':'#78b888','eom':'#788858','s':'#586840','2y':'#e8c890','y':'#b07848'},
   },
   'lavender':{
     name:'💜 Lavender Fields',
-    freqs:{'2d':'#f8d8f0','d':'#f0e8a8','eod':'#d8c8f0','e3d':'#5a9890','3w':'#b898e0','2w':'#9878c8','w':'#6888c8','eow':'#c8a8e0','m':'#e0b8d8','2m':'#78b898','eom':'#88b898','s':'#b0a0c0','2y':'#e8d8b8','y':'#987888'},
+    freqs:{'an':'#c0b8c0','2d':'#f8d8f0','d':'#f0e8a8','eod':'#d8c8f0','e3d':'#5a9890','3w':'#b898e0','2w':'#9878c8','w':'#6888c8','eow':'#c8a8e0','m':'#e0b8d8','2m':'#78b898','eom':'#88b898','s':'#b0a0c0','2y':'#e8d8b8','y':'#987888'},
   },
   'sunrise':{
     name:'🌅 Sunrise',
-    freqs:{'2d':'#f8d898','d':'#f8f060','eod':'#f8b870','e3d':'#5aa898','3w':'#f09060','2w':'#e86858','w':'#5898d8','eow':'#e05090','m':'#88b898','2m':'#68a888','eom':'#c878b8','s':'#a878a0','2y':'#f0c880','y':'#c07060'},
+    freqs:{'an':'#b8b0a0','2d':'#f8d898','d':'#f8f060','eod':'#f8b870','e3d':'#5aa898','3w':'#f09060','2w':'#e86858','w':'#5898d8','eow':'#e05090','m':'#88b898','2m':'#68a888','eom':'#c878b8','s':'#a878a0','2y':'#f0c880','y':'#c07060'},
   },
 };
 
@@ -576,9 +577,11 @@ function nextMonthDay(fromDate,day,skipMonths){
 // Enhanced calcNextDueDate — respects pinned weekday or month-day if set
 function calcNextDueDate(task,completedOnDate){
   const f=fById(task.freq);
-  if(f.days<1){
+  if(f.days<1&&f.id!=='an'){
     return dateStr(addDays(parseDate(completedOnDate)||new Date(),1));
   }
+  // As-Needed: never schedule a future date
+  if(f.id==='an') return '';
   const anchor=parseDate(task.originalDueDate||task.nextDueDate)||parseDate(completedOnDate)||new Date();
   if(task.originalDueDate) delete task.originalDueDate;
 
@@ -621,12 +624,18 @@ function calcNextDueDate(task,completedOnDate){
   return dateStr(addDays(anchor,Math.ceil(f.days)));
 }
 
+function isAsNeededTask(task){
+  return task.freq==='an';
+}
+
 function isActiveTask(task){
   if(!task.startDate) return false;
+  if(isAsNeededTask(task)) return true; // As-needed tasks are always "active" once started
   return task.startDate<=todayStr();
 }
 
 function isPendingTask(task){
+  if(isAsNeededTask(task)) return false; // As-needed tasks are not pending
   return !task.startDate;
 }
 
@@ -1666,6 +1675,76 @@ function sectionHead(label,color,count){
 // ══════════════════════════════════════════
 // TAB: TODAY
 // ══════════════════════════════════════════
+// ── MINI TASKS POPUP ──
+function showMiniTasksPopup(){
+  const tasks=S.tasks.filter(t=>t.mini&&isActiveTask(t)&&!isAsNeededTask(t));
+  showTaskListPopup('✦ Mini Tasks','Quick 5–10 minute pick-up tasks',tasks,'#e8d800','rgba(232,216,0,0.12)');
+}
+
+// ── AS-NEEDED TASKS POPUP ──
+function showAsNeededPopup(){
+  const tasks=S.tasks.filter(t=>isAsNeededTask(t));
+  showTaskListPopup('◇ As-Needed Tasks','Do whenever you like — no schedule',tasks,'var(--brown-light)','rgba(176,168,152,0.1)');
+}
+
+// ── SHARED TASK LIST POPUP (mini + as-needed) ──
+function showTaskListPopup(title,subtitle,tasks,accentColor,bgTint){
+  const bd=el('div','backdrop');
+  bd.onclick=e=>{if(e.target===bd)bd.remove();};
+  const panel=el('div','modal');
+  panel.style.cssText='background:var(--card-bg);border-radius:16px 16px 0 0;padding:22px 18px 40px;width:100%;max-height:85vh;overflow-y:auto;animation:slideUp .28s ease;';
+
+  const ttl=el('div','modal-title');ttl.textContent=title;
+  const sub=el('div','modal-sub');sub.textContent=subtitle;
+  panel.append(ttl,sub);
+
+  if(!tasks.length){
+    const empty=el('div');empty.style.cssText='text-align:center;padding:24px;font-size:14px;color:var(--brown-light);font-style:italic;';
+    empty.textContent='No tasks here yet.';
+    panel.appendChild(empty);
+  }else{
+    // Group by area
+    const areas=[...new Set(tasks.map(t=>t.area||'General'))].sort();
+    areas.forEach(area=>{
+      const areaTasks=sortByFreq(tasks.filter(t=>(t.area||'General')===area));
+      if(!areaTasks.length)return;
+      const aHead=el('div');
+      aHead.style.cssText='font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--brown-light);margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border);';
+      aHead.textContent=area;panel.appendChild(aHead);
+      areaTasks.forEach(task=>{
+        const row=el('div');
+        row.style.cssText=`display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:8px;cursor:pointer;transition:background .15s;background:${bgTint};margin-bottom:4px;`;
+        row.onmouseenter=()=>row.style.background=`var(--parchment-dark)`;
+        row.onmouseleave=()=>row.style.background=bgTint;
+
+        const dot=el('div');
+        dot.style.cssText=`width:10px;height:10px;border-radius:50%;background:${cardColor(task)};flex-shrink:0;`;
+
+        const info=el('div');info.style.cssText='flex:1;min-width:0;';
+        const name=el('div');name.style.cssText='font-size:14px;font-weight:600;color:var(--text);';name.textContent=task.name;
+        const meta=el('div');meta.style.cssText='font-size:11px;color:var(--brown-light);margin-top:1px;';
+        const parts=[fById(task.freq).label];
+        if(task.time) parts.push(task.time);
+        if(task.timeOfDay){const tod=TIME_OF_DAY.find(t=>t.id===task.timeOfDay);if(tod)parts.push(tod.label);}
+        meta.textContent=parts.join(' · ');
+        info.append(name,meta);
+
+        const arr=el('div');arr.style.cssText='font-size:18px;color:var(--border);flex-shrink:0;';arr.textContent='›';
+
+        row.append(dot,info,arr);
+        row.onclick=()=>{bd.remove();showCardDetail(task,todayStr());};
+        panel.appendChild(row);
+      });
+    });
+  }
+
+  const closeBtn=el('button','btn btn-ghost');
+  closeBtn.style.marginTop='16px';closeBtn.textContent='Close';
+  closeBtn.onclick=()=>bd.remove();
+  panel.appendChild(closeBtn);
+  bd.appendChild(panel);document.body.appendChild(bd);
+}
+
 function showTodayProgressPopup(dueTasks,doneCount,total){
   const bd=el('div','backdrop');
   bd.onclick=e=>{if(e.target===bd)bd.remove();};
@@ -1712,15 +1791,18 @@ function showTodayProgressPopup(dueTasks,doneCount,total){
   function makeGrid(tasks,done){
     const wrap=el('div');
     wrap.style.cssText='width:100%;';
-    // Use CSS grid with auto-fill so it adapts to modal width
     const g=el('div');
     g.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1px 16px;width:100%;';
     tasks.forEach(t=>{
       const d=el('div');
-      d.style.cssText=`font-size:13px;line-height:1.9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${done?'text-decoration:line-through;opacity:0.55;':''}`;
+      d.style.cssText=`font-size:13px;line-height:1.9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${done?'text-decoration:line-through;opacity:0.55;':''}cursor:pointer;border-radius:4px;padding:0 2px;transition:background .12s;`;
+      d.onmouseenter=()=>d.style.background='var(--parchment-dark)';
+      d.onmouseleave=()=>d.style.background='';
       const color=done?'var(--brown-light)':cardColor(t);
       const freqLabel=fById(t.freq).label;
       d.innerHTML=`<span style="color:${color};font-weight:700;">${freqLabel}</span> ${t.name}`;
+      d.title='Tap to open card';
+      d.onclick=()=>{bd.remove();showCardDetail(t,todayStr());};
       g.appendChild(d);
     });
     wrap.appendChild(g);
@@ -2901,7 +2983,7 @@ function renderWalkthrough(body){
       '<strong>Phone → Computer:</strong> Export on your phone. The file saves to Downloads or you can save it to iCloud Drive or Google Drive. On your computer, open thecardfile.com, go to Settings → Import Backup, and choose your file.',
       '<strong>Computer → Phone:</strong> Export on your computer. Move the file to iCloud Drive (Mac/iPhone users) or Google Drive (everyone else), or email it to yourself. On your phone, open thecardfile.com, go to Settings → Import Backup, and tap your file.',
       '<strong>iCloud Drive</strong> is the easiest bridge if you use Apple devices — it\'s available on both iPhone and Mac.',
-      '<strong>Google Drive</strong> works great for everyone, including Android and Windows users.',
+      '<strong>Google Drive</strong> works great for everyone, including Android, Windows, and mixed setups (e.g. iPhone + Windows, or Mac + Android). Access it in Safari, Chrome, or any browser.',
       'Your card data is just a simple .json file — it lives wherever you put it, and only you have access to it.'
     ]},
   ];
@@ -3094,15 +3176,24 @@ function buildModal(data,isEdit){
   FREQS.forEach(f=>{const o=document.createElement('option');o.value=f.id;o.textContent=`${f.label} — ${f.name}`;if(f.id===data.freq)o.selected=true;sel3.appendChild(o);});
   sel3.onchange=e=>{data.freq=e.target.value;recalcNextDue();};f3.append(l3,sel3);fieldsGrid.appendChild(f3);
 
+  // Day of week / month — appears right under frequency, full width
+  const dayFieldWrap=el('div');dayFieldWrap.style.cssText='grid-column:1/-1;';modal.appendChild(fieldsGrid);
+  const dayMonthSection=el('div');dayMonthSection.style.cssText='';
+  const dayFieldWrap2=el('div');dayMonthSection.appendChild(dayFieldWrap2);
+  const monthFieldWrap=el('div');dayMonthSection.appendChild(monthFieldWrap);
+  modal.appendChild(dayMonthSection);
+  // Re-open fieldsGrid for remaining fields
+  const fieldsGrid2=el('div','modal-fields-grid');
+
   // Time
   const f4=el('div','field');const l4=el('label');l4.textContent="Time (e.g., 5', 30', 1hr)";
   const i4=el('input');i4.type='text';i4.value=data.time||'';i4.placeholder="10'";
-  i4.oninput=e=>data.time=e.target.value;f4.append(l4,i4);fieldsGrid.appendChild(f4);
+  i4.oninput=e=>data.time=e.target.value;f4.append(l4,i4);fieldsGrid2.appendChild(f4);
 
   // Supplies
   const f5=el('div','field');const l5=el('label');l5.textContent='Equipment / Supplies';
   const ta=el('textarea');ta.value=data.supplies||'';ta.placeholder='e.g., Broom, dustpan, cleaner';
-  ta.oninput=e=>data.supplies=e.target.value;f5.append(l5,ta);fieldsGrid.appendChild(f5);
+  ta.oninput=e=>data.supplies=e.target.value;f5.append(l5,ta);fieldsGrid2.appendChild(f5);
 
   // Card type
   const f6=el('div','field');const l6=el('label');l6.textContent='Card Type';
@@ -3311,14 +3402,10 @@ function buildModal(data,isEdit){
 
   // ── DAY OF WEEK (W, 2/W, 3/W) ──
   const WDAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const dayFieldWrap=el('div');modal.appendChild(dayFieldWrap);
-
-  // ── DAY OF MONTH (M, 2/M, EOM) ──
-  const monthFieldWrap=el('div');modal.appendChild(monthFieldWrap);
 
   function updateDayFields(){
     const freq=data.freq||sel3.value;
-    dayFieldWrap.innerHTML='';
+    dayFieldWrap2.innerHTML='';
     monthFieldWrap.innerHTML='';
 
     // Week-based frequencies
@@ -3328,7 +3415,7 @@ function buildModal(data,isEdit){
       label.style.cssText='display:block;font-size:12px;font-weight:700;color:var(--brown-mid);margin-bottom:6px;';
       const note=el('div');note.style.cssText='font-size:11px;color:var(--brown-light);margin-bottom:8px;';
       note.textContent='Leave blank to use the start date as anchor.';
-      dayFieldWrap.append(label,note);
+      dayFieldWrap2.append(label,note);
       const row=el('div');row.style.cssText='display:flex;gap:8px;flex-wrap:wrap;';
       const keys=count===1?['weekday']:count===2?['weekdays0','weekdays1']:['weekdays0','weekdays1','weekdays2'];
       keys.forEach((key,i)=>{
@@ -3349,7 +3436,7 @@ function buildModal(data,isEdit){
         };
         row.appendChild(sel);
       });
-      dayFieldWrap.appendChild(row);
+      dayFieldWrap2.appendChild(row);
     }
 
     // Month-based frequencies
@@ -3536,7 +3623,27 @@ function render(){
       render();
     }
   };
-  hr.append(hd,hdu);htop.append(hleft,hr);
+  hr.append(hd,hdu);
+
+  // Header popup buttons
+  const miniTasksBtn=el('button');
+  miniTasksBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;padding:5px 10px;border-radius:12px;border:1.5px solid #e8d800;background:rgba(232,216,0,0.15);color:#e8d800;cursor:pointer;-webkit-appearance:none;white-space:nowrap;margin-left:8px;';
+  miniTasksBtn.textContent='✦ Mini';
+  miniTasksBtn.title='Show all mini tasks';
+  miniTasksBtn.onclick=()=>showMiniTasksPopup();
+  hr.appendChild(miniTasksBtn);
+
+  const asNeededTasks=S.tasks.filter(t=>isAsNeededTask(t));
+  if(asNeededTasks.length){
+    const anBtn=el('button');
+    anBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;padding:5px 10px;border-radius:12px;border:1.5px solid var(--border);background:rgba(176,168,152,0.15);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;white-space:nowrap;margin-left:6px;';
+    anBtn.textContent='◇ As Needed';
+    anBtn.title='Show as-needed tasks';
+    anBtn.onclick=()=>showAsNeededPopup();
+    hr.appendChild(anBtn);
+  }
+
+  htop.append(hleft,hr);
 
   const tabs=el('div','tabs');
   const mainTabs=[['today','Today'],['schedule','Schedule'],['browse','Browse'],['pending','Pending']];
@@ -3617,7 +3724,15 @@ function render(){
         textStyle='opacity:0.6;font-style:italic;';
       }
 
-      d.style.cssText=`font-size:12px;line-height:1.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${textStyle}`;
+      d.style.cssText=`font-size:12px;line-height:1.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${textStyle}cursor:pointer;border-radius:3px;padding:0 2px;transition:background .12s;`;
+      d.onmouseenter=()=>d.style.background='var(--parchment-dark)';
+      d.onmouseleave=()=>d.style.background='';
+      d.onclick=()=>{
+        // Close notification and open card detail
+        const notifEl=document.querySelector('.notif');
+        if(notifEl)notifEl.style.display='none';
+        showCardDetail(task,todayStr());
+      };
       d.innerHTML=`<span style="color:${done?'#4a9e5c':skipped?'var(--brown-light)':color};font-weight:700;">${statusIcon}${fById(task.freq).label}</span> ${task.name}`;
       list.appendChild(d);
     });
