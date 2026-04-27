@@ -2482,6 +2482,19 @@ function renderDayView(body,d){
     emp.appendChild(tx);body.appendChild(emp);return;
   }
 
+  // Select button for batch reschedule
+  const selRow=el('div');selRow.style.cssText='display:flex;justify-content:flex-end;margin-bottom:8px;';
+  const selBtn=el('button');
+  selBtn.style.cssText=`font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:6px 12px;border-radius:10px;border:1.5px solid ${S.selectMode?'var(--gold)':'var(--border)'};background:${S.selectMode?'rgba(232,216,0,0.15)':'var(--card-bg)'};color:${S.selectMode?'var(--gold)':'var(--brown-light)'};cursor:pointer;-webkit-appearance:none;`;
+  selBtn.textContent=S.selectMode?`✓ ${S.selectedIds.length} selected`:'Select';
+  selBtn.title='Select cards to reschedule together';
+  selBtn.onclick=()=>{
+    if(S.selectMode&&S.selectedIds.length===0){S.selectMode=false;}
+    else{S.selectMode=!S.selectMode;if(!S.selectMode)S.selectedIds=[];}
+    render();
+  };
+  selRow.appendChild(selBtn);body.appendChild(selRow);
+
   // Past day label
   if(isPast){
     const pastNote=el('div');
@@ -2582,6 +2595,19 @@ function renderWeekView(body,d){
   next.onclick=()=>{S.scheduleDate=addDays(sunday,7);render();};
   body.appendChild(nav);
 
+  // Select button for batch reschedule
+  const wkSelRow=el('div');wkSelRow.style.cssText='display:flex;justify-content:flex-end;margin-bottom:8px;';
+  const wkSelBtn=el('button');
+  wkSelBtn.style.cssText=`font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:6px 12px;border-radius:10px;border:1.5px solid ${S.selectMode?'var(--gold)':'var(--border)'};background:${S.selectMode?'rgba(232,216,0,0.15)':'var(--card-bg)'};color:${S.selectMode?'var(--gold)':'var(--brown-light)'};cursor:pointer;-webkit-appearance:none;`;
+  wkSelBtn.textContent=S.selectMode?`✓ ${S.selectedIds.length} selected`:'Select';
+  wkSelBtn.title='Select cards to reschedule together';
+  wkSelBtn.onclick=()=>{
+    if(S.selectMode&&S.selectedIds.length===0){S.selectMode=false;}
+    else{S.selectMode=!S.selectMode;if(!S.selectMode)S.selectedIds=[];}
+    render();
+  };
+  wkSelRow.appendChild(wkSelBtn);body.appendChild(wkSelRow);
+
   // Single unified grid — headers on row 1, tasks below
   const grid=el('div');
   grid.style.cssText='display:grid;grid-template-columns:repeat(7,1fr);gap:4px;width:100%;';
@@ -2645,7 +2671,22 @@ function renderWeekView(body,d){
         mc.textContent=(todEmoji?todEmoji+' ':'')+task.name;
         mc.title=task.name+' ('+fById(task.freq).label+(task.timeOfDay?' · '+tod?.label:'')+')';
       }
-      mc.onclick=()=>showCardDetail(task,ds);
+      mc.onclick=()=>{
+        if(S.selectMode){
+          if(S.selectedIds.includes(task.id)){
+            S.selectedIds=S.selectedIds.filter(id=>id!==task.id);
+          }else{
+            S.selectedIds=[...S.selectedIds,task.id];
+          }
+          render();
+        }else{
+          showCardDetail(task,ds);
+        }
+      };
+      if(S.selectMode&&S.selectedIds.includes(task.id)){
+        mc.style.outline='2px solid var(--gold)';
+        mc.style.outlineOffset='1px';
+      }
       col.appendChild(mc);
     });
 
@@ -3508,6 +3549,223 @@ function renderWalkthrough(body){
 
   const sections=[
     {title:'📇 Creating Your First Card',steps:[
+      'Tap the large <strong>+</strong> button in the bottom right corner of any page — it\'s always available from Today, Browse, Schedule, and Pending views, as well as Settings and Help.',
+      'Fill in the task name, room/area, frequency, and time estimate.',
+      'Choose a <strong>Time of Day</strong> — Dawn, Morning, Afternoon, or Evening. Leave blank for Anytime tasks.',
+      'Just below Frequency, optional day or date fields appear: for Weekly tasks you can pin a day of the week; for Monthly tasks you can pin a day of the month. Leave blank to use the start date as the anchor.',
+      'Add any supplies or equipment needed — this appears at the bottom of the card.',
+      'Choose a special card type if needed: <strong>Self-Care</strong> (rose), <strong>Medical</strong> (orange), <strong>Financial</strong> (green), or <strong>Meals</strong> (amber).',
+      'If you have family members set up, use the <strong>Delegate to</strong> dropdown to assign the task to someone.',
+      'Tap the <strong>Mini task</strong> toggle to mark it as a quick 5–10 minute pick-up task.',
+      'Set a <strong>Start Date</strong> to schedule when this card becomes active. Leave it blank to save it to Pending.',
+      'Tap <strong>Add Card</strong> to save!'
+    ]},
+    {title:'📅 Scheduling by Day or Date',steps:[
+      'For <strong>W (Weekly)</strong> tasks, you can optionally pick a specific day of the week — Monday, Thursday, etc. Leave blank to use the start date as the anchor.',
+      'For <strong>2/W (Twice a Week)</strong> tasks, you can optionally pick two days. For <strong>3/W</strong>, pick three days.',
+      'For <strong>M (Monthly)</strong>, <strong>2/M (Twice a Month)</strong>, and <strong>EOM (Every Other Month)</strong> tasks, you can optionally pick a day of the month (1–31).',
+      'For <strong>2/M</strong>, you can pick two days per month — for example the 1st and the 15th.',
+      'Days 29–31 automatically adjust for shorter months — February 31st becomes February 28th (or 29th in a leap year).',
+      'If you add or change a day after the card is already scheduled, the next due date recalculates immediately to the next upcoming occurrence of that day.',
+      'Clearing the day returns the card to rolling from its current next due date — no pinned day, just frequency-based rolling.'
+    ]},
+    {title:'👤 Delegating Tasks',steps:[
+      'First, add your family members or helpers in <strong>⚙ Settings → Family Members & Helpers</strong>.',
+      'When creating or editing a card, use the <strong>Delegate to</strong> dropdown to assign it to someone.',
+      'Go to <strong>Browse → By Delegate</strong> to see tasks organized by person.',
+      'Choose a person from the strip at the top, then sort by <strong>Frequency → Room</strong> or <strong>Room → Frequency</strong>.',
+      'Tap <strong>📤 Send today\'s tasks</strong> to open a pre-filled message with that person\'s tasks for today.',
+      '<em>Note: Sending tasks via text uses your phone\'s messaging service. Standard carrier rates may apply.</em>'
+    ]},
+    {title:'⧉ Duplicating a Card',steps:[
+      'Open any card and tap the <strong>⧉</strong> (duplicate) button in the card actions.',
+      'A copy of the card is created with the same details — frequency, room, time, supplies, and card type.',
+      'The duplicate starts as unscheduled (no start date) so you can edit it before activating.',
+      'Great for creating similar tasks in different rooms — duplicate and just change the room name!'
+    ]},
+    {title:'🏠 Setting Up Your Rooms',steps:[
+      'Tap the <strong>⚙ Settings</strong> tab.',
+      'Scroll down to <strong>Rooms & Areas</strong>.',
+      'Your home\'s rooms are listed there. Tap <strong>✕</strong> next to any room you don\'t need.',
+      'Type a new room name at the bottom and tap <strong>Add</strong> to include it.',
+      'Use the <strong>↑ ↓</strong> buttons next to each room to reorder them — the order here determines how rooms appear in Browse and Today views.',
+      'Your custom rooms will appear in the area dropdown when creating cards!'
+    ]},
+    {title:'↕ Arranging Your Cards',steps:[
+      'In <strong>Today</strong> view, each card shows a number inside the completion circle — this is its position within that time-of-day and room group.',
+      'Tap <strong>↑</strong> or <strong>↓</strong> on any card to move it up or down within its group. The first card\'s ↑ is faded; the last card\'s ↓ is faded.',
+      'Reordering only works within the same time slot AND room — for example, all your Morning → Kitchen tasks can be reordered among themselves.',
+      'Your chosen order carries forward to tomorrow automatically — so you only need to set it up once!',
+      'The order is saved per day, so adjustments you make today don\'t affect yesterday\'s history.',
+      'This is perfect for logical sequences: dust before vacuum, vacuum before mop.'
+    ]},
+    {title:'📅 Using Schedule View',steps:[
+      'The <strong>Schedule</strong> tab shows your tasks in Day, Week, Month, and Year views.',
+      'In <strong>Day view</strong>, tap any card to open its full detail — you can edit, reschedule, start the timer, or mark it complete right from there.',
+      'In <strong>Week view</strong>, tap any card to open its detail popup — great for quickly seeing what\'s coming up and making adjustments.',
+      'In <strong>Month and Year view</strong>, tap any day with dots to see a list of tasks for that day. Tap a task to open its card detail.',
+      'Use the <strong>Select</strong> button in Day or Week view to select multiple cards at once — then reschedule them all to a new date in one tap. Perfect for when life gets in the way and you need to move several tasks at once!',
+      'In Week view, select cards from any day column and batch-reschedule them together — great for rebalancing a busy week.',
+      'Cards in Pending with no start date do not appear in the schedule. Set a start date to activate them.',
+      '<strong>1X One-Time tasks</strong> DO appear in the schedule on their scheduled date, and roll forward every day until completed — so you\'ll always see them until they\'re done.'
+    ]},
+    {title:'⏱ Using the Timer',steps:[
+      'Tap any card to open its detail view, then tap the <strong>⏱ Timer</strong> button.',
+      'The timer opens showing the card\'s time estimate (e.g. 5 minute timer). It starts <strong>paused</strong> — tap <strong>▶ Start</strong> when you\'re ready to begin.',
+      'Tap <strong>✎ Change</strong> next to the time display to adjust the duration before or after starting.',
+      '<strong>⏸ Pause / ▶ Resume</strong> — pause and restart the timer at any point.',
+      'When time is up, the timer chimes and shows "⏰ Time\'s up!" in red.',
+      '<strong>Keep ringing until Done</strong> — toggle on to have the chime repeat every 4 seconds until you tap Done.',
+      '<strong>Show overtime</strong> — toggle on to keep counting up after time\'s up.',
+      'Tap <strong>✓ Done</strong> to mark the task complete. Your timer preferences are remembered for next time.',
+      'Cards without a time estimate will ask you how many minutes to set before starting.'
+    ]},
+    {title:'↩ Undoing Completions & Skips',steps:[
+      'Made a mistake? Marked the wrong card complete or skipped something by accident? No problem!',
+      'Go to <strong>Schedule → Day view</strong> and navigate to today\'s date.',
+      'Cards you completed or skipped today show an <strong>Undo</strong> button in their footer.',
+      'Tap <strong>Undo</strong> to reverse a completion — the card goes back to due, and the completion is removed from its history.',
+      'Tap <strong>Undo</strong> on a skipped card to remove the skip and restore the card to due.'
+    ]},
+    {title:'1X One-Time Tasks',steps:[
+      'Need to track a one-time project or repair? Choose <strong>1X — One Time</strong> as the frequency.',
+      'Great for things like: repair the toilet, replace the carpet, clean out the garage, call the plumber.',
+      'Set a start date to schedule it for a specific day — it will appear in Today view AND in Schedule on that day.',
+      'Unlike other tasks, <strong>one-time tasks persist</strong> — if you don\'t complete it today, it rolls forward to tomorrow and keeps showing up every day until you mark it done.',
+      'Once marked complete, it\'s done forever. Just a permanent record in Schedule history.',
+      'Tap the <strong>1X One-Time</strong> button in the header (in your accent color) to see all pending one-time tasks.',
+      'Find all your one-time tasks in the <strong>Pending</strong> tab under <strong>One-Time Tasks</strong>.',
+      'Completed one-time tasks are hidden by default — tap <strong>Show completed one-time tasks</strong> to see your history.',
+      'If a task is no longer urgent, clear its date in Edit view to move it back to Pending.'
+    ]},
+    {title:'◇ As-Needed Tasks',steps:[
+      'Don\'t want a fixed schedule for a task? Choose <strong>A/N — As Needed</strong> as the frequency.',
+      'As-needed tasks are never automatically scheduled — they\'re just available whenever you need them.',
+      'Find them in <strong>Browse → By Frequency/Type → A/N</strong>, or in the <strong>By Area/Room</strong> view, or in the <strong>Pending</strong> tab.',
+      'Tap the <strong>◇ As Needed</strong> button in the header to see all your as-needed tasks grouped by room.',
+      'Tap any task in the list to open its card detail — you can start a timer, mark it complete, or edit it.',
+      'Completed as-needed tasks are recorded in history and show up in Schedule past-day view.',
+      'Great examples: emptying the dishwasher, doing laundry — tasks that happen whenever they happen!'
+    ]},
+    {title:'✦ Mini Tasks Popup',steps:[
+      'Got 5–10 minutes and don\'t know where to start? Tap the <strong>✦ Mini</strong> button in the header.',
+      'This shows all your mini tasks grouped by room — quick pick-up tasks you can knock out fast.',
+      'Tap any task to open its card detail and optionally start a timer.',
+      'When you mark a mini task complete, it recalculates its next due date and records the completion.',
+      'Mini tasks can be any frequency — daily, weekly, or even as-needed. Any card with the <strong>✦ Mini</strong> toggle on will appear here.',
+      'This popup is perfect for spontaneous cleaning sessions — just tap, do, mark done!'
+    ]},
+    {title:'🌙 Setting Dark Mode',steps:[
+      'Tap the <strong>⚙ Settings</strong> tab.',
+      'Under <strong>Appearance</strong>, tap the toggle next to <strong>Dark Mode</strong>.',
+      'The app switches to a warm dark theme with glowing flowers.',
+      'You can also set your <strong>accent color</strong> — the color used for tabs, highlights, and dark mode flowers. Choose from 10 colors.',
+      'Under <strong>My day ends at</strong>, choose a time if you clean past midnight — cards won\'t roll over until that time.'
+    ]},
+    {title:'🎨 Customizing Card Colors',steps:[
+      'Tap <strong>⚙ Settings</strong> → scroll to <strong>Card Colors</strong>.',
+      'Each frequency (D, W, M, etc.) has its own color. Tap the color swatch to change it.',
+      'Special card types (Self-Care, Medical, Financial, Meals) also have their own colors.',
+      'To quickly apply a coordinated set of colors, choose one of the built-in <strong>Color Themes</strong> in the Appearance section — Parchment, Garden, Ocean, Autumn, Lavender, or Sunrise.',
+      'You can then fine-tune individual colors after applying a theme.',
+      'Tap <strong>Reset to Defaults</strong> to go back to the original color set at any time.'
+    ]},
+    {title:'💾 Saving Your Cards',steps:[
+      'Your cards are stored on this device only. To keep them safe and move them between devices, use <strong>💾 Save my cards</strong>.',
+      'The <strong>💾 Save my cards</strong> button appears at the top of every tab — tap it anytime to save a backup file.',
+      'A file named something like <em>cardfile-backup-2026-04-26.json</em> will download to your device.',
+      'Save this file somewhere safe — iCloud Drive, Google Drive, or email it to yourself.',
+      '<strong>Smart SHEs save their cards every day!</strong> 🌸 The app will remind you once a day.',
+      'To hide the Save/Load buttons, tap the small <strong>hide</strong> link next to them. Tap the 💾 icon to show them again.'
+    ]},
+    {title:'📱 Accessing Your Cards on Another Device',steps:[
+      '<strong>Always save first!</strong> Tap <strong>💾 Save my cards</strong> before switching devices.',
+      '<strong>Phone → Computer:</strong> Save on your phone, move the file to iCloud Drive or Google Drive, then open thecardfile.com on your computer and tap <strong>📂 Load my cards</strong>.',
+      '<strong>Computer → Phone:</strong> Save on your computer, move the file to iCloud Drive or Google Drive (or email it to yourself), then open thecardfile.com on your phone and tap <strong>📂 Load my cards</strong>.',
+      '<strong>iCloud Drive</strong> is the easiest bridge for Apple devices — available on iPhone, iPad, and Mac.',
+      '<strong>Google Drive</strong> works for everyone, including mixed setups like iPhone + Windows or Mac + Android. Access it in Safari, Chrome, or any browser.',
+      'Your card data is a simple file — it lives wherever you put it, and only you have access to it.'
+    ]},
+  ];
+
+  sections.forEach(sec=>{
+    const card=el('div');card.style.cssText='background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:12px;box-shadow:1px 2px 6px rgba(0,0,0,0.06);';
+    const t=el('div');t.style.cssText='font-family:"Playfair Display",serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:10px;';t.textContent=sec.title;card.appendChild(t);
+    sec.steps.forEach((step,i)=>{
+      const row=el('div');row.style.cssText='display:flex;gap:10px;margin-bottom:8px;align-items:flex-start;';
+      const num=el('span');num.style.cssText='min-width:22px;height:22px;border-radius:50%;background:var(--brown);color:var(--bg);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;';
+      num.textContent=i+1;
+      const txt=el('span');txt.style.cssText='font-size:13px;color:var(--brown-mid);line-height:1.6;';txt.innerHTML=step;
+      row.append(num,txt);card.appendChild(row);
+    });
+    body.appendChild(card);
+  });
+
+  const notifSection={title:'🔔 Setting Up Daily Reminders (iPhone)',steps:[
+    'Open the <strong>Shortcuts</strong> app on your iPhone (it comes pre-installed).',
+    'Tap the <strong>+</strong> button in the top right to create a new shortcut.',
+    'Tap <strong>Add Action</strong> and search for <strong>"Open URL"</strong>. Tap it.',
+    'Paste your Card File web address into the URL field.',
+    'Tap the <strong>clock icon</strong> at the top to set automation. Choose <strong>Time of Day</strong>.',
+    'Set your preferred reminder time (e.g., 8:00 AM).',
+    'Choose <strong>Daily</strong> as the repeat frequency.',
+    'Make sure <strong>"Ask Before Running"</strong> is turned OFF.',
+    'Save the shortcut. Every morning at your chosen time, a notification will appear — tap it to open your Card File and see what\'s due!'
+  ]};
+
+  const nCard=el('div');nCard.style.cssText='background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:12px;box-shadow:1px 2px 6px rgba(0,0,0,0.06);';
+  const nt=el('div');nt.style.cssText='font-family:"Playfair Display",serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:10px;';nt.textContent=notifSection.title;nCard.appendChild(nt);
+  notifSection.steps.forEach((step,i)=>{
+    const row=el('div');row.style.cssText='display:flex;gap:10px;margin-bottom:8px;align-items:flex-start;';
+    const num=el('span');num.style.cssText='min-width:22px;height:22px;border-radius:50%;background:var(--brown);color:var(--bg);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;';
+    num.textContent=i+1;
+    const txt=el('span');txt.style.cssText='font-size:13px;color:var(--brown-mid);line-height:1.6;';txt.innerHTML=step;
+    row.append(num,txt);nCard.appendChild(row);
+  });
+  const notifNote=el('div');notifNote.style.cssText='font-size:11px;color:var(--brown-light);margin-top:8px;font-style:italic;';
+  notifNote.textContent='Note: This is a free solution using Apple\'s built-in Shortcuts app. It works on iPhone only. Android users can use the Clock app\'s alarm feature to remind themselves.';
+  nCard.appendChild(notifNote);body.appendChild(nCard);
+
+  const privacy=el('div');privacy.style.cssText='background:#e8f4ee;border:1px solid #b0d4bc;border-radius:4px;padding:14px 16px;';
+  const pt=el('div');pt.style.cssText='font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#2d7a3a;margin-bottom:6px;';pt.textContent='🔒 Your Privacy';
+  const pp=el('div');pp.style.cssText='font-size:13px;color:#3a5a40;line-height:1.7;';
+  pp.textContent='This app does not install any software, trackers, or code to your device. It does not track your activity or collect any user data from you or your device. Your cards and any information you add are stored locally on your own device, and only YOU have access to them.';
+  privacy.append(pt,pp);body.appendChild(privacy);
+}
+
+// ══════════════════════════════════════════
+// TAB: WALKTHROUGH
+// ══════════════════════════════════════════
+function renderWalkthrough(body){
+  const back=el('button','settings-btn');back.textContent='← Back to Settings';back.style.marginBottom='16px';
+  back.onclick=()=>{
+    localStorage.setItem('cf4_firstTimeDone','1');
+    S.firstTime=false;
+    S.tab='settings';
+    render();
+  };body.appendChild(back);
+  floralPageTitle(body,'Getting Started');
+
+  // Extra prominent warning at top
+  const bigWarn=el('div');
+  bigWarn.style.cssText='background:rgba(180,80,0,0.12);border:2px solid rgba(180,80,0,0.35);border-radius:10px;padding:16px 18px;margin-bottom:20px;';
+  const bwt=el('div');bwt.style.cssText='font-family:"Playfair Display",serif;font-size:16px;font-weight:700;color:#8B3A00;margin-bottom:8px;';
+  bwt.textContent='⚠️ Important: Don\'t forget to back up your cards and settings regularly!';
+  const bwp1=el('div');bwp1.style.cssText='font-family:"Lato",sans-serif;font-size:13px;color:var(--brown-mid);line-height:1.7;margin-bottom:6px;';
+  bwp1.textContent='All your cards and settings are stored locally on your device\'s browser.';
+  const bwp2=el('div');bwp2.style.cssText='font-family:"Lato",sans-serif;font-size:13px;color:var(--brown-mid);line-height:1.7;margin-bottom:10px;';
+  bwp2.textContent='Clearing your browser cache or history will permanently erase ALL your cards AND your settings — including custom rooms, colors, and dark mode. This cannot be undone.';
+  const bwp3=el('div');bwp3.style.cssText='font-family:"Lato",sans-serif;font-size:12px;color:var(--brown-light);line-height:1.6;margin-bottom:12px;font-style:italic;';
+  bwp3.textContent='See the "Backing Up Your Cards" section at the bottom of this page for step-by-step export and import instructions.';
+  const bwBtns=el('div');bwBtns.style.cssText='display:flex;gap:8px;flex-wrap:wrap;';
+  const expB=el('button');expB.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 18px;border-radius:8px;border:none;background:var(--brown);color:var(--bg);cursor:pointer;';
+  expB.textContent='💾 Save my cards';expB.onclick=exportData;
+  const impB=el('button');impB.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 18px;border-radius:8px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;';
+  impB.textContent='📂 Load my cards';impB.onclick=importData;
+  bwBtns.append(expB,impB);bigWarn.append(bwt,bwp1,bwp2,bwp3,bwBtns);body.appendChild(bigWarn);
+
+  const sections=[
+    {title:'📇 Creating Your First Card',steps:[
       'Tap the <strong>Browse</strong> tab at the top.',
       'Tap the large <strong>+</strong> button in the bottom right corner.',
       'Fill in the task name, room/area, frequency, and time estimate.',
@@ -3865,7 +4123,7 @@ function buildModal(data,isEdit){
   sel6.onchange=e=>data.special=e.target.value;f6.append(l6,sel6);fieldsGrid2.appendChild(f6);
   modal.appendChild(fieldsGrid2);
 
-  // Helper: show a confirmation dialog with optional "don't ask again" checkbox
+  // Helper: show a confirmation dialog with optional "don\'t ask again" checkbox
   function confirmAction(msg,storageKey,onConfirm){
     if(localStorage.getItem(storageKey)==='1'){onConfirm();return;}
     const bd2=el('div','backdrop');
@@ -3875,7 +4133,7 @@ function buildModal(data,isEdit){
     const msg2=el('div');msg2.style.cssText='font-size:14px;color:var(--text);line-height:1.6;margin-bottom:18px;';msg2.textContent=msg;
     const cbRow=el('div');cbRow.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:18px;cursor:pointer;';
     const cb=document.createElement('input');cb.type='checkbox';cb.style.cssText='width:16px;height:16px;accent-color:var(--gold);cursor:pointer;';
-    const cbl=el('span');cbl.style.cssText='font-size:12px;color:var(--brown-light);';cbl.textContent="Don't ask me this again";
+    const cbl=el('span');cbl.style.cssText='font-size:12px;color:var(--brown-light);';cbl.textContent="Don\'t ask me this again";
     cbRow.append(cb,cbl);cbRow.onclick=()=>cb.checked=!cb.checked;
     const btnRow=el('div');btnRow.style.cssText='display:flex;gap:8px;';
     const cancelBtn=el('button','btn btn-ghost');cancelBtn.style.cssText+='flex:1;';cancelBtn.textContent='Cancel';
@@ -3973,7 +4231,7 @@ function buildModal(data,isEdit){
   f7row.append(i7,clr7);f7.append(l7,f7row);modal.appendChild(f7);
 
   // Next Due Date — read-only display with auto-recalc
-  // Only shown when there's a start date
+  // Only shown when there\'s a start date
   if(data.startDate||isEdit){
     const f7b=el('div','field');
     const l7b=el('label');l7b.textContent='Next Due Date';
@@ -4444,8 +4702,8 @@ function render(){
     bar.append(txt,reschedBtn,cancelBtn);app.appendChild(bar);
   }
 
-  // FAB — Today, Browse, Pending, and Schedule tabs
-  if(S.tab==='today'||S.tab==='browse'||S.tab==='pending'||S.tab==='schedule'){
+  // FAB — available on all tabs
+  {
     const fab=el('button','fab');fab.textContent='+';fab.title='Add card';
     fab.onclick=()=>{S.showAdd=true;render();};app.appendChild(fab);
   }
