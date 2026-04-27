@@ -341,11 +341,11 @@ body.dark .undo-toast{background:#3a2828;color:var(--text);}
 //   - Custom card types (add/delete in Settings)
 //
 // Pass 3 — Delegate feature: ✅ COMPLETE
-//   - Add family members/helpers in Settings ✅
-//   - Delegate field on cards (assign to a family member) ✅
-//   - "By Delegate" filter in Browse view ✅
-//   - "Send [Name]'s tasks" button — opens Messages/Mail ✅
-//   - Disclaimer: carrier rates may apply ✅
+//
+// Pass 3b — Day/Date scheduling: ✅ COMPLETE
+//   - Day-of-week for W, 2/W, 3/W tasks ✅
+//   - Day-of-month for M, 2/M, EOM tasks ✅
+//   - Dates 29-31 auto-clamp for shorter months ✅
 //
 // Pass 4 — Shared delegate URL:
 //   - Generate a personal read-only URL for each delegate
@@ -362,14 +362,11 @@ body.dark .undo-toast{background:#3a2828;color:var(--text);}
 //
 // Pass 6 — Day-level cross-room ordering (System 2):
 //   - Per-day task sequence stored in localStorage keyed by date
-//   - Today/Schedule day view: reorder tasks across rooms for that day
-//   - ↑ ↓ buttons in Today/Schedule day view move tasks within the day's sequence
-//   - Sequence resets each day (or carries forward as option)
+//   - Reorder tasks across rooms for a given day
 //   - Plan: discuss feasibility, storage approach, and UI before building
 //
 // Pass 6b — Quick reorder by number input:
-//   - Tap the order number in the completion circle to type a new position
-//   - Or choose from a dropdown of positions in the group
+//   - Tap order number in circle to type new position
 //   - Only needed if ↑↓ feels too slow for large groups
 // ══════════════════════════════════════════════════════════
 // ══════════════════════════════════════════
