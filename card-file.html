@@ -954,6 +954,14 @@ function save(){
 // EXPORT / IMPORT
 // ══════════════════════════════════════════
 function exportData(){
+  // Collect all day order entries (cf4_order_YYYY-MM-DD)
+  const dayOrders={};
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    if(key&&key.startsWith('cf4_order_')){
+      dayOrders[key]=localStorage.getItem(key);
+    }
+  }
   const data={
     tasks:S.tasks,freqColors:S.freqColors,specialTypes:S.specialTypes,
     areas:S.areas,delegates:S.delegates||[],nextId:S.nextId,
@@ -962,6 +970,7 @@ function exportData(){
     timerOvertime:localStorage.getItem('cf4_timerOvertime'),
     noConfirmClearDate:localStorage.getItem('cf4_noConfirmClearDate'),
     noConfirmChangeDate:localStorage.getItem('cf4_noConfirmChangeDate'),
+    dayOrders,
     exported:new Date().toISOString(),version:4
   };
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -988,6 +997,11 @@ function importData(){
           if(data.timerOvertime!=null)localStorage.setItem('cf4_timerOvertime',data.timerOvertime);
           if(data.noConfirmClearDate!=null)localStorage.setItem('cf4_noConfirmClearDate',data.noConfirmClearDate);
           if(data.noConfirmChangeDate!=null)localStorage.setItem('cf4_noConfirmChangeDate',data.noConfirmChangeDate);
+          if(data.dayOrders){
+            Object.entries(data.dayOrders).forEach(([key,val])=>{
+              localStorage.setItem(key,val);
+            });
+          }
           save();alert('✓ Card file restored successfully!');render();
         }else{alert('Invalid backup file.');}
       }catch{alert('Could not read backup file.');}
