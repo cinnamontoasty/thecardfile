@@ -373,6 +373,14 @@ body.dark .undo-toast{background:#3a2828;color:var(--text);}
 // Pass 6b — Quick reorder by number input:
 //   - Tap order number in circle to type new position
 //   - Only needed if ↑↓ feels too slow for large groups
+//
+// Pass 7 — Drag and drop in Schedule Week view:
+//   - Drag cards between day columns to reschedule
+//   - HTML5 Drag and Drop API for desktop/mouse
+//   - Touch drag (touchstart/touchmove/touchend) for iPhone
+//   - Visual feedback: card lifts, target day highlights
+//   - Drops update nextDueDate (with option to shift full schedule)
+//   - Plan: dedicated session — desktop first, then iOS touch support
 // ══════════════════════════════════════════════════════════
 // ══════════════════════════════════════════
 // CONSTANTS
@@ -799,26 +807,36 @@ function isDueToday(task){
 // and tasks whose nextDueDate is in the past (slipped through advance)
 function wasPartOfToday(task){
   if(!isActiveTask(task)) return false;
-  // For 2/D tasks: part of today if ANY completion recorded today
+  const today=todayStr();
+
+  // For 2/D tasks: part of today if ANY completion or skip recorded today
   if(task.freq==='2d'){
-    if((task.completions||[]).some(c=>c.startsWith(todayStr()))) return true;
-    if((task.skips||[]).some(s=>s.startsWith(todayStr()))) return true;
-    if(isDueOn(task,todayStr())) return true;
+    if((task.completions||[]).some(c=>c.startsWith(today))) return true;
+    if((task.skips||[]).some(s=>s.startsWith(today))) return true;
+    if(task.nextDueDate===today) return true;
     return false;
   }
-  // Completed today and was due today
-  if(isDoneOn(task,todayStr())){
-    const wasDueToday=task.nextDueDate===todayStr()||isDueOn(task,todayStr());
-    if(wasDueToday) return true;
+
+  // Completed today — only count if task was actually due today
+  // (not a task that was rescheduled away from today)
+  if(isDoneOn(task,today)){
+    // If nextDueDate has moved well past today it was likely rescheduled after completion
     const f=fById(task.freq);
-    const expectedNext=dateStr(addDays(parseDate(todayStr()),Math.ceil(f.days)));
+    const expectedNext=dateStr(addDays(parseDate(today),Math.max(1,Math.ceil(f.days))));
+    // Was due today if nextDueDate is today, or rolled forward exactly one cycle from today
+    if(task.nextDueDate===today) return true;
     if(task.nextDueDate===expectedNext) return true;
-    return false;
+    // Or if nextDueDate is far in future — rescheduled, but still completed today
+    // Only show if completion was recorded today
+    return true;
   }
+
   // Skipped today
-  if((task.skips||[]).includes(todayStr())) return true;
-  // Currently still due today
-  if(isDueOn(task,todayStr())) return true;
+  if((task.skips||[]).includes(today)) return true;
+
+  // Currently due today AND nextDueDate hasn't been moved to future
+  if(task.nextDueDate===today) return true;
+
   return false;
 }
 
@@ -2479,6 +2497,74 @@ function renderDayView(body,d){
   });
 }
 
+// Day task list popup — shown when clicking a day in Month or Year view
+function showDayTasksPopup(ds,tasks){
+  const d=parseDate(ds);
+  const dayLabel=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const bd=el('div','backdrop');
+  bd.onclick=e=>{if(e.target===bd)bd.remove();};
+  const panel=el('div','modal');
+  panel.style.cssText='background:var(--card-bg);border-radius:16px 16px 0 0;padding:22px 18px 40px;width:100%;max-height:85vh;overflow-y:auto;animation:slideUp .28s ease;';
+
+  const title=el('div','modal-title');title.textContent=dayLabel;
+  const sub=el('div','modal-sub');sub.textContent=`${tasks.length} task${tasks.length!==1?'s':''} scheduled`;
+  panel.append(title,sub);
+
+  // Group by time of day
+  const todOrder=['dawn','morning','afternoon','evening',''];
+  const sorted=[...tasks].sort((a,b)=>todOrder.indexOf(a.timeOfDay||'')-todOrder.indexOf(b.timeOfDay||''));
+
+  const areas=[...new Set(sorted.map(t=>t.area||'General'))];
+  areas.forEach(area=>{
+    const areaTasks=sorted.filter(t=>(t.area||'General')===area);
+    if(!areaTasks.length)return;
+    const aHead=el('div');
+    aHead.style.cssText='font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--brown-light);margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border);';
+    aHead.textContent=area;panel.appendChild(aHead);
+    areaTasks.forEach(task=>{
+      const doneOnDs=isDoneForDay(task,ds);
+      const skippedOnDs=(task.skips||[]).includes(ds);
+      const row=el('div');
+      row.style.cssText=`display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:8px;cursor:pointer;transition:background .15s;${doneOnDs?'opacity:0.5;text-decoration:line-through;':''}`;
+      row.onmouseenter=()=>row.style.background='var(--parchment-dark)';
+      row.onmouseleave=()=>row.style.background='';
+
+      const dot=el('div');
+      dot.style.cssText=`width:10px;height:10px;border-radius:50%;background:${cardColor(task)};flex-shrink:0;`;
+
+      const info=el('div');info.style.cssText='flex:1;min-width:0;';
+      const name=el('div');name.style.cssText='font-size:14px;font-weight:600;color:var(--text);';
+      name.textContent=(doneOnDs?'✓ ':skippedOnDs?'→ ':'')+task.name;
+      const meta=el('div');meta.style.cssText='font-size:11px;color:var(--brown-light);margin-top:1px;';
+      const parts=[fById(task.freq).label];
+      if(task.time) parts.push(task.time);
+      if(task.timeOfDay){const tod=TIME_OF_DAY.find(t=>t.id===task.timeOfDay);if(tod)parts.push(tod.label);}
+      meta.textContent=parts.join(' · ');
+      info.append(name,meta);
+
+      const arr=el('div');arr.style.cssText='font-size:18px;color:var(--border);flex-shrink:0;';arr.textContent='›';
+
+      row.append(dot,info,arr);
+      row.onclick=()=>{bd.remove();showCardDetail(task,ds);};
+      panel.appendChild(row);
+    });
+  });
+
+  // Also navigate to day view button
+  const dayViewBtn=el('button','btn btn-ghost');
+  dayViewBtn.style.cssText='width:100%;margin-top:16px;font-family:"Lato",sans-serif;font-size:13px;padding:12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;-webkit-appearance:none;';
+  dayViewBtn.textContent='Open in Day view →';
+  dayViewBtn.onclick=()=>{bd.remove();S.scheduleDate=parseDate(ds);S.scheduleView='day';render();};
+  panel.appendChild(dayViewBtn);
+
+  const closeBtn=el('button','btn btn-ghost');
+  closeBtn.style.cssText='width:100%;margin-top:8px;font-family:"Lato",sans-serif;font-size:13px;padding:12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;-webkit-appearance:none;';
+  closeBtn.textContent='Close';closeBtn.onclick=()=>bd.remove();
+  panel.appendChild(closeBtn);
+
+  bd.appendChild(panel);document.body.appendChild(bd);
+}
+
 function renderWeekView(body,d){
   const dow=d.getDay();
   const sunday=addDays(d,-dow);
@@ -2552,7 +2638,7 @@ function renderWeekView(body,d){
         mc.textContent=(todEmoji?todEmoji+' ':'')+task.name;
         mc.title=task.name+' ('+fById(task.freq).label+(task.timeOfDay?' · '+tod?.label:'')+')';
       }
-      mc.onclick=()=>{S.scheduleDate=day;S.scheduleView='day';render();};
+      mc.onclick=()=>showCardDetail(task,ds);
       col.appendChild(mc);
     });
 
@@ -2607,7 +2693,10 @@ function renderMonthView(body,d){
       });
       cell.appendChild(dotRow);
     }
-    cell.onclick=()=>{S.scheduleDate=parseDate(ds);S.scheduleView='day';render();};
+    cell.onclick=()=>{
+      if(!tasks.length){S.scheduleDate=parseDate(ds);S.scheduleView='day';render();return;}
+      showDayTasksPopup(ds,tasks);
+    };
     grid.appendChild(cell);
   }
 
@@ -2653,7 +2742,10 @@ function renderYearView(body,d){
         });
       }
       cell.title=`${MONTH_NAMES[m]} ${day}: ${tasks.length} task${tasks.length!==1?'s':''}`;
-      cell.onclick=()=>{S.scheduleDate=parseDate(ds);S.scheduleView='day';render();};
+      cell.onclick=()=>{
+        if(!tasks.length){S.scheduleDate=parseDate(ds);S.scheduleView='day';render();return;}
+        showDayTasksPopup(ds,tasks);
+      };
       miniGrid.appendChild(cell);
     }
     mCard.appendChild(miniGrid);
