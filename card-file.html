@@ -321,7 +321,12 @@ body.dark .schedule-tab.active{background:var(--gold);color:#2a1f18;border-color
 .toggle-slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s;}
 .toggle input:checked+.toggle-slider{background:var(--gold);}
 .toggle input:checked+.toggle-slider:before{transform:translateX(20px);}
-/* ── UNDO TOAST ── */
+/* ── MULTI-SELECT ── */
+.select-bar{position:fixed;bottom:calc(70px + var(--safe-bottom));left:50%;transform:translateX(-50%);background:var(--brown);color:var(--bg);border-radius:24px;padding:12px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:80;white-space:nowrap;animation:slideUp .25s ease;}
+.select-bar-text{font-size:13px;font-weight:600;}
+.select-bar-btn{font-family:'Lato',sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-radius:16px;border:none;background:var(--gold);color:var(--brown);cursor:pointer;-webkit-appearance:none;}
+.select-bar-cancel{font-family:'Lato',sans-serif;font-size:11px;font-weight:700;padding:7px 14px;border-radius:16px;border:1.5px solid rgba(255,255,255,0.3);background:none;color:var(--bg);cursor:pointer;-webkit-appearance:none;}
+.index-card.is-selected{outline:3px solid var(--gold);outline-offset:-2px;}
 .undo-toast{position:fixed;bottom:calc(90px + var(--safe-bottom));left:50%;transform:translateX(-50%);background:var(--brown);color:var(--bg);border-radius:24px;padding:12px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:80;animation:slideUp .25s ease;white-space:nowrap;}
 body.dark .undo-toast{background:#3a2828;color:var(--text);}
 .undo-toast-text{font-size:13px;font-weight:500;}
@@ -470,15 +475,15 @@ function sortByFreq(tasks){
 
 // ── DAY ORDER SYSTEM ──
 // Stores task ID order per date: cf4_order_YYYY-MM-DD = [id, id, id, ...]
-function getDayOrder(dateStr){
+function getDayOrder(ds){
   try{
-    const raw=localStorage.getItem('cf4_order_'+dateStr);
+    const raw=localStorage.getItem('cf4_order_'+ds);
     return raw?JSON.parse(raw):null;
   }catch{return null;}
 }
 
-function saveDayOrder(dateStr,ids){
-  localStorage.setItem('cf4_order_'+dateStr,JSON.stringify(ids));
+function saveDayOrder(ds,ids){
+  localStorage.setItem('cf4_order_'+ds,JSON.stringify(ids));
 }
 
 // Get or build the day order for today
@@ -493,14 +498,13 @@ function getTodayOrder(todayTasks){
     const yesterday=dateStr(addDays(new Date(),-1));
     const yOrder=getDayOrder(yesterday);
     if(yOrder){
-      // Keep yesterday's order for tasks that are also due today
       order=yOrder.filter(id=>todayIds.includes(id));
     }else{
       order=[];
     }
   }
 
-  // Add any tasks not yet in order (new tasks due today)
+  // Add any tasks not yet in order
   todayIds.forEach(id=>{if(!order.includes(id))order.push(id);});
   // Remove any tasks no longer due today
   order=order.filter(id=>todayIds.includes(id));
@@ -512,13 +516,11 @@ function getTodayOrder(todayTasks){
 // Move a task up or down within its time-of-day + room group in Today view
 function moveTodayTask(id,direction,groupIds){
   const today=todayStr();
-  let order=getDayOrder(today)||groupIds;
-  // Only work within the group
+  let order=getDayOrder(today)||[...groupIds];
   const groupInOrder=order.filter(oid=>groupIds.includes(oid));
   const idx=groupInOrder.indexOf(id);
   const swapIdx=direction==='up'?idx-1:idx+1;
   if(swapIdx<0||swapIdx>=groupInOrder.length)return;
-  // Swap in the full order array
   const fullIdxA=order.indexOf(groupInOrder[idx]);
   const fullIdxB=order.indexOf(groupInOrder[swapIdx]);
   if(fullIdxA<0||fullIdxB<0)return;
@@ -565,6 +567,7 @@ let S={
   theme:'parchment',
   notificationDismissed:false,
   browseMode:'area',freqFilter:'all',areaFilter:'all',delegateSortMode:'freq',delegateFilter:'__me__',showCompletedOnce:false,
+  selectMode:false,selectedIds:[],
   scheduleView:'day',
   scheduleDate:new Date(),
   showAdd:false,editTask:null,showWelcome:false,showInstall:false,
@@ -962,11 +965,13 @@ function exportData(){
   const data={
     tasks:S.tasks,freqColors:S.freqColors,specialTypes:S.specialTypes,
     areas:S.areas,delegates:S.delegates||[],nextId:S.nextId,
+    darkMode:S.darkMode,darkAccent:S.darkAccent,theme:S.theme,
     dayEnd:parseInt(localStorage.getItem('cf4_dayEnd')||'0'),
     timerKeepRinging:localStorage.getItem('cf4_timerKeepRinging'),
     timerOvertime:localStorage.getItem('cf4_timerOvertime'),
     noConfirmClearDate:localStorage.getItem('cf4_noConfirmClearDate'),
     noConfirmChangeDate:localStorage.getItem('cf4_noConfirmChangeDate'),
+    saveBarHidden:localStorage.getItem('cf4_saveBarHidden'),
     dayOrders,
     exported:new Date().toISOString(),version:4
   };
@@ -989,11 +994,15 @@ function importData(){
           if(data.specialTypes)S.specialTypes=data.specialTypes;
           if(data.areas)S.areas=data.areas;
           if(data.delegates)S.delegates=data.delegates;
+          if(data.darkMode!=null)S.darkMode=data.darkMode;
+          if(data.darkAccent){S.darkAccent=data.darkAccent;document.body.style.setProperty('--gold',data.darkAccent);}
+          if(data.theme)S.theme=data.theme;
           if(data.dayEnd!=null)localStorage.setItem('cf4_dayEnd',String(data.dayEnd));
           if(data.timerKeepRinging!=null)localStorage.setItem('cf4_timerKeepRinging',data.timerKeepRinging);
           if(data.timerOvertime!=null)localStorage.setItem('cf4_timerOvertime',data.timerOvertime);
           if(data.noConfirmClearDate!=null)localStorage.setItem('cf4_noConfirmClearDate',data.noConfirmClearDate);
           if(data.noConfirmChangeDate!=null)localStorage.setItem('cf4_noConfirmChangeDate',data.noConfirmChangeDate);
+          if(data.saveBarHidden!=null)localStorage.setItem('cf4_saveBarHidden',data.saveBarHidden);
           if(data.dayOrders){
             Object.entries(data.dayOrders).forEach(([key,val])=>{
               localStorage.setItem(key,val);
@@ -1450,19 +1459,81 @@ function toggleDark(){
 // BACKUP WARNING BANNER
 // ══════════════════════════════════════════
 function backupWarningBanner(body){
+  // Daily "Smart SHEs" reminder — shows once per day
+  const reminderKey='cf4_reminderShown';
+  const lastShown=localStorage.getItem(reminderKey)||'';
+  if(lastShown!==todayStr()){
+    const reminder=el('div');
+    reminder.style.cssText='background:rgba(200,169,110,0.15);border:1.5px solid rgba(200,169,110,0.35);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px;';
+    const rtxt=el('div');rtxt.style.cssText='flex:1;font-size:12px;color:var(--brown-mid);font-style:italic;';
+    rtxt.textContent='Smart SHEs save their cards every day! 🌸';
+    const saveNowBtn=el('button');
+    saveNowBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:6px 12px;border-radius:6px;border:none;background:var(--gold);color:var(--brown);cursor:pointer;white-space:nowrap;flex-shrink:0;';
+    saveNowBtn.textContent='💾 Save now';
+    saveNowBtn.onclick=()=>{exportData();localStorage.setItem(reminderKey,todayStr());reminder.remove();};
+    const dismissR=el('button');
+    dismissR.style.cssText='background:none;border:none;font-size:16px;color:var(--brown-light);cursor:pointer;padding:0 2px;flex-shrink:0;';
+    dismissR.textContent='×';
+    dismissR.title='Dismiss for today';
+    dismissR.onclick=()=>{localStorage.setItem(reminderKey,todayStr());reminder.remove();};
+    reminder.append(rtxt,saveNowBtn,dismissR);body.appendChild(reminder);
+  }
+
+  // Warning banner — dismissible per session or permanently
+  const warnKey='cf4_warnDismissed';
+  if(localStorage.getItem(warnKey)==='1') return;
   const warn=el('div');
-  warn.style.cssText='background:rgba(180,80,0,0.10);border:1.5px solid rgba(180,80,0,0.25);border-radius:8px;padding:11px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;';
+  warn.style.cssText='background:rgba(180,80,0,0.08);border:1.5px solid rgba(180,80,0,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;';
+  const warnTop=el('div');warnTop.style.cssText='display:flex;align-items:flex-start;gap:10px;';
   const txt=el('div');
-  txt.style.cssText='flex:1;font-family:"Lato",sans-serif;font-size:12px;color:var(--brown-mid);line-height:1.6;min-width:180px;';
-  txt.innerHTML='⚠️ <strong>Clearing your browser cache or history will erase ALL your cards AND settings</strong> (colors, rooms, dark mode). Always back up first!';
-  const btns=el('div');btns.style.cssText='display:flex;gap:6px;flex-shrink:0;';
-  const expBtn=el('button');
-  expBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 12px;border-radius:6px;border:none;background:var(--brown);color:var(--bg);cursor:pointer;white-space:nowrap;';
-  expBtn.textContent='Export ↓';expBtn.onclick=exportData;
-  const impBtn=el('button');
-  impBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;white-space:nowrap;';
-  impBtn.textContent='Import ↑';impBtn.onclick=importData;
-  btns.append(expBtn,impBtn);warn.append(txt,btns);body.appendChild(warn);
+  txt.style.cssText='flex:1;font-size:11px;color:var(--brown-mid);line-height:1.6;';
+  txt.innerHTML='⚠️ Your cards are stored on this device only. Use <strong>💾 Save my cards</strong> regularly so you never lose them!';
+  const dismissBtn=el('button');
+  dismissBtn.style.cssText='background:none;border:none;font-size:16px;color:var(--brown-light);cursor:pointer;padding:0;flex-shrink:0;';
+  dismissBtn.textContent='×';dismissBtn.title='Dismiss';
+  dismissBtn.onclick=()=>warn.remove();
+  const dontShow=el('button');
+  dontShow.style.cssText='font-family:"Lato",sans-serif;font-size:10px;color:var(--brown-light);background:none;border:none;padding:3px 0 0;cursor:pointer;text-decoration:underline;-webkit-appearance:none;display:block;';
+  dontShow.textContent="I know — don't show this again";
+  dontShow.onclick=()=>{localStorage.setItem(warnKey,'1');warn.remove();};
+  warnTop.append(txt,dismissBtn);warn.append(warnTop,dontShow);body.appendChild(warn);
+}
+
+// Discreet Save/Load bar shown at top of every tab
+function saveLoadBar(body){
+  // Check if hidden by user
+  if(localStorage.getItem('cf4_saveBarHidden')==='1'){
+    // Show a tiny "💾" button to re-show
+    const tiny=el('div');tiny.style.cssText='display:flex;justify-content:flex-end;margin-bottom:4px;';
+    const showBtn=el('button');
+    showBtn.style.cssText='font-family:"Lato",sans-serif;font-size:9px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:2px 4px;-webkit-appearance:none;opacity:.5;';
+    showBtn.textContent='💾';showBtn.title='Show save/load buttons';
+    showBtn.onclick=()=>{localStorage.removeItem('cf4_saveBarHidden');render();};
+    tiny.appendChild(showBtn);body.appendChild(tiny);
+    return;
+  }
+  const bar=el('div');
+  bar.style.cssText='display:flex;gap:6px;justify-content:flex-end;align-items:center;margin-bottom:10px;flex-wrap:wrap;';
+
+  // Hide button
+  const hideBtn=el('button');
+  hideBtn.style.cssText='font-family:"Lato",sans-serif;font-size:9px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:2px 4px;-webkit-appearance:none;opacity:.5;margin-right:2px;';
+  hideBtn.textContent='hide';hideBtn.title='Hide these buttons';
+  hideBtn.onclick=()=>{localStorage.setItem('cf4_saveBarHidden','1');render();};
+
+  const saveBtn=el('button');
+  saveBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:5px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;white-space:nowrap;';
+  saveBtn.innerHTML='💾 Save my cards';
+  saveBtn.title='Save all your cards & settings to a file on your device';
+  saveBtn.onclick=exportData;
+
+  const loadBtn=el('button');
+  loadBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:5px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;white-space:nowrap;';
+  loadBtn.innerHTML='📂 Load my cards';
+  loadBtn.title='Load your cards & settings from a previously saved file';
+  loadBtn.onclick=importData;
+
+  bar.append(hideBtn,saveBtn,loadBtn);body.appendChild(bar);
 }
 
 // ══════════════════════════════════════════
@@ -1674,13 +1745,23 @@ function renderCard(task,showArea,opts={}){
   const ds=daysSince(task);
   const freq=fById(task.freq);
 
-  const isSkippedOnDate=(task.skips||[]).includes(dateCtx);
-  const card=el('div','index-card'+(task.mini?' is-mini':'')+(doneOnDate?' done-today':'')+(isSkippedOnDate?' is-skipped':''));
+  const isSelected=S.selectMode&&S.selectedIds.includes(task.id);
+  const skippedDate=dateCtx||todayStr();
+  const isSkippedOnDate=(task.skips||[]).includes(skippedDate);
+  const card=el('div','index-card'+(task.mini?' is-mini':'')+(doneOnDate?' done-today':'')+(isSkippedOnDate?' is-skipped':'')+(isSelected?' is-selected':''));
   card.style.background=cardBg(task);
-  // Tap card body to open detail view
   card.onclick=e=>{
-    // Don't open detail if tapping a button
     if(e.target.closest('button')) return;
+    if(S.selectMode){
+      // Toggle selection
+      if(S.selectedIds.includes(task.id)){
+        S.selectedIds=S.selectedIds.filter(id=>id!==task.id);
+      }else{
+        S.selectedIds=[...S.selectedIds,task.id];
+      }
+      render();
+      return;
+    }
     showCardDetail(task,dateCtx);
   };
 
@@ -1935,7 +2016,81 @@ function show2dSlotPopup(task,slotIndex){
   modal.appendChild(cancel);bd.appendChild(modal);document.body.appendChild(bd);
 }
 
-// ── MINI TASKS POPUP ──
+// ── BATCH RESCHEDULE ──
+function showBatchReschedule(){
+  if(!S.selectedIds.length) return;
+  const bd=el('div','backdrop');
+  bd.onclick=e=>{if(e.target===bd)bd.remove();};
+  const modal=el('div','modal');
+  modal.style.cssText='background:var(--card-bg);border-radius:16px 16px 0 0;padding:22px 18px 32px;width:100%;max-height:75vh;overflow-y:auto;animation:slideUp .28s ease;';
+
+  const title=el('div','modal-title');title.textContent='Reschedule Cards';
+  const sub=el('div','modal-sub');sub.textContent=`${S.selectedIds.length} card${S.selectedIds.length!==1?'s':''} selected`;
+  modal.append(title,sub);
+
+  // Show selected card names
+  const nameList=el('div');nameList.style.cssText='margin:10px 0 16px;max-height:120px;overflow-y:auto;';
+  S.selectedIds.forEach(id=>{
+    const t=S.tasks.find(x=>x.id===id);if(!t)return;
+    const d=el('div');d.style.cssText='font-size:13px;color:var(--text);padding:3px 0;border-bottom:1px dashed var(--border);';
+    d.textContent='• '+t.name+(t.area?' ('+t.area+')':'');
+    nameList.appendChild(d);
+  });
+  modal.appendChild(nameList);
+
+  // Quick options
+  const tomorrow=dateStr(addDays(new Date(),1));
+  const tomorrowLabel=parseDate(tomorrow).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const quickRow=el('div');quickRow.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;';
+  const tomorrowBtn=el('button','btn btn-primary');
+  tomorrowBtn.style.cssText='flex:1;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:12px;border-radius:8px;border:none;cursor:pointer;-webkit-appearance:none;';
+  tomorrowBtn.textContent='→ Tomorrow';
+  tomorrowBtn.onclick=()=>{applyBatchReschedule(tomorrow,modal,bd,askUpdateSchedule);};
+  quickRow.appendChild(tomorrowBtn);
+  modal.appendChild(quickRow);
+
+  // Custom date
+  const f=el('div','field');
+  const l=el('label');l.textContent='Or choose a specific date:';
+  const inp=el('input');inp.type='date';inp.value=tomorrow;
+  inp.style.cssText='width:100%;font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:var(--bg);color:var(--text);';
+  const customBtn=el('button','btn btn-ghost');
+  customBtn.style.cssText='width:100%;margin-top:8px;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;-webkit-appearance:none;';
+  customBtn.textContent='Move to chosen date';
+  customBtn.onclick=()=>{if(inp.value)applyBatchReschedule(inp.value,modal,bd,askUpdateSchedule);};
+  f.append(l,inp,customBtn);modal.appendChild(f);
+
+  // Ask about updating schedule
+  let askUpdateSchedule=true;
+  const toggleRow=el('div');toggleRow.style.cssText='display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer;font-size:12px;color:var(--brown-light);';
+  const cb=document.createElement('input');cb.type='checkbox';cb.checked=true;
+  cb.style.cssText='accent-color:var(--gold);width:14px;height:14px;';
+  cb.onchange=()=>askUpdateSchedule=cb.checked;
+  const lbl=el('span');lbl.textContent='Also update next due date (shifts future schedule from this date)';
+  toggleRow.append(cb,lbl);
+  toggleRow.onclick=e=>{if(e.target!==cb){cb.checked=!cb.checked;askUpdateSchedule=cb.checked;}};
+  modal.appendChild(toggleRow);
+
+  const cancel=el('button','btn btn-ghost');cancel.style.cssText='width:100%;margin-top:14px;font-family:"Lato",sans-serif;font-size:13px;padding:12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;-webkit-appearance:none;';
+  cancel.textContent='Cancel';cancel.onclick=()=>bd.remove();
+  modal.appendChild(cancel);
+  bd.appendChild(modal);document.body.appendChild(bd);
+}
+
+function applyBatchReschedule(newDate,modal,bd,updateSchedule){
+  S.selectedIds.forEach(id=>{
+    const t=S.tasks.find(x=>x.id===id);if(!t)return;
+    t.nextDueDate=newDate;
+    if(updateSchedule){
+      t.startDate=newDate;
+      delete t.originalDueDate;
+    }
+  });
+  S.selectedIds=[];
+  S.selectMode=false;
+  bd.remove();
+  save();render();
+}
 function showMiniTasksPopup(){
   // Include all mini tasks — active, future, and pending
   const tasks=S.tasks.filter(t=>t.mini&&!isAsNeededTask(t));
@@ -2116,6 +2271,7 @@ function showTodayProgressPopup(dueTasks,doneCount,total){
 
 function renderToday(body){
   backupWarningBanner(body);
+  saveLoadBar(body);
   const dueTasks=S.tasks.filter(t=>isActiveTask(t)&&isDueToday(t)&&!isDoneToday(t));
   const todayAll=S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t));
   const skippedCount=todayAll.filter(t=>(t.skips||[]).includes(todayStr())).length;
@@ -2123,8 +2279,9 @@ function renderToday(body){
   const doneCount=S.tasks.filter(t=>isActiveTask(t)&&isDoneToday(t)).length;
 
   if(todayTotal>0){
-    const pc=el('div','progress-card');
-    pc.style.cursor='pointer';pc.title='Click to see today\'s summary';
+    const topRow=el('div');topRow.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;';
+    const pc=el('div','progress-card');pc.style.cssText='flex:1;cursor:pointer;';
+    pc.title='Click to see today\'s summary';
     pc.onclick=()=>showTodayProgressPopup(dueTasks,doneCount,todayTotal);
     const pr=el('div','progress-row');
     const l=el('span');l.textContent='Completed today';
@@ -2134,7 +2291,18 @@ function renderToday(body){
     rightSide.append(hint,r);pr.append(l,rightSide);
     const pb=el('div','progress-bar');
     const pf=el('div','progress-fill');pf.style.width=`${Math.round(doneCount/todayTotal*100)}%`;
-    pb.appendChild(pf);pc.append(pr,pb);body.appendChild(pc);
+    pb.appendChild(pf);pc.append(pr,pb);
+    // Select mode toggle button
+    const selBtn=el('button');
+    selBtn.style.cssText=`font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:8px 12px;border-radius:10px;border:1.5px solid ${S.selectMode?'var(--gold)':'var(--border)'};background:${S.selectMode?'rgba(232,216,0,0.15)':'var(--card-bg)'};color:${S.selectMode?'var(--gold)':'var(--brown-light)'};cursor:pointer;-webkit-appearance:none;white-space:nowrap;flex-shrink:0;`;
+    selBtn.textContent=S.selectMode?`✓ ${S.selectedIds.length} selected`:'Select';
+    selBtn.title='Select cards to reschedule';
+    selBtn.onclick=()=>{
+      if(S.selectMode&&S.selectedIds.length===0){S.selectMode=false;}
+      else{S.selectMode=!S.selectMode;if(!S.selectMode)S.selectedIds=[];}
+      render();
+    };
+    topRow.append(pc,selBtn);body.appendChild(topRow);
   }
 
   // Delegate send buttons — show if any delegated tasks are due today
@@ -2242,6 +2410,7 @@ function renderToday(body){
 // ══════════════════════════════════════════
 function renderSchedule(body){
   backupWarningBanner(body);
+  saveLoadBar(body);
   // View selector
   const stabs=el('div','schedule-tabs');
   ['day','week','month','year'].forEach(v=>{
@@ -2498,6 +2667,7 @@ function renderYearView(body,d){
 // ══════════════════════════════════════════
 function renderBrowse(body){
   backupWarningBanner(body);
+  saveLoadBar(body);
   const toggle=el('div','browse-toggle');
   const modes=[['area','By Area/Room'],['freq','By Frequency/Type']];
   if((S.delegates||[]).length) modes.push(['delegate','By Delegate']);
@@ -2664,6 +2834,7 @@ function renderBrowse(body){
 // ══════════════════════════════════════════
 function renderPending(body){
   backupWarningBanner(body);
+  saveLoadBar(body);
   const pending=S.tasks.filter(t=>isPendingTask(t));
   const future=S.tasks.filter(t=>isFutureTask(t));
   const asNeeded=S.tasks.filter(t=>isAsNeededTask(t));
@@ -2751,6 +2922,7 @@ function renderPending(body){
 // TAB: SETTINGS
 // ══════════════════════════════════════════
 function renderSettings(body){
+  saveLoadBar(body);
   backupWarningBanner(body);
   // About
   const as=el('div','settings-section');
@@ -2919,10 +3091,17 @@ function renderSettings(body){
   S.areas.forEach((area,i)=>{
     const row=el('div','settings-row');
     const l=el('div','settings-row-label');l.textContent=area;
-    const actions=el('div');actions.style.display='flex';actions.style.gap='8px';
+    const actions=el('div');actions.style.display='flex';actions.style.gap='6px';actions.style.alignItems='center';
+    // Up/down buttons
+    const upA=el('button','settings-btn');upA.textContent='↑';upA.style.padding='6px 10px';
+    upA.style.opacity=i===0?'0.25':'1';
+    upA.onclick=()=>{if(i>0){[S.areas[i-1],S.areas[i]]=[S.areas[i],S.areas[i-1]];save();render();}};
+    const dnA=el('button','settings-btn');dnA.textContent='↓';dnA.style.padding='6px 10px';
+    dnA.style.opacity=i===S.areas.length-1?'0.25':'1';
+    dnA.onclick=()=>{if(i<S.areas.length-1){[S.areas[i],S.areas[i+1]]=[S.areas[i+1],S.areas[i]];save();render();}};
     const delA=el('button','settings-btn');delA.textContent='✕';delA.style.color='#c0392b';delA.style.padding='6px 10px';
     delA.onclick=()=>{if(confirm(`Remove "${area}"?`)){S.areas.splice(i,1);save();render();}};
-    actions.appendChild(delA);row.append(l,actions);arSection.appendChild(row);
+    actions.append(upA,dnA,delA);row.append(l,actions);arSection.appendChild(row);
   });
   // Add new area
   const addAreaRow=el('div');addAreaRow.style.cssText='display:flex;gap:8px;margin-top:12px;';
@@ -2976,8 +3155,8 @@ function renderSettings(body){
   const bwarn=el('div');bwarn.style.cssText='font-size:12px;color:#c0720a;background:rgba(200,100,0,0.08);border:1px solid rgba(200,100,0,0.2);border-radius:6px;padding:10px 12px;margin-bottom:14px;line-height:1.6;';
   bwarn.textContent='⚠️ Important: Clearing your browser cache or deleting browsing history will erase your cards. Always export a backup first before doing this!';
   bs.appendChild(bwarn);
-  [[exportData,'Export Backup','Download a .json file to save your cards'],
-   [importData,'Import Backup','Restore cards from a .json backup file']].forEach(([fn,label,sub])=>{
+  [[exportData,'💾 Save my cards','Download a backup file to save your cards & settings'],
+   [importData,'📂 Load my cards','Restore cards from a previously saved file']].forEach(([fn,label,sub])=>{
     const row=el('div','settings-row');
     const d=el('div');const l=el('div','settings-row-label');l.textContent=label;
     const s=el('div','settings-row-sub');s.textContent=sub;d.append(l,s);
@@ -3146,8 +3325,8 @@ function renderHowTo(body){
       'Your cards are saved in your browser\'s local storage — they stay private on your device.',
       '<strong>⚠️ Warning:</strong> Clearing your browser cache or deleting browsing history will erase your cards!',
       'Always export a backup BEFORE clearing your browser data.',
-      'To back up: tap the <strong>⚙ Settings</strong> tab → <strong>Export Backup</strong>. Save the file to your email, iCloud, or Google Drive.',
-      'To restore: go to Settings → <strong>Import Backup</strong> and select your saved file.',
+      'To back up: tap <strong>💾 Save my cards</strong> — it appears at the top of every tab. Or go to ⚙ Settings → <strong>💾 Save my cards</strong>.',
+      'To restore: tap <strong>📂 Load my cards</strong> and choose your saved file. Note: Load from a previously saved file.',
       'We recommend exporting a backup regularly — once a week or whenever you add new cards!'
     ]},
   ];
@@ -3223,9 +3402,9 @@ function renderWalkthrough(body){
   bwp3.textContent='See the "Backing Up Your Cards" section at the bottom of this page for step-by-step export and import instructions.';
   const bwBtns=el('div');bwBtns.style.cssText='display:flex;gap:8px;flex-wrap:wrap;';
   const expB=el('button');expB.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 18px;border-radius:8px;border:none;background:var(--brown);color:var(--bg);cursor:pointer;';
-  expB.textContent='Export Backup Now ↓';expB.onclick=exportData;
+  expB.textContent='💾 Save my cards';expB.onclick=exportData;
   const impB=el('button');impB.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 18px;border-radius:8px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;';
-  impB.textContent='Import Backup ↑';impB.onclick=importData;
+  impB.textContent='📂 Load my cards';impB.onclick=importData;
   bwBtns.append(expB,impB);bigWarn.append(bwt,bwp1,bwp2,bwp3,bwBtns);body.appendChild(bigWarn);
 
   const sections=[
@@ -3353,18 +3532,18 @@ function renderWalkthrough(body){
       'Clearing the day returns the card to rolling from its current next due date — no pinned day, just frequency-based rolling.'
     ]},
     {title:'💾 Backing Up Your Cards',steps:[
-      'Go to <strong>⚙ Settings</strong> → <strong>Export Backup</strong>.',
+      'Tap <strong>💾 Save my cards</strong> at the top of any tab, or go to ⚙ Settings → <strong>💾 Save my cards</strong>.',
       'A .json file will download to your Downloads folder.',
       '<strong>Tip:</strong> To choose where the file saves, go to your browser settings and turn on <em>"Ask where to save each file"</em> — a save dialog will appear every time you export.',
       '<strong>Mac users:</strong> You can also set your Downloads folder to sync automatically to iCloud Drive in System Settings → iCloud → iCloud Drive options.',
       '<strong>Important:</strong> Do this before clearing your browser cache or history!',
-      'To restore on a new device, go to Settings → <strong>Import Backup</strong> and choose your file.',
+      'To restore on a new device, tap <strong>📂 Load my cards</strong> and choose your saved file.',
       'We recommend backing up weekly or whenever you add new cards.'
     ]},
     {title:'📱 Using on Multiple Devices',steps:[
       '<strong>Export first!</strong> Always export a backup before switching devices — importing replaces all existing data, it does not merge.',
-      '<strong>Phone → Computer:</strong> Export on your phone. The file saves to Downloads or you can save it to iCloud Drive or Google Drive. On your computer, open thecardfile.com, go to Settings → Import Backup, and choose your file.',
-      '<strong>Computer → Phone:</strong> Export on your computer. Move the file to iCloud Drive (Mac/iPhone users) or Google Drive (everyone else), or email it to yourself. On your phone, open thecardfile.com, go to Settings → Import Backup, and tap your file.',
+      '<strong>Phone → Computer:</strong> Export on your phone. The file saves to Downloads or you can save it to iCloud Drive or Google Drive. On your computer, open thecardfile.com, go to 📂 Load my cards, and choose your file.',
+      '<strong>Computer → Phone:</strong> Export on your computer. Move the file to iCloud Drive (Mac/iPhone users) or Google Drive (everyone else), or email it to yourself. On your phone, open thecardfile.com, go to 📂 Load my cards, and tap your file.',
       '<strong>iCloud Drive</strong> is the easiest bridge if you use Apple devices — it\'s available on both iPhone and Mac.',
       '<strong>Google Drive</strong> works great for everyone, including Android, Windows, and mixed setups (e.g. iPhone + Windows, or Mac + Android). Access it in Safari, Chrome, or any browser.',
       'Your card data is just a simple .json file — it lives wherever you put it, and only you have access to it.'
@@ -4154,6 +4333,17 @@ function render(){
   else if(S.tab==='howto') renderHowTo(body);
   else if(S.tab==='walkthrough') renderWalkthrough(body);
   app.appendChild(body);
+
+  // Select mode action bar
+  if(S.selectMode&&S.selectedIds.length>0){
+    const bar=el('div','select-bar');
+    const txt=el('div','select-bar-text');txt.textContent=`${S.selectedIds.length} card${S.selectedIds.length!==1?'s':''} selected`;
+    const reschedBtn=el('button','select-bar-btn');reschedBtn.textContent='Reschedule';
+    reschedBtn.onclick=()=>showBatchReschedule();
+    const cancelBtn=el('button','select-bar-cancel');cancelBtn.textContent='Cancel';
+    cancelBtn.onclick=()=>{S.selectMode=false;S.selectedIds=[];render();};
+    bar.append(txt,reschedBtn,cancelBtn);app.appendChild(bar);
+  }
 
   // FAB — Today, Browse, Pending, and Schedule tabs
   if(S.tab==='today'||S.tab==='browse'||S.tab==='pending'||S.tab==='schedule'){
