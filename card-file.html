@@ -1614,24 +1614,27 @@ function backupWarningBanner(body){
 
 // Discreet Save/Load bar shown at top of every tab
 function saveLoadBar(body){
-  // Check if hidden by user
-  if(localStorage.getItem('cf4_saveBarHidden')==='1'){
-    // Show a tiny "💾" button to re-show
-    const tiny=el('div');tiny.style.cssText='display:flex;justify-content:flex-end;margin-bottom:4px;';
-    const showBtn=el('button');
-    showBtn.style.cssText='font-family:"Lato",sans-serif;font-size:9px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:2px 4px;-webkit-appearance:none;opacity:.5;';
-    showBtn.textContent='💾';showBtn.title='Show save/load buttons';
-    showBtn.onclick=()=>{localStorage.removeItem('cf4_saveBarHidden');render();};
-    tiny.appendChild(showBtn);body.appendChild(tiny);
-    return;
-  }
   const bar=el('div');
   bar.style.cssText='display:flex;gap:6px;justify-content:flex-end;align-items:center;margin-bottom:10px;flex-wrap:wrap;';
 
   // Hide button
   const hideBtn=el('button');
   hideBtn.style.cssText='font-family:"Lato",sans-serif;font-size:9px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:2px 4px;-webkit-appearance:none;opacity:.5;margin-right:2px;';
-  hideBtn.textContent='hide';hideBtn.title='Hide these buttons';
+
+  if(localStorage.getItem('cf4_saveBarHidden')==='1'){
+    // Collapsed state — show only paste and a show button
+    hideBtn.textContent='💾 show';hideBtn.title='Show save/load buttons';
+    hideBtn.onclick=()=>{localStorage.removeItem('cf4_saveBarHidden');render();};
+
+    const pasteBtn=el('button');
+    pasteBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:5px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;white-space:nowrap;';
+    pasteBtn.innerHTML='📋 Paste to restore';
+    pasteBtn.onclick=pasteToRestore;
+    bar.append(hideBtn,pasteBtn);body.appendChild(bar);
+    return;
+  }
+
+  hideBtn.textContent='hide';hideBtn.title='Hide save/load buttons';
   hideBtn.onclick=()=>{localStorage.setItem('cf4_saveBarHidden','1');render();};
 
   const saveBtn=el('button');
