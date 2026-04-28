@@ -1156,6 +1156,7 @@ function showCompletionPopup(task,dateContext){
   const todayLabel=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 
   let opts;
+  const isAnOr1x=task.freq==='an'||task.freq==='1x';
   if(isPastDate){
     const pastLabel=parseDate(dateContext).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
     const todayLabel=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
@@ -1163,29 +1164,26 @@ function showCompletionPopup(task,dateContext){
       {label:`✓ Completed on this day`,sub:pastLabel,fn:()=>{bd.remove();markDone(task.id,dateContext);}},
       {label:`✓ Completed today`,sub:todayLabel+' — filed under '+pastLabel,fn:()=>{
         bd.remove();
-        // Record today as completion date but anchor schedule to original due date
         markDone(task.id,todayStr(),dateContext);
       }},
-      {label:`→ Skip this day`,sub:'Records this day as skipped — no schedule change',fn:()=>{
-        bd.remove();
-        const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
-        // Just record the skip — don't change nextDueDate
-        // The schedule already rolled forward via advanceOverdueTasks
-        t.skips=[...(t.skips||[]).filter(d=>d!==dateContext),dateContext];
-        save();render();
-      }},
     ];
+    if(!isAnOr1x) opts.push({label:`→ Skip this day`,sub:'Records this day as skipped — no schedule change',fn:()=>{
+      bd.remove();
+      const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
+      t.skips=[...(t.skips||[]).filter(d=>d!==dateContext),dateContext];
+      save();render();
+    }});
   }else{
     opts=[
       {label:`✓ Completed today`,sub:todayLabel,fn:()=>{bd.remove();markDone(task.id,todayStr());}},
-      {label:`→ Skip this time`,sub:'Advance to next due date without marking complete',fn:()=>{
-        bd.remove();
-        const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
-        t.skips=[...(t.skips||[]),todayStr()];
-        t.nextDueDate=calcNextDueDate(t,todayStr());
-        save();render();
-      }},
     ];
+    if(!isAnOr1x) opts.push({label:`→ Skip this time`,sub:'Advance to next due date without marking complete',fn:()=>{
+      bd.remove();
+      const t=S.tasks.find(t=>t.id===task.id);if(!t)return;
+      t.skips=[...(t.skips||[]),todayStr()];
+      t.nextDueDate=calcNextDueDate(t,todayStr());
+      save();render();
+    }});
   }
 
   opts.forEach(opt=>{
@@ -1322,6 +1320,61 @@ function showCardDetail(task,dateCtx){
 
   overlay.appendChild(panel);
   document.body.appendChild(overlay);
+}
+
+function pasteToRestore(){
+  const bd=el('div','backdrop');
+  bd.onclick=e=>{if(e.target===bd)bd.remove();};
+  const modal=el('div','modal');
+  modal.style.cssText='background:var(--card-bg);border-radius:16px 16px 0 0;padding:22px 18px 32px;width:100%;max-height:85vh;overflow-y:auto;animation:slideUp .28s ease;';
+  const title=el('div','modal-title');title.textContent='📋 Paste to Restore';
+  const sub=el('div','modal-sub');
+  sub.innerHTML='Copy your backup text from Notes, Gmail, or anywhere,<br>then paste it below and tap Restore.';
+  modal.append(title,sub);
+
+  const ta=document.createElement('textarea');
+  ta.placeholder='Paste your backup text here...';
+  ta.style.cssText='width:100%;height:160px;font-family:"Lato",sans-serif;font-size:12px;border:1px solid var(--gold);border-radius:8px;padding:10px;background:var(--bg);color:var(--text);margin:16px 0;box-sizing:border-box;resize:vertical;-webkit-appearance:none;';
+  modal.appendChild(ta);
+
+  const restoreBtn=el('button','btn btn-primary');
+  restoreBtn.style.cssText='width:100%;font-family:"Lato",sans-serif;font-size:14px;font-weight:700;padding:16px;border-radius:8px;border:none;cursor:pointer;-webkit-appearance:none;margin-bottom:8px;';
+  restoreBtn.textContent='✓ Restore my cards';
+  restoreBtn.onclick=()=>{
+    const text=ta.value.trim();
+    if(!text){alert('Please paste your backup text first.');return;}
+    try{
+      const data=JSON.parse(text);
+      if(!data.tasks){alert('This doesn\'t look like a Card File backup. Please check and try again.');return;}
+      S.tasks=data.tasks;S.nextId=data.nextId||200;
+      if(data.freqColors)S.freqColors={...DEFAULT_FREQ_COLORS,...data.freqColors};
+      if(data.specialTypes)S.specialTypes=data.specialTypes;
+      if(data.areas)S.areas=data.areas;
+      if(data.delegates)S.delegates=data.delegates;
+      if(data.darkMode!=null)S.darkMode=data.darkMode;
+      if(data.darkAccent){S.darkAccent=data.darkAccent;document.body.style.setProperty('--gold',data.darkAccent);}
+      if(data.theme)S.theme=data.theme;
+      if(data.dayEnd!=null)localStorage.setItem('cf4_dayEnd',String(data.dayEnd));
+      if(data.timerKeepRinging!=null)localStorage.setItem('cf4_timerKeepRinging',data.timerKeepRinging);
+      if(data.timerOvertime!=null)localStorage.setItem('cf4_timerOvertime',data.timerOvertime);
+      if(data.noConfirmClearDate!=null)localStorage.setItem('cf4_noConfirmClearDate',data.noConfirmClearDate);
+      if(data.noConfirmChangeDate!=null)localStorage.setItem('cf4_noConfirmChangeDate',data.noConfirmChangeDate);
+      if(data.saveBarHidden!=null)localStorage.setItem('cf4_saveBarHidden',data.saveBarHidden);
+      if(data.dayOrders){Object.entries(data.dayOrders).forEach(([key,val])=>localStorage.setItem(key,val));}
+      save();bd.remove();alert('✓ Cards restored successfully!');render();
+    }catch(e){
+      alert('Could not read the backup text. Make sure you copied the complete text and try again.');
+    }
+  };
+  modal.appendChild(restoreBtn);
+
+  const cancel=el('button','btn btn-ghost');
+  cancel.style.cssText='width:100%;font-family:"Lato",sans-serif;font-size:13px;padding:12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;-webkit-appearance:none;';
+  cancel.textContent='Cancel';cancel.onclick=()=>bd.remove();
+  modal.appendChild(cancel);
+  bd.appendChild(modal);document.body.appendChild(bd);
+  // Focus textarea after a brief delay
+  setTimeout(()=>ta.focus(),300);
 }
 
 function addTask(){
@@ -1593,7 +1646,13 @@ function saveLoadBar(body){
   loadBtn.title='Load your cards & settings from a previously saved file';
   loadBtn.onclick=importData;
 
-  bar.append(hideBtn,saveBtn,loadBtn);body.appendChild(bar);
+  const pasteBtn=el('button');
+  pasteBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:5px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;white-space:nowrap;';
+  pasteBtn.innerHTML='📋 Paste to restore';
+  pasteBtn.title='Restore cards by pasting backup text (great for older devices)';
+  pasteBtn.onclick=pasteToRestore;
+
+  bar.append(hideBtn,saveBtn,loadBtn,pasteBtn);body.appendChild(bar);
 }
 
 // ══════════════════════════════════════════
@@ -2540,12 +2599,18 @@ function renderDayView(body,d){
 
   // Group by area/room only — no time of day grouping in day view
   const areas=sortAreas(new Set(tasks.map(t=>t.area||'General')));
+  // Use Today order if viewing today, otherwise frequency sort
+  const isViewingToday=ds===todayStr();
+  const dayOrder=isViewingToday?getTodayOrder(tasks):null;
   areas.forEach(area=>{
-    const areaTasks=sortByFreq(tasks.filter(t=>(t.area||'General')===area));
+    const areaTasks=tasks.filter(t=>(t.area||'General')===area);
     if(!areaTasks.length)return;
+    const sorted=dayOrder
+      ?[...areaTasks].sort((a,b)=>dayOrder.indexOf(a.id)-dayOrder.indexOf(b.id))
+      :sortByFreq(areaTasks);
     const aHead=el('div','area-heading');aHead.textContent=area;body.appendChild(aHead);
     const grid=el('div','cards-grid');
-    areaTasks.forEach(task=>{
+    sorted.forEach(task=>{
       grid.appendChild(renderCard(task,false,{dateContext:ds}));
     });
     body.appendChild(grid);
@@ -2901,7 +2966,7 @@ function renderBrowse(body){
       activeTasks.filter(t=>t.freq===S.freqFilter);
     if(!filtered.length){const emp=el('div','empty');const tx=el('div','empty-text');tx.textContent='No cards here yet.';emp.appendChild(tx);body.appendChild(emp);return;}
     const freqGrid=el('div','cards-grid');
-    filtered.forEach(task=>freqGrid.appendChild(renderCard(task,true)));
+    sortByFreq(filtered).forEach(task=>freqGrid.appendChild(renderCard(task,true)));
     body.appendChild(freqGrid);
 
   // ── BY AREA/ROOM ──
@@ -3331,7 +3396,8 @@ function renderSettings(body){
   bwarn.textContent='⚠️ Important: Clearing your browser cache or deleting browsing history will erase your cards. Always export a backup first before doing this!';
   bs.appendChild(bwarn);
   [[exportData,'💾 Save my cards','Download a backup file to save your cards & settings'],
-   [importData,'📂 Load my cards','Restore cards from a previously saved file']].forEach(([fn,label,sub])=>{
+   [importData,'📂 Load my cards','Restore cards from a previously saved file'],
+   [pasteToRestore,'📋 Paste to restore','Restore by pasting backup text — great for older devices']].forEach(([fn,label,sub])=>{
     const row=el('div','settings-row');
     const d=el('div');const l=el('div','settings-row-label');l.textContent=label;
     const s=el('div','settings-row-sub');s.textContent=sub;d.append(l,s);
