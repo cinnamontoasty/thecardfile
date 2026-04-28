@@ -1010,9 +1010,34 @@ function exportData(){
     dayOrders,
     exported:new Date().toISOString(),version:4
   };
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download='cardfile-backup-'+todayStr()+'.json';a.click();URL.revokeObjectURL(url);
+  const json=JSON.stringify(data,null,2);
+  const filename='cardfile-backup-'+todayStr()+'.json';
+
+  // Try modern blob download first (works on modern browsers)
+  try{
+    const blob=new Blob([json],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=filename;
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},200);
+    return;
+  }catch(e){}
+
+  // Fallback for iOS 12 Safari — data URI
+  try{
+    const dataUri='data:application/json;charset=utf-8,'+encodeURIComponent(json);
+    const a=document.createElement('a');
+    a.href=dataUri;a.download=filename;
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>document.body.removeChild(a),200);
+    return;
+  }catch(e){}
+
+  // Last resort — open in new tab for manual save
+  const dataUri='data:application/json;charset=utf-8,'+encodeURIComponent(json);
+  window.open(dataUri,'_blank');
+  alert('Your backup opened in a new tab.\n\nTap and hold the page, then choose "Share" → "Save to Files" to save it.');
 }
 
 function importData(){
