@@ -625,7 +625,7 @@ function cardColor(task){
   const sp=S.specialTypes.find(s=>s.id===task.special);
   if(sp) return sp.color;
   // Use theme colors if no custom override, otherwise use custom
-  const themeColors=THEMES[S.theme]?.freqs||{};
+  const themeColors=(THEMES[S.theme]&&THEMES[S.theme].freqs)||{};
   // Check if user has customized this color vs it being theme default
   const defaultForTheme=themeColors[task.freq];
   return S.freqColors[task.freq]||defaultForTheme||'#9a8870';
@@ -2679,7 +2679,7 @@ function renderWeekView(body,d){
         const tod=TIME_OF_DAY.find(t=>t.id===(task.timeOfDay||''));
         const todEmoji=tod&&tod.id?tod.label.split(' ')[0]:'';
         mc.textContent=(todEmoji?todEmoji+' ':'')+task.name;
-        mc.title=task.name+' ('+fById(task.freq).label+(task.timeOfDay?' · '+tod?.label:'')+')';
+        mc.title=task.name+' ('+fById(task.freq).label+(task.timeOfDay?' · '+(tod&&tod.label||''):'')+')';
       }
       mc.onclick=()=>{
         if(S.selectMode){
