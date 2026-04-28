@@ -477,8 +477,18 @@ const COLOR_PALETTE=[
 const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-// Sort tasks by frequency order (daily first, yearly last), then by name
-// Day-order for Today view is handled separately via cf4_order_DATE
+// Sort areas by user-defined order in Settings, with unknown areas at the end
+function sortAreas(areaSet){
+  const defined=S.areas||[];
+  return [...areaSet].sort((a,b)=>{
+    const ai=defined.indexOf(a);
+    const bi=defined.indexOf(b);
+    if(ai<0&&bi<0) return a.localeCompare(b); // both unknown, alphabetical
+    if(ai<0) return 1;  // a unknown, goes last
+    if(bi<0) return -1; // b unknown, goes last
+    return ai-bi; // both known, use Settings order
+  });
+}
 function sortByFreq(tasks){
   const freqOrder=FREQS.map(f=>f.id);
   return [...tasks].sort((a,b)=>{
@@ -2152,7 +2162,7 @@ function showTaskListPopup(title,subtitle,tasks,accentColor,bgTint){
     panel.appendChild(empty);
   }else{
     // Group by area
-    const areas=[...new Set(tasks.map(t=>t.area||'General'))].sort();
+    const areas=sortAreas(new Set(tasks.map(t=>t.area||'General')));
     areas.forEach(area=>{
       const areaTasks=sortByFreq(tasks.filter(t=>(t.area||'General')===area));
       if(!areaTasks.length)return;
@@ -2401,7 +2411,7 @@ function renderToday(body){
     const todLine=el('div');todLine.style.cssText='flex:1;height:1px;background:var(--section-line);';
     todHead.append(todLabel,todLine);body.appendChild(todHead);
 
-    const areas=[...new Set(todEntries.map(e=>e.task.area||'General'))].sort();
+    const areas=sortAreas(new Set(todEntries.map(e=>e.task.area||'General')));
     areas.forEach(area=>{
       const areaEntries=todEntries.filter(e=>(e.task.area||'General')===area);
       if(!areaEntries.length)return;
@@ -2504,7 +2514,7 @@ function renderDayView(body,d){
   }
 
   // Group by area/room only — no time of day grouping in day view
-  const areas=[...new Set(tasks.map(t=>t.area||'General'))].sort();
+  const areas=sortAreas(new Set(tasks.map(t=>t.area||'General')));
   areas.forEach(area=>{
     const areaTasks=sortByFreq(tasks.filter(t=>(t.area||'General')===area));
     if(!areaTasks.length)return;
@@ -2534,7 +2544,7 @@ function showDayTasksPopup(ds,tasks){
   const todOrder=['dawn','morning','afternoon','evening',''];
   const sorted=[...tasks].sort((a,b)=>todOrder.indexOf(a.timeOfDay||'')-todOrder.indexOf(b.timeOfDay||''));
 
-  const areas=[...new Set(sorted.map(t=>t.area||'General'))];
+  const areas=sortAreas(new Set(sorted.map(t=>t.area||'General')));
   areas.forEach(area=>{
     const areaTasks=sorted.filter(t=>(t.area||'General')===area);
     if(!areaTasks.length)return;
@@ -2877,7 +2887,7 @@ function renderBrowse(body){
     allBtn.textContent='All';
     if(S.areaFilter==='all'){allBtn.style.background='var(--brown)';allBtn.style.color='var(--bg)';allBtn.style.borderColor='var(--brown)';}
     allBtn.onclick=()=>{S.areaFilter='all';render();};strip.appendChild(allBtn);
-    const usedAreas=[...new Set(activeTasks.map(t=>t.area))].sort();
+    const usedAreas=sortAreas(new Set(activeTasks.map(t=>t.area)));
     usedAreas.forEach(a=>{
       const b=el('button','filter-btn'+(S.areaFilter===a?' active':''));
       b.textContent=a;
@@ -2946,7 +2956,7 @@ function renderBrowse(body){
       none.textContent=selectedPerson==='__me__'?'All tasks are delegated!':'No tasks assigned yet.';
       body.appendChild(none);
     }else if(S.delegateSortMode==='area'){
-      const areas=[...new Set(personTasks.map(t=>t.area||'General'))].sort();
+      const areas=sortAreas(new Set(personTasks.map(t=>t.area||'General')));
       areas.forEach(area=>{
         const areaTasks=sortByFreq(personTasks.filter(t=>(t.area||'General')===area));
         if(!areaTasks.length)return;
