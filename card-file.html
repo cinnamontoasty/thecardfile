@@ -883,7 +883,11 @@ function isDoneForDay(task,dateS){
   });
 }
 
-function isDoneToday(task){return isDoneOn(task,todayStr());}
+function isDoneToday(task){
+  // A/N tasks are never "done for the day" — they can always be completed again
+  if(isAsNeededTask(task)) return false;
+  return isDoneOn(task,todayStr());
+}
 
 function daysSince(task){
   const h=task.completions||[];
@@ -1163,6 +1167,14 @@ function showCompletionPopup(task,dateContext){
 
   let opts;
   const isAnOr1x=task.freq==='an'||task.freq==='1x';
+  // For A/N tasks, show count of today's completions
+  const anCountToday=isAsNeededTask(task)?(task.completions||[]).filter(c=>c.startsWith(todayStr())).length:0;
+  if(anCountToday>0){
+    const countNote=el('div');
+    countNote.style.cssText='font-size:12px;color:var(--brown-light);font-style:italic;margin-bottom:8px;text-align:center;';
+    countNote.textContent=`✓ Completed ${anCountToday} time${anCountToday!==1?'s':''} today`;
+    modal.appendChild(countNote);
+  }
   if(isPastDate){
     const pastLabel=parseDate(dateContext).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
     const todayLabel=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
@@ -2420,20 +2432,17 @@ function renderToday(body){
   backupWarningBanner(body);
   saveLoadBar(body);
   const dueTasks=S.tasks.filter(t=>isActiveTask(t)&&isDueToday(t)&&!isDoneToday(t));
-  const todayAll=S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t));
+  const todayAll=S.tasks.filter(t=>isActiveTask(t)&&!isAsNeededTask(t)&&wasPartOfToday(t));
   const skippedCount=todayAll.filter(t=>(t.skips||[]).includes(todayStr())).length;
-  // For A/N tasks count each completion as a separate item
   const anCompletionsToday=S.tasks.filter(t=>isAsNeededTask(t))
     .reduce((sum,t)=>{
-      const count=(t.completions||[]).filter(c=>c.startsWith(todayStr())).length;
-      return sum+Math.max(0,count-1); // first completion already counted via wasPartOfToday
+      return sum+(t.completions||[]).filter(c=>c.startsWith(todayStr())).length;
     },0);
   const todayTotal=todayAll.length-skippedCount+anCompletionsToday;
-  const doneCount=S.tasks.filter(t=>isActiveTask(t)&&isDoneToday(t)).length
+  const doneCount=S.tasks.filter(t=>isActiveTask(t)&&!isAsNeededTask(t)&&isDoneToday(t)).length
     +S.tasks.filter(t=>isAsNeededTask(t))
       .reduce((sum,t)=>{
-        const count=(t.completions||[]).filter(c=>c.startsWith(todayStr())).length;
-        return sum+Math.max(0,count-1);
+        return sum+(t.completions||[]).filter(c=>c.startsWith(todayStr())).length;
       },0);
 
   if(todayTotal>0){
