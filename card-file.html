@@ -826,6 +826,11 @@ function wasPartOfToday(task){
   if(!isActiveTask(task)) return false;
   const today=todayStr();
 
+  // A/N tasks: count if completed any time today
+  if(isAsNeededTask(task)){
+    return (task.completions||[]).some(c=>c.startsWith(today));
+  }
+
   // For 2/D tasks: part of today if ANY completion or skip recorded today
   if(task.freq==='2d'){
     if((task.completions||[]).some(c=>c.startsWith(today))) return true;
@@ -835,23 +840,18 @@ function wasPartOfToday(task){
   }
 
   // Completed today — only count if task was actually due today
-  // (not a task that was rescheduled away from today)
   if(isDoneOn(task,today)){
-    // If nextDueDate has moved well past today it was likely rescheduled after completion
     const f=fById(task.freq);
     const expectedNext=dateStr(addDays(parseDate(today),Math.max(1,Math.ceil(f.days))));
-    // Was due today if nextDueDate is today, or rolled forward exactly one cycle from today
     if(task.nextDueDate===today) return true;
     if(task.nextDueDate===expectedNext) return true;
-    // Or if nextDueDate is far in future — rescheduled, but still completed today
-    // Only show if completion was recorded today
     return true;
   }
 
   // Skipped today
   if((task.skips||[]).includes(today)) return true;
 
-  // Currently due today AND nextDueDate hasn't been moved to future
+  // Currently due today
   if(task.nextDueDate===today) return true;
 
   return false;
@@ -971,6 +971,10 @@ function load(){
   S.firstTimeHowTo=false;
   // Roll overdue tasks to next occurrence
   advanceOverdueTasks();
+  // Fix any corrupted time values (encoding artifacts from older saves)
+  S.tasks.forEach(t=>{
+    if(t.time) t.time=t.time.replace(/[\u2018\u2019\u201A\u201B\u2032\u2035\u02BC]/g,"'").replace(/â€™/g,"'");
+  });
 }
 
 function save(){
@@ -1007,6 +1011,7 @@ function exportData(){
     noConfirmClearDate:localStorage.getItem('cf4_noConfirmClearDate'),
     noConfirmChangeDate:localStorage.getItem('cf4_noConfirmChangeDate'),
     saveBarHidden:localStorage.getItem('cf4_saveBarHidden'),
+    pasteBarHidden:localStorage.getItem('cf4_pasteBarHidden'),
     dayOrders,
     exported:new Date().toISOString(),version:4
   };
@@ -1063,6 +1068,7 @@ function importData(){
           if(data.noConfirmClearDate!=null)localStorage.setItem('cf4_noConfirmClearDate',data.noConfirmClearDate);
           if(data.noConfirmChangeDate!=null)localStorage.setItem('cf4_noConfirmChangeDate',data.noConfirmChangeDate);
           if(data.saveBarHidden!=null)localStorage.setItem('cf4_saveBarHidden',data.saveBarHidden);
+          if(data.pasteBarHidden!=null)localStorage.setItem('cf4_pasteBarHidden',data.pasteBarHidden);
           if(data.dayOrders){
             Object.entries(data.dayOrders).forEach(([key,val])=>{
               localStorage.setItem(key,val);
@@ -1626,16 +1632,21 @@ function saveLoadBar(body){
     hideBtn.textContent='💾 show';hideBtn.title='Show save/load buttons';
     hideBtn.onclick=()=>{localStorage.removeItem('cf4_saveBarHidden');render();};
 
-    const pasteBtn=el('button');
-    pasteBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:5px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;white-space:nowrap;';
-    pasteBtn.innerHTML='📋 Paste to restore';
-    pasteBtn.onclick=pasteToRestore;
-    bar.append(hideBtn,pasteBtn);body.appendChild(bar);
+    if(localStorage.getItem('cf4_pasteBarHidden')!=='1'){
+      const pasteBtn=el('button');
+      pasteBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:5px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;white-space:nowrap;';
+      pasteBtn.innerHTML='📋 Paste to restore';
+      pasteBtn.onclick=pasteToRestore;
+      bar.append(hideBtn,pasteBtn);
+    }else{
+      bar.append(hideBtn);
+    }
+    body.appendChild(bar);
     return;
   }
 
   hideBtn.textContent='hide';hideBtn.title='Hide save/load buttons';
-  hideBtn.onclick=()=>{localStorage.setItem('cf4_saveBarHidden','1');render();};
+  hideBtn.onclick=()=>{localStorage.setItem('cf4_saveBarHidden','1');render()};
 
   const saveBtn=el('button');
   saveBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:5px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;white-space:nowrap;';
@@ -1655,7 +1666,21 @@ function saveLoadBar(body){
   pasteBtn.title='Restore cards by pasting backup text (great for older devices)';
   pasteBtn.onclick=pasteToRestore;
 
-  bar.append(hideBtn,saveBtn,loadBtn,pasteBtn);body.appendChild(bar);
+  const hidePasteBtn=el('button');
+  hidePasteBtn.style.cssText='font-family:"Lato",sans-serif;font-size:9px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:2px 4px;-webkit-appearance:none;opacity:.5;';
+  hidePasteBtn.textContent='hide 📋';hidePasteBtn.title='Hide paste button';
+  hidePasteBtn.onclick=()=>{localStorage.setItem('cf4_pasteBarHidden','1');render();};
+
+  if(localStorage.getItem('cf4_pasteBarHidden')==='1'){
+    const showPasteBtn=el('button');
+    showPasteBtn.style.cssText='font-family:"Lato",sans-serif;font-size:9px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:2px 4px;-webkit-appearance:none;opacity:.5;';
+    showPasteBtn.textContent='show 📋';showPasteBtn.title='Show paste button';
+    showPasteBtn.onclick=()=>{localStorage.removeItem('cf4_pasteBarHidden');render();};
+    bar.append(hideBtn,saveBtn,loadBtn,showPasteBtn);
+  }else{
+    bar.append(hideBtn,saveBtn,loadBtn,pasteBtn,hidePasteBtn);
+  }
+  body.appendChild(bar);
 }
 
 // ══════════════════════════════════════════
@@ -2397,8 +2422,19 @@ function renderToday(body){
   const dueTasks=S.tasks.filter(t=>isActiveTask(t)&&isDueToday(t)&&!isDoneToday(t));
   const todayAll=S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t));
   const skippedCount=todayAll.filter(t=>(t.skips||[]).includes(todayStr())).length;
-  const todayTotal=todayAll.length-skippedCount;
-  const doneCount=S.tasks.filter(t=>isActiveTask(t)&&isDoneToday(t)).length;
+  // For A/N tasks count each completion as a separate item
+  const anCompletionsToday=S.tasks.filter(t=>isAsNeededTask(t))
+    .reduce((sum,t)=>{
+      const count=(t.completions||[]).filter(c=>c.startsWith(todayStr())).length;
+      return sum+Math.max(0,count-1); // first completion already counted via wasPartOfToday
+    },0);
+  const todayTotal=todayAll.length-skippedCount+anCompletionsToday;
+  const doneCount=S.tasks.filter(t=>isActiveTask(t)&&isDoneToday(t)).length
+    +S.tasks.filter(t=>isAsNeededTask(t))
+      .reduce((sum,t)=>{
+        const count=(t.completions||[]).filter(c=>c.startsWith(todayStr())).length;
+        return sum+Math.max(0,count-1);
+      },0);
 
   if(todayTotal>0){
     const topRow=el('div');topRow.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;';
@@ -4023,7 +4059,12 @@ function buildModal(data,isEdit){
   // Time
   const f4=el('div','field');const l4=el('label');l4.textContent="Time (e.g., 5', 30', 1hr)";
   const i4=el('input');i4.type='text';i4.value=data.time||'';i4.placeholder="10'";
-  i4.oninput=e=>data.time=e.target.value;f4.append(l4,i4);fieldsGrid2.appendChild(f4);
+  i4.oninput=e=>{
+    // Normalize curly apostrophes/prime symbols to plain ASCII
+    data.time=e.target.value
+      .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035\u02BC]/g,"'")
+      .replace(/â€™/g,"'");
+  };f4.append(l4,i4);fieldsGrid2.appendChild(f4);
 
   // Supplies
   const f5=el('div','field');const l5=el('label');l5.textContent='Equipment / Supplies';
