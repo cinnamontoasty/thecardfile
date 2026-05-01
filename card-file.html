@@ -334,6 +334,33 @@ body.dark .undo-toast{background:#3a2828;color:var(--text);}
 .undo-toast-bar{position:absolute;bottom:0;left:0;height:3px;background:var(--gold);border-radius:0 0 24px 24px;animation:undoCountdown 5s linear forwards;}
 @keyframes undoCountdown{from{width:100%;}to{width:0%;}}
 </style>
+<!-- Firebase SDK -->
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js';
+import{getFirestore,doc,setDoc,getDoc,onSnapshot,enableIndexedDbPersistence}from'https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js';
+import{getAuth,signInWithPopup,GoogleAuthProvider,signOut,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js';
+
+const firebaseConfig={
+  apiKey:"AIzaSyDDBPKAK2loBTcluPSVbZxMDMTfQ5hzBUY",
+  authDomain:"thecardfile-ae32b.firebaseapp.com",
+  projectId:"thecardfile-ae32b",
+  storageBucket:"thecardfile-ae32b.firebasestorage.app",
+  messagingSenderId:"75002775311",
+  appId:"1:75002775311:web:068d575a665ebe5b81607a"
+};
+
+const fbApp=initializeApp(firebaseConfig);
+const db=getFirestore(fbApp);
+const auth=getAuth(fbApp);
+
+// Enable offline persistence
+try{enableIndexedDbPersistence(db);}catch(e){}
+
+// Expose to global scope for use in main script
+window._fb={db,auth,doc,setDoc,getDoc,onSnapshot,signInWithPopup,GoogleAuthProvider,signOut,onAuthStateChanged};
+window._fbReady=true;
+window.dispatchEvent(new Event('fbReady'));
+</script>
 </head>
 <body>
 <div id="app"></div>
@@ -997,28 +1024,7 @@ function save(){
 // EXPORT / IMPORT
 // ══════════════════════════════════════════
 function exportData(){
-  // Collect all day order entries (cf4_order_YYYY-MM-DD)
-  const dayOrders={};
-  for(let i=0;i<localStorage.length;i++){
-    const key=localStorage.key(i);
-    if(key&&key.startsWith('cf4_order_')){
-      dayOrders[key]=localStorage.getItem(key);
-    }
-  }
-  const data={
-    tasks:S.tasks,freqColors:S.freqColors,specialTypes:S.specialTypes,
-    areas:S.areas,delegates:S.delegates||[],nextId:S.nextId,
-    darkMode:S.darkMode,darkAccent:S.darkAccent,theme:S.theme,
-    dayEnd:parseInt(localStorage.getItem('cf4_dayEnd')||'0'),
-    timerKeepRinging:localStorage.getItem('cf4_timerKeepRinging'),
-    timerOvertime:localStorage.getItem('cf4_timerOvertime'),
-    noConfirmClearDate:localStorage.getItem('cf4_noConfirmClearDate'),
-    noConfirmChangeDate:localStorage.getItem('cf4_noConfirmChangeDate'),
-    saveBarHidden:localStorage.getItem('cf4_saveBarHidden'),
-    pasteBarHidden:localStorage.getItem('cf4_pasteBarHidden'),
-    dayOrders,
-    exported:new Date().toISOString(),version:4
-  };
+  const data=buildExportData();
   const json=JSON.stringify(data,null,2);
   const filename='cardfile-backup-'+todayStr()+'.json';
 
@@ -1057,28 +1063,8 @@ function importData(){
     reader.onload=ev=>{
       try{
         const data=JSON.parse(ev.target.result);
-        if(data.tasks){
-          S.tasks=data.tasks;S.nextId=data.nextId||200;
-          if(data.freqColors)S.freqColors={...DEFAULT_FREQ_COLORS,...data.freqColors};
-          if(data.specialTypes)S.specialTypes=data.specialTypes;
-          if(data.areas)S.areas=data.areas;
-          if(data.delegates)S.delegates=data.delegates;
-          if(data.darkMode!=null)S.darkMode=data.darkMode;
-          if(data.darkAccent){S.darkAccent=data.darkAccent;document.body.style.setProperty('--gold',data.darkAccent);}
-          if(data.theme)S.theme=data.theme;
-          if(data.dayEnd!=null)localStorage.setItem('cf4_dayEnd',String(data.dayEnd));
-          if(data.timerKeepRinging!=null)localStorage.setItem('cf4_timerKeepRinging',data.timerKeepRinging);
-          if(data.timerOvertime!=null)localStorage.setItem('cf4_timerOvertime',data.timerOvertime);
-          if(data.noConfirmClearDate!=null)localStorage.setItem('cf4_noConfirmClearDate',data.noConfirmClearDate);
-          if(data.noConfirmChangeDate!=null)localStorage.setItem('cf4_noConfirmChangeDate',data.noConfirmChangeDate);
-          if(data.saveBarHidden!=null)localStorage.setItem('cf4_saveBarHidden',data.saveBarHidden);
-          if(data.pasteBarHidden!=null)localStorage.setItem('cf4_pasteBarHidden',data.pasteBarHidden);
-          if(data.dayOrders){
-            Object.entries(data.dayOrders).forEach(([key,val])=>{
-              localStorage.setItem(key,val);
-            });
-          }
-          save();alert('✓ Card file restored successfully!');render();
+        if(applyImportData(data)){
+          alert('✓ Card file restored successfully!');render();
         }else{alert('Invalid backup file.');}
       }catch{alert('Could not read backup file.');}
     };
@@ -1363,23 +1349,8 @@ function pasteToRestore(){
     if(!text){alert('Please paste your backup text first.');return;}
     try{
       const data=JSON.parse(text);
-      if(!data.tasks){alert('This doesn\'t look like a Card File backup. Please check and try again.');return;}
-      S.tasks=data.tasks;S.nextId=data.nextId||200;
-      if(data.freqColors)S.freqColors={...DEFAULT_FREQ_COLORS,...data.freqColors};
-      if(data.specialTypes)S.specialTypes=data.specialTypes;
-      if(data.areas)S.areas=data.areas;
-      if(data.delegates)S.delegates=data.delegates;
-      if(data.darkMode!=null)S.darkMode=data.darkMode;
-      if(data.darkAccent){S.darkAccent=data.darkAccent;document.body.style.setProperty('--gold',data.darkAccent);}
-      if(data.theme)S.theme=data.theme;
-      if(data.dayEnd!=null)localStorage.setItem('cf4_dayEnd',String(data.dayEnd));
-      if(data.timerKeepRinging!=null)localStorage.setItem('cf4_timerKeepRinging',data.timerKeepRinging);
-      if(data.timerOvertime!=null)localStorage.setItem('cf4_timerOvertime',data.timerOvertime);
-      if(data.noConfirmClearDate!=null)localStorage.setItem('cf4_noConfirmClearDate',data.noConfirmClearDate);
-      if(data.noConfirmChangeDate!=null)localStorage.setItem('cf4_noConfirmChangeDate',data.noConfirmChangeDate);
-      if(data.saveBarHidden!=null)localStorage.setItem('cf4_saveBarHidden',data.saveBarHidden);
-      if(data.dayOrders){Object.entries(data.dayOrders).forEach(([key,val])=>localStorage.setItem(key,val));}
-      save();bd.remove();alert('✓ Cards restored successfully!');render();
+      if(applyImportData(data)){bd.remove();alert('✓ Cards restored successfully!');render();}
+      else{alert('This doesn\'t look like a Card File backup. Please check and try again.');}
     }catch(e){
       alert('Could not read the backup text. Make sure you copied the complete text and try again.');
     }
@@ -3439,6 +3410,9 @@ function renderSettings(body){
   addDlRow.append(dlInput,addDlBtn);dlSection.appendChild(addDlRow);
   body.appendChild(dlSection);
   const bs=el('div','settings-section');
+  // Cloud Sync section
+  renderCloudSync(body);
+
   const bt=el('div','settings-title');bt.textContent='Backup & Restore';bs.appendChild(bt);
   const bwarn=el('div');bwarn.style.cssText='font-size:12px;color:#c0720a;background:rgba(200,100,0,0.08);border:1px solid rgba(200,100,0,0.2);border-radius:6px;padding:10px 12px;margin-bottom:14px;line-height:1.6;';
   bwarn.textContent='⚠️ Important: Clearing your browser cache or deleting browsing history will erase your cards. Always export a backup first before doing this!';
@@ -4684,9 +4658,284 @@ function render(){
 }
 
 // ══════════════════════════════════════════
-// BOOT
+// CLOUD SYNC (Firebase — optional)
 // ══════════════════════════════════════════
-load();render();
+
+// Generate a human-readable sync code
+function generateSyncCode(){
+  const words=['ROSE','LILY','SAGE','FERN','IRIS','DAISY','TULIP','POPPY','MINT','OAK'];
+  const word=words[Math.floor(Math.random()*words.length)];
+  const num=String(Math.floor(1000+Math.random()*9000));
+  return word+'-'+num;
+}
+
+// Get the user's Firestore document path
+function getDocPath(){
+  const syncCode=localStorage.getItem('cf4_syncCode');
+  const uid=localStorage.getItem('cf4_uid');
+  if(uid) return 'users/'+uid;
+  if(syncCode) return 'codes/'+syncCode;
+  return null;
+}
+
+// Check if cloud sync is enabled
+function isSyncEnabled(){
+  return localStorage.getItem('cf4_syncEnabled')==='1'&&!!getDocPath();
+}
+
+// Save to Firebase (called after every local save)
+async function syncToCloud(){
+  if(!isSyncEnabled()||!window._fbReady) return;
+  try{
+    const path=getDocPath();
+    const[col,id]=path.split('/');
+    const{db,doc,setDoc}=window._fb;
+    const data=buildExportData();
+    await setDoc(doc(db,col,id),{
+      data:JSON.stringify(data),
+      updated:new Date().toISOString(),
+      version:4
+    });
+    localStorage.setItem('cf4_lastSync',new Date().toISOString());
+    // Update sync status display
+    const el=document.getElementById('cf4-sync-status');
+    if(el) el.textContent='☁️ Synced just now';
+  }catch(e){
+    console.warn('Cloud sync failed:',e);
+  }
+}
+
+// Load from Firebase (called on app start if sync enabled)
+async function syncFromCloud(){
+  if(!isSyncEnabled()||!window._fbReady) return false;
+  try{
+    const path=getDocPath();
+    const[col,id]=path.split('/');
+    const{db,doc,getDoc}=window._fb;
+    const snap=await getDoc(doc(db,col,id));
+    if(!snap.exists()) return false;
+    const cloudData=JSON.parse(snap.data().data);
+    const localUpdated=localStorage.getItem('cf4_lastSave')||'';
+    const cloudUpdated=snap.data().updated||'';
+    // Use whichever is newer
+    if(cloudUpdated>localUpdated){
+      applyImportData(cloudData);
+      return true;
+    }
+    return false;
+  }catch(e){
+    console.warn('Cloud load failed:',e);
+    return false;
+  }
+}
+
+// Build export data object (shared between export and sync)
+function buildExportData(){
+  const dayOrders={};
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    if(key&&key.startsWith('cf4_order_')) dayOrders[key]=localStorage.getItem(key);
+  }
+  return{
+    tasks:S.tasks,freqColors:S.freqColors,specialTypes:S.specialTypes,
+    areas:S.areas,delegates:S.delegates||[],nextId:S.nextId,
+    darkMode:S.darkMode,darkAccent:S.darkAccent,theme:S.theme,
+    dayEnd:parseInt(localStorage.getItem('cf4_dayEnd')||'0'),
+    timerKeepRinging:localStorage.getItem('cf4_timerKeepRinging'),
+    timerOvertime:localStorage.getItem('cf4_timerOvertime'),
+    noConfirmClearDate:localStorage.getItem('cf4_noConfirmClearDate'),
+    noConfirmChangeDate:localStorage.getItem('cf4_noConfirmChangeDate'),
+    saveBarHidden:localStorage.getItem('cf4_saveBarHidden'),
+    pasteBarHidden:localStorage.getItem('cf4_pasteBarHidden'),
+    dayOrders,
+    exported:new Date().toISOString(),version:4
+  };
+}
+
+// Apply imported data (shared between import and sync)
+function applyImportData(data){
+  if(!data.tasks) return false;
+  S.tasks=data.tasks;S.nextId=data.nextId||200;
+  if(data.freqColors)S.freqColors={...DEFAULT_FREQ_COLORS,...data.freqColors};
+  if(data.specialTypes)S.specialTypes=data.specialTypes;
+  if(data.areas)S.areas=data.areas;
+  if(data.delegates)S.delegates=data.delegates;
+  if(data.darkMode!=null)S.darkMode=data.darkMode;
+  if(data.darkAccent){S.darkAccent=data.darkAccent;document.body.style.setProperty('--gold',data.darkAccent);}
+  if(data.theme)S.theme=data.theme;
+  if(data.dayEnd!=null)localStorage.setItem('cf4_dayEnd',String(data.dayEnd));
+  if(data.timerKeepRinging!=null)localStorage.setItem('cf4_timerKeepRinging',data.timerKeepRinging);
+  if(data.timerOvertime!=null)localStorage.setItem('cf4_timerOvertime',data.timerOvertime);
+  if(data.noConfirmClearDate!=null)localStorage.setItem('cf4_noConfirmClearDate',data.noConfirmClearDate);
+  if(data.noConfirmChangeDate!=null)localStorage.setItem('cf4_noConfirmChangeDate',data.noConfirmChangeDate);
+  if(data.saveBarHidden!=null)localStorage.setItem('cf4_saveBarHidden',data.saveBarHidden);
+  if(data.pasteBarHidden!=null)localStorage.setItem('cf4_pasteBarHidden',data.pasteBarHidden);
+  if(data.dayOrders) Object.entries(data.dayOrders).forEach(([k,v])=>localStorage.setItem(k,v));
+  save();
+  return true;
+}
+
+// Sign in with Google
+async function signInWithGoogle(){
+  if(!window._fbReady){alert('Cloud sync is loading, please try again in a moment.');return;}
+  try{
+    const{auth,signInWithPopup,GoogleAuthProvider}=window._fb;
+    const result=await signInWithPopup(auth,new GoogleAuthProvider());
+    const uid=result.user.uid;
+    localStorage.setItem('cf4_uid',uid);
+    localStorage.setItem('cf4_syncEnabled','1');
+    localStorage.setItem('cf4_syncMode','google');
+    await syncToCloud();
+    render();
+    alert('✓ Signed in! Your cards will sync automatically across all your devices.');
+  }catch(e){
+    if(e.code!=='auth/popup-closed-by-user'){
+      alert('Sign-in failed. Please try again.');
+    }
+  }
+}
+
+// Use sync code
+async function enableSyncCode(code){
+  if(!code||code.trim().length<4){alert('Please enter a valid sync code.');return;}
+  const clean=code.trim().toUpperCase();
+  localStorage.setItem('cf4_syncCode',clean);
+  localStorage.setItem('cf4_syncEnabled','1');
+  localStorage.setItem('cf4_syncMode','code');
+  // Try to load existing data for this code
+  const loaded=await syncFromCloud();
+  if(loaded){
+    render();
+    alert('✓ Cards loaded from sync code '+clean+'! Your cards will now sync automatically.');
+  }else{
+    await syncToCloud();
+    render();
+    alert('✓ Sync code '+clean+' activated! Use this code on any device to access your cards.');
+  }
+}
+
+// Sign out / disable sync
+async function disableSync(){
+  if(!confirm('Disable cloud sync? Your cards will remain on this device but won\'t sync automatically.')) return;
+  if(window._fbReady&&localStorage.getItem('cf4_syncMode')==='google'){
+    try{await window._fb.signOut(window._fb.auth);}catch(e){}
+  }
+  localStorage.removeItem('cf4_syncEnabled');
+  localStorage.removeItem('cf4_uid');
+  localStorage.removeItem('cf4_syncCode');
+  localStorage.removeItem('cf4_syncMode');
+  localStorage.removeItem('cf4_lastSync');
+  render();
+}
+
+// Modify save() to also sync to cloud
+const _originalSave=save;
+function save(){
+  _originalSave();
+  localStorage.setItem('cf4_lastSave',new Date().toISOString());
+  if(isSyncEnabled()) syncToCloud();
+}
+
+// Render cloud sync settings section
+function renderCloudSync(body){
+  const section=el('div','settings-section');
+  const title=el('div','settings-title');title.textContent='☁️ Cloud Sync';section.appendChild(title);
+
+  const syncEnabled=isSyncEnabled();
+  const syncMode=localStorage.getItem('cf4_syncMode');
+  const syncCode=localStorage.getItem('cf4_syncCode');
+  const lastSync=localStorage.getItem('cf4_lastSync');
+
+  if(syncEnabled){
+    // Status
+    const status=el('div');status.id='cf4-sync-status';
+    status.style.cssText='font-size:12px;color:#4a9e5c;margin-bottom:12px;font-weight:600;';
+    const lastSyncStr=lastSync?new Date(lastSync).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'never';
+    status.textContent=syncMode==='google'?'☁️ Syncing with Google — last synced '+lastSyncStr:'☁️ Syncing with code '+syncCode+' — last synced '+lastSyncStr;
+    section.appendChild(status);
+
+    // Manual sync button
+    const syncNow=el('button','btn btn-ghost');
+    syncNow.style.cssText='font-family:"Lato",sans-serif;font-size:12px;padding:10px 16px;border-radius:8px;border:1px solid var(--border);cursor:pointer;margin-bottom:8px;width:100%;-webkit-appearance:none;';
+    syncNow.textContent='↻ Sync now';
+    syncNow.onclick=async()=>{
+      syncNow.textContent='Syncing...';
+      await syncToCloud();
+      syncNow.textContent='↻ Sync now';
+      render();
+    };
+    section.appendChild(syncNow);
+
+    // Disable button
+    const disableBtn=el('button','btn btn-ghost');
+    disableBtn.style.cssText='font-family:"Lato",sans-serif;font-size:12px;padding:10px 16px;border-radius:8px;border:1px solid var(--border);cursor:pointer;width:100%;color:var(--brown-light);-webkit-appearance:none;';
+    disableBtn.textContent='Disable cloud sync';
+    disableBtn.onclick=disableSync;
+    section.appendChild(disableBtn);
+
+  }else{
+    // Not enabled — show options
+    const intro=el('div');intro.style.cssText='font-size:12px;color:var(--brown-mid);margin-bottom:14px;line-height:1.6;';
+    intro.textContent='Sync your cards across all your devices automatically. Choose how you\'d like to connect:';
+    section.appendChild(intro);
+
+    // Option 1: Google Sign-in
+    const googleBtn=el('button');
+    googleBtn.style.cssText='display:flex;align-items:center;gap:10px;width:100%;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);cursor:pointer;margin-bottom:10px;-webkit-appearance:none;';
+    googleBtn.innerHTML='<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continue with Google';
+    googleBtn.onclick=signInWithGoogle;
+    section.appendChild(googleBtn);
+
+    // Divider
+    const div=el('div');div.style.cssText='text-align:center;font-size:11px;color:var(--brown-light);margin:8px 0;';div.textContent='— or —';
+    section.appendChild(div);
+
+    // Option 2: Sync code
+    const codeTitle=el('div');codeTitle.style.cssText='font-size:12px;font-weight:700;color:var(--brown-mid);margin-bottom:6px;';
+    codeTitle.textContent='Use a sync code (no account needed)';
+    section.appendChild(codeTitle);
+
+    const codeNote=el('div');codeNote.style.cssText='font-size:11px;color:var(--brown-light);margin-bottom:8px;line-height:1.5;';
+    codeNote.textContent='Generate a code on this device, then enter it on your other devices to sync.';
+    section.appendChild(codeNote);
+
+    const codeRow=el('div');codeRow.style.cssText='display:flex;gap:8px;margin-bottom:8px;';
+    const codeInput=el('input');
+    codeInput.type='text';codeInput.placeholder='Enter code e.g. ROSE-4729';
+    codeInput.style.cssText='flex:1;font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:var(--bg);color:var(--text);text-transform:uppercase;-webkit-appearance:none;';
+    const codeBtn=el('button');
+    codeBtn.style.cssText='font-family:"Lato",sans-serif;font-size:12px;font-weight:700;padding:10px 14px;border-radius:8px;border:none;background:var(--gold);color:var(--brown);cursor:pointer;white-space:nowrap;-webkit-appearance:none;';
+    codeBtn.textContent='Use code';
+    codeBtn.onclick=()=>enableSyncCode(codeInput.value);
+    codeRow.append(codeInput,codeBtn);
+    section.appendChild(codeRow);
+
+    const genBtn=el('button');
+    genBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;-webkit-appearance:none;';
+    genBtn.textContent='Generate a new code for me';
+    genBtn.onclick=()=>{
+      const code=generateSyncCode();
+      codeInput.value=code;
+      codeInput.focus();
+    };
+    section.appendChild(genBtn);
+
+    const privNote=el('div');privNote.style.cssText='font-size:10px;color:var(--brown-light);margin-top:12px;line-height:1.5;font-style:italic;';
+    privNote.textContent='Your card data is stored securely in the cloud and only accessible with your Google account or sync code. No personal information is collected.';
+    section.appendChild(privNote);
+  }
+  body.appendChild(section);
+}
+load();
+// Try to sync from cloud on startup if enabled
+if(localStorage.getItem('cf4_syncEnabled')==='1'){
+  const trySync=()=>{
+    if(window._fbReady){syncFromCloud().then(loaded=>{if(loaded)render();});}
+    else{window.addEventListener('fbReady',()=>syncFromCloud().then(loaded=>{if(loaded)render();}),{once:true});}
+  };
+  trySync();
+}
+render();
 </script>
 </body>
 </html>
