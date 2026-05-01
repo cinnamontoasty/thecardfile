@@ -1016,6 +1016,11 @@ function save(){
   localStorage.setItem('cf4_darkAccent',S.darkAccent);
   localStorage.setItem('cf4_theme',S.theme);
   localStorage.setItem('cf4_nid',String(S.nextId));
+  localStorage.setItem('cf4_lastSave',new Date().toISOString());
+  // Cloud sync — only if enabled and functions are available
+  if(typeof isSyncEnabled==='function'&&isSyncEnabled()&&typeof syncToCloud==='function'){
+    syncToCloud();
+  }
 }
 
 // ══════════════════════════════════════════
@@ -4735,13 +4740,7 @@ async function disableSync(){
   render();
 }
 
-// Modify save() to also sync to cloud
-const _originalSave=save;
-function save(){
-  _originalSave();
-  localStorage.setItem('cf4_lastSave',new Date().toISOString());
-  if(isSyncEnabled()) syncToCloud();
-}
+// Note: save() calls syncToCloud() directly — see save() function definition above
 
 // Render cloud sync settings section
 function renderCloudSync(body){
