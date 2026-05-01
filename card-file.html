@@ -4720,6 +4720,84 @@ function generateSyncCode(){
   return word+'-'+num;
 }
 
+// Save to Firebase
+async function syncToCloud(){
+  if(!isSyncEnabled()||!window._fbReady) return;
+  try{
+    const path=getDocPath();
+    const[col,id]=path.split('/');
+    const{db,doc,setDoc}=window._fb;
+    // Build data inline — same as exportData
+    const dayOrders={};
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key&&key.startsWith('cf4_order_')) dayOrders[key]=localStorage.getItem(key);
+    }
+    const data={
+      tasks:S.tasks,freqColors:S.freqColors,specialTypes:S.specialTypes,
+      areas:S.areas,delegates:S.delegates||[],nextId:S.nextId,
+      darkMode:S.darkMode,darkAccent:S.darkAccent,theme:S.theme,
+      dayEnd:parseInt(localStorage.getItem('cf4_dayEnd')||'0'),
+      timerKeepRinging:localStorage.getItem('cf4_timerKeepRinging'),
+      timerOvertime:localStorage.getItem('cf4_timerOvertime'),
+      dayOrders,exported:new Date().toISOString(),version:4
+    };
+    await setDoc(doc(db,col,id),{data:JSON.stringify(data),updated:new Date().toISOString()});
+    localStorage.setItem('cf4_lastSync',new Date().toISOString());
+    const el=document.getElementById('cf4-sync-status');
+    if(el) el.textContent='☁️ Syncing with code '+localStorage.getItem('cf4_syncCode')+' — last synced just now';
+  }catch(e){console.warn('Cloud sync failed:',e);}
+}
+
+// Load from Firebase
+async function syncFromCloud(){
+  if(!isSyncEnabled()||!window._fbReady) return false;
+  try{
+    const path=getDocPath();
+    const[col,id]=path.split('/');
+    const{db,doc,getDoc}=window._fb;
+    const snap=await getDoc(doc(db,col,id));
+    if(!snap.exists()) return false;
+    const cloudData=JSON.parse(snap.data().data);
+    const localUpdated=localStorage.getItem('cf4_lastSave')||'';
+    const cloudUpdated=snap.data().updated||'';
+    if(cloudUpdated>localUpdated){
+      // Apply cloud data
+      if(!cloudData.tasks) return false;
+      S.tasks=cloudData.tasks;S.nextId=cloudData.nextId||200;
+      if(cloudData.freqColors)S.freqColors={...DEFAULT_FREQ_COLORS,...cloudData.freqColors};
+      if(cloudData.specialTypes)S.specialTypes=cloudData.specialTypes;
+      if(cloudData.areas)S.areas=cloudData.areas;
+      if(cloudData.delegates)S.delegates=cloudData.delegates;
+      if(cloudData.darkMode!=null)S.darkMode=cloudData.darkMode;
+      if(cloudData.darkAccent){S.darkAccent=cloudData.darkAccent;document.body.style.setProperty('--gold',cloudData.darkAccent);}
+      if(cloudData.theme)S.theme=cloudData.theme;
+      if(cloudData.dayOrders) Object.entries(cloudData.dayOrders).forEach(([k,v])=>localStorage.setItem(k,v));
+      save();
+      return true;
+    }
+    return false;
+  }catch(e){console.warn('Cloud load failed:',e);return false;}
+}
+
+// Enable sync with a code
+async function enableSyncCode(code){
+  if(!code||code.trim().length<4){alert('Please enter a valid sync code.');return;}
+  const clean=code.trim().toUpperCase().replace(/[^A-Z0-9-]/g,'');
+  localStorage.setItem('cf4_syncCode',clean);
+  localStorage.setItem('cf4_syncEnabled','1');
+  // Try to load existing data for this code first
+  const loaded=await syncFromCloud();
+  if(loaded){
+    render();
+    alert('✓ Cards loaded from sync code '+clean+'!\n\nYour cards will now sync automatically across all your devices.');
+  }else{
+    await syncToCloud();
+    render();
+    alert('✓ Sync code '+clean+' activated!\n\nWrite this code down and enter it on any other device to sync your cards.');
+  }
+}
+
 // Get the user's Firestore document path — sync code only, fully anonymous
 function getDocPath(){
   const syncCode=localStorage.getItem('cf4_syncCode');
