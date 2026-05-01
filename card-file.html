@@ -1026,14 +1026,13 @@ function save(){
 // ══════════════════════════════════════════
 // EXPORT / IMPORT
 // ══════════════════════════════════════════
-// Build export data object — shared between export, cloud sync, and paste restore
-function buildExportData(){
+function exportData(){
   const dayOrders={};
   for(let i=0;i<localStorage.length;i++){
     const key=localStorage.key(i);
     if(key&&key.startsWith('cf4_order_')) dayOrders[key]=localStorage.getItem(key);
   }
-  return{
+  const data={
     tasks:S.tasks,freqColors:S.freqColors,specialTypes:S.specialTypes,
     areas:S.areas,delegates:S.delegates||[],nextId:S.nextId,
     darkMode:S.darkMode,darkAccent:S.darkAccent,theme:S.theme,
@@ -1047,37 +1046,8 @@ function buildExportData(){
     dayOrders,
     exported:new Date().toISOString(),version:4
   };
-}
-
-// Apply imported data — shared between import, cloud sync, and paste restore
-function applyImportData(data){
-  if(!data||!data.tasks) return false;
-  S.tasks=data.tasks;S.nextId=data.nextId||200;
-  if(data.freqColors)S.freqColors={...DEFAULT_FREQ_COLORS,...data.freqColors};
-  if(data.specialTypes)S.specialTypes=data.specialTypes;
-  if(data.areas)S.areas=data.areas;
-  if(data.delegates)S.delegates=data.delegates;
-  if(data.darkMode!=null)S.darkMode=data.darkMode;
-  if(data.darkAccent){S.darkAccent=data.darkAccent;document.body.style.setProperty('--gold',data.darkAccent);}
-  if(data.theme)S.theme=data.theme;
-  if(data.dayEnd!=null)localStorage.setItem('cf4_dayEnd',String(data.dayEnd));
-  if(data.timerKeepRinging!=null)localStorage.setItem('cf4_timerKeepRinging',data.timerKeepRinging);
-  if(data.timerOvertime!=null)localStorage.setItem('cf4_timerOvertime',data.timerOvertime);
-  if(data.noConfirmClearDate!=null)localStorage.setItem('cf4_noConfirmClearDate',data.noConfirmClearDate);
-  if(data.noConfirmChangeDate!=null)localStorage.setItem('cf4_noConfirmChangeDate',data.noConfirmChangeDate);
-  if(data.saveBarHidden!=null)localStorage.setItem('cf4_saveBarHidden',data.saveBarHidden);
-  if(data.pasteBarHidden!=null)localStorage.setItem('cf4_pasteBarHidden',data.pasteBarHidden);
-  if(data.dayOrders) Object.entries(data.dayOrders).forEach(([k,v])=>localStorage.setItem(k,v));
-  save();
-  return true;
-}
-
-function exportData(){
-  const data=buildExportData();
   const json=JSON.stringify(data,null,2);
   const filename='cardfile-backup-'+todayStr()+'.json';
-
-  // Try modern blob download first (works on modern browsers)
   try{
     const blob=new Blob([json],{type:'application/json'});
     const url=URL.createObjectURL(blob);
@@ -1087,8 +1057,6 @@ function exportData(){
     setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},200);
     return;
   }catch(e){}
-
-  // Fallback for iOS 12 Safari — data URI
   try{
     const dataUri='data:application/json;charset=utf-8,'+encodeURIComponent(json);
     const a=document.createElement('a');
@@ -1097,31 +1065,49 @@ function exportData(){
     setTimeout(()=>document.body.removeChild(a),200);
     return;
   }catch(e){}
-
-  // Last resort — open in new tab for manual save
   const dataUri='data:application/json;charset=utf-8,'+encodeURIComponent(json);
   window.open(dataUri,'_blank');
   alert('Your backup opened in a new tab.\n\nTap and hold the page, then choose "Share" → "Save to Files" to save it.');
 }
 
 function importData(){
-  const input=document.createElement('input');input.type='file';input.accept='.json,application/json';
+  const input=document.createElement('input');
+  input.type='file';
+  input.accept='.json,application/json';
+  input.style.cssText='position:fixed;top:-100px;left:-100px;opacity:0;';
+  document.body.appendChild(input);
   input.onchange=e=>{
-    const file=e.target.files[0];if(!file)return;
+    const file=e.target.files[0];
+    document.body.removeChild(input);
+    if(!file)return;
     const reader=new FileReader();
     reader.onload=ev=>{
       try{
         const data=JSON.parse(ev.target.result);
-        if(applyImportData(data)){
-          alert('✓ Card file restored successfully!');render();
-        }else{alert('Invalid backup file.');}
-      }catch{alert('Could not read backup file.');}
+        if(!data.tasks){alert('Invalid backup file.');return;}
+        S.tasks=data.tasks;S.nextId=data.nextId||200;
+        if(data.freqColors)S.freqColors={...DEFAULT_FREQ_COLORS,...data.freqColors};
+        if(data.specialTypes)S.specialTypes=data.specialTypes;
+        if(data.areas)S.areas=data.areas;
+        if(data.delegates)S.delegates=data.delegates;
+        if(data.darkMode!=null)S.darkMode=data.darkMode;
+        if(data.darkAccent){S.darkAccent=data.darkAccent;document.body.style.setProperty('--gold',data.darkAccent);}
+        if(data.theme)S.theme=data.theme;
+        if(data.dayEnd!=null)localStorage.setItem('cf4_dayEnd',String(data.dayEnd));
+        if(data.timerKeepRinging!=null)localStorage.setItem('cf4_timerKeepRinging',data.timerKeepRinging);
+        if(data.timerOvertime!=null)localStorage.setItem('cf4_timerOvertime',data.timerOvertime);
+        if(data.noConfirmClearDate!=null)localStorage.setItem('cf4_noConfirmClearDate',data.noConfirmClearDate);
+        if(data.noConfirmChangeDate!=null)localStorage.setItem('cf4_noConfirmChangeDate',data.noConfirmChangeDate);
+        if(data.saveBarHidden!=null)localStorage.setItem('cf4_saveBarHidden',data.saveBarHidden);
+        if(data.pasteBarHidden!=null)localStorage.setItem('cf4_pasteBarHidden',data.pasteBarHidden);
+        if(data.dayOrders) Object.entries(data.dayOrders).forEach(([k,v])=>localStorage.setItem(k,v));
+        save();alert('✓ Card file restored successfully!');render();
+      }catch(err){alert('Could not read backup file.');}
     };
     reader.readAsText(file);
   };
   input.click();
 }
-
 // ══════════════════════════════════════════
 // ACTIONS
 // ══════════════════════════════════════════
@@ -1398,8 +1384,24 @@ function pasteToRestore(){
     if(!text){alert('Please paste your backup text first.');return;}
     try{
       const data=JSON.parse(text);
-      if(applyImportData(data)){bd.remove();alert('✓ Cards restored successfully!');render();}
-      else{alert('This doesn\'t look like a Card File backup. Please check and try again.');}
+      if(!data.tasks){alert('This doesn\'t look like a Card File backup. Please check and try again.');return;}
+      S.tasks=data.tasks;S.nextId=data.nextId||200;
+      if(data.freqColors)S.freqColors={...DEFAULT_FREQ_COLORS,...data.freqColors};
+      if(data.specialTypes)S.specialTypes=data.specialTypes;
+      if(data.areas)S.areas=data.areas;
+      if(data.delegates)S.delegates=data.delegates;
+      if(data.darkMode!=null)S.darkMode=data.darkMode;
+      if(data.darkAccent){S.darkAccent=data.darkAccent;document.body.style.setProperty('--gold',data.darkAccent);}
+      if(data.theme)S.theme=data.theme;
+      if(data.dayEnd!=null)localStorage.setItem('cf4_dayEnd',String(data.dayEnd));
+      if(data.timerKeepRinging!=null)localStorage.setItem('cf4_timerKeepRinging',data.timerKeepRinging);
+      if(data.timerOvertime!=null)localStorage.setItem('cf4_timerOvertime',data.timerOvertime);
+      if(data.noConfirmClearDate!=null)localStorage.setItem('cf4_noConfirmClearDate',data.noConfirmClearDate);
+      if(data.noConfirmChangeDate!=null)localStorage.setItem('cf4_noConfirmChangeDate',data.noConfirmChangeDate);
+      if(data.saveBarHidden!=null)localStorage.setItem('cf4_saveBarHidden',data.saveBarHidden);
+      if(data.pasteBarHidden!=null)localStorage.setItem('cf4_pasteBarHidden',data.pasteBarHidden);
+      if(data.dayOrders) Object.entries(data.dayOrders).forEach(([k,v])=>localStorage.setItem(k,v));
+      save();bd.remove();alert('✓ Cards restored successfully!');render();
     }catch(e){
       alert('Could not read the backup text. Make sure you copied the complete text and try again.');
     }
