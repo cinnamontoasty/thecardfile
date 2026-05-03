@@ -4065,14 +4065,16 @@ function renderWalkthrough(body){
       'Tap <strong>Reset to Defaults</strong> to go back to the original color set at any time.'
     ]},
     {title:'☁️ Cloud Sync',steps:[
-      'Cloud sync lets your cards stay up to date across all your devices automatically — no manual saving needed between devices.',
+      'Cloud sync keeps your cards up to date across all your devices automatically — no manual saving needed between devices.',
       'Go to <strong>⚙ Settings → ☁️ Cloud Sync</strong> and tap <strong>✦ Generate a code for me</strong> to get a unique sync code like ROSE-4729.',
-      '<strong>Write your sync code down somewhere safe!</strong> It\'s the only way to access your cards in the cloud. There\'s no account to recover it.',
-      'Tap <strong>Activate</strong> — your cards are now syncing to the cloud automatically whenever you make changes.',
-      'On any other device, go to Settings → ☁️ Cloud Sync, enter your sync code, and tap Activate. Your cards load instantly!',
-      '🔒 <strong>Completely anonymous</strong> — no account, no email, no personal data. Only your card data is stored, and only you can access it with your sync code.',
-      'Cloud sync works alongside the <strong>💾 Save my cards</strong> backup — we recommend keeping both. Cloud sync is your daily convenience; saved files are your permanent backup.',
-      'If you ever get a new device or clear your browser, just enter your sync code and all your cards come back instantly.'
+      '<strong>Write your sync code down somewhere safe!</strong> It\'s the only key to your cards in the cloud. There\'s no account to recover it with.',
+      '<strong>Always activate on your most up-to-date device first.</strong> Tap <strong>Activate</strong> on the device with your most complete cards. This pushes your cards to the cloud.',
+      '⚠️ <strong>Critical: connecting a new device always loads FROM the cloud.</strong> When you enter your sync code on any device, if cloud data exists, it loads from the cloud and replaces whatever is on that device. So always make sure the cloud has your best data first!',
+      '<strong>Safe sequence for adding a new device:</strong> (1) On your main device, tap <strong>↻ Sync now</strong> to push the latest cards to the cloud. (2) Then enter your sync code on the new device. Your cards load automatically.',
+      'After all devices are connected, changes sync automatically — mark a task complete on your iPad, and it appears on your iPhone within seconds.',
+      '🔒 <strong>Completely anonymous</strong> — no account, no email, no personal data collected. Only your card data is stored. Even the app developer cannot tell whose cards belong to whom.',
+      'Cloud sync works alongside <strong>💾 Save my cards</strong> — keep both habits. Cloud sync is your daily convenience; saved files are your permanent safety net.',
+      'If cloud sync is enabled, the daily save reminder is hidden — your cards are already being backed up automatically! 🌸'
     ]},
     {title:'💾 Saving Your Cards',steps:[
       'Your cards are stored on this device only. To keep them safe and move them between devices, use <strong>💾 Save my cards</strong>.',
@@ -5145,6 +5147,11 @@ function renderCloudSync(body){
     const codeNote2=el('div');codeNote2.style.cssText='font-size:11px;color:var(--brown-light);margin-bottom:10px;line-height:1.5;';
     codeNote2.textContent='Generate a code on this device, write it down, then enter it on your other devices to sync your cards.';
     section.appendChild(codeNote2);
+
+    const safetyNote=el('div');
+    safetyNote.style.cssText='font-size:11px;color:#c0720a;background:rgba(200,100,0,0.08);border:1px solid rgba(200,100,0,0.15);border-radius:6px;padding:10px 12px;margin-bottom:12px;line-height:1.6;';
+    safetyNote.innerHTML='⚠️ <strong>Important:</strong> Always activate cloud sync on your most up-to-date device first. When you enter your sync code on a new device, it will load your cards FROM the cloud — replacing whatever is currently on that device. Make sure the cloud has your best cards before connecting a new device!';
+    section.appendChild(safetyNote);
 
     const codeRow=el('div');codeRow.style.cssText='display:flex;gap:8px;margin-bottom:8px;';
     const codeInput=el('input');
