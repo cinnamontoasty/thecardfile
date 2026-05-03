@@ -1132,9 +1132,16 @@ function markDone(id,onDateStr,originalDueDateStr){
   // Record completion with actual date done
   const ts=dStr+'T12:00:00.000Z';
   task.completions=[...(task.completions||[]),ts];
-  // Roll schedule from original due date anchor, not from today
   if(originalDueDateStr) task.originalDueDate=originalDueDateStr;
   task.nextDueDate=calcNextDueDate(task,anchorDate);
+  // Clear one-time delegation after completion
+  if(task.nextDelegate){
+    if(isAsNeededTask(task)||isOneTimeTask(task)){
+      delete task.nextDelegate;delete task.nextDelegateDate;
+    }else{
+      delete task.nextDelegate; // scheduled tasks: clear after this instance
+    }
+  }
   save();render();
   // Undo available via Schedule → Today view
 }
@@ -1328,7 +1335,83 @@ function showCardDetail(task,dateCtx){
     row('Total Done',`${completions.length} time${completions.length!==1?'s':''}`);
   }
 
-  // Action buttons
+  // Delegation options — shown if delegates exist
+  const delegates=S.delegates||[];
+  if(delegates.length&&!isAsNeededTask(task)&&!isOneTimeTask(task)){
+    // "Delegate next instance" for scheduled tasks
+    const delRow=el('div','card-detail-row');
+    delRow.style.borderBottomColor=borderColor;
+    const delLabel=el('div','card-detail-label');delLabel.textContent='Next instance';delLabel.style.color=labelColor;
+    const delVal=el('div');delVal.style.cssText=`font-size:14px;color:${textColor};flex:1;`;
+    if(task.nextDelegate){
+      delVal.textContent='→ '+task.nextDelegate;
+      const clearDel=el('button');
+      clearDel.style.cssText='font-family:"Lato",sans-serif;font-size:10px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:0 0 0 8px;-webkit-appearance:none;text-decoration:underline;';
+      clearDel.textContent='Clear';
+      clearDel.onclick=()=>{
+        const t=S.tasks.find(x=>x.id===task.id);if(t){delete t.nextDelegate;save();}
+        overlay.remove();showCardDetail(task,dateCtx);
+      };
+      delVal.appendChild(clearDel);
+    }else{
+      const delSel=document.createElement('select');
+      delSel.style.cssText='font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;background:var(--bg);color:var(--text);-webkit-appearance:auto;';
+      [['','Delegate next instance...'],...delegates.map(d=>[d,d])].forEach(([val,txt])=>{
+        const o=document.createElement('option');o.value=val;o.textContent=txt;delSel.appendChild(o);
+      });
+      delSel.onchange=e=>{
+        if(!e.target.value) return;
+        const t=S.tasks.find(x=>x.id===task.id);
+        if(t){t.nextDelegate=e.target.value;save();}
+        overlay.remove();showCardDetail(task,dateCtx);
+      };
+      delVal.appendChild(delSel);
+    }
+    delRow.append(delLabel,delVal);panel.appendChild(delRow);
+  }
+
+  if((isAsNeededTask(task)||isOneTimeTask(task))&&delegates.length){
+    // "Delegate for a date" for A/N and 1X tasks
+    const delRow=el('div','card-detail-row');
+    delRow.style.borderBottomColor=borderColor;
+    const delLabel=el('div','card-detail-label');delLabel.textContent='Delegate for';delLabel.style.color=labelColor;
+    const delVal=el('div');delVal.style.cssText=`font-size:14px;color:${textColor};flex:1;display:flex;flex-direction:column;gap:6px;`;
+
+    if(task.nextDelegate){
+      const info=el('div');info.textContent='→ '+task.nextDelegate+(task.nextDelegateDate?' on '+parseDate(task.nextDelegateDate).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'');
+      const clearDel=el('button');
+      clearDel.style.cssText='font-family:"Lato",sans-serif;font-size:10px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:0;-webkit-appearance:none;text-decoration:underline;';
+      clearDel.textContent='Clear delegation';
+      clearDel.onclick=()=>{
+        const t=S.tasks.find(x=>x.id===task.id);
+        if(t){delete t.nextDelegate;delete t.nextDelegateDate;save();}
+        overlay.remove();showCardDetail(task,dateCtx);
+      };
+      delVal.append(info,clearDel);
+    }else{
+      const row2=el('div');row2.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap;';
+      const delSel=document.createElement('select');
+      delSel.style.cssText='font-family:"Lato",sans-serif;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;background:var(--bg);color:var(--text);-webkit-appearance:auto;';
+      [['','Person...'],...delegates.map(d=>[d,d])].forEach(([val,txt])=>{
+        const o=document.createElement('option');o.value=val;o.textContent=txt;delSel.appendChild(o);
+      });
+      const dateSel=el('input');dateSel.type='date';
+      dateSel.value=todayStr();
+      dateSel.style.cssText='font-family:"Lato",sans-serif;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;background:var(--bg);color:var(--text);-webkit-appearance:none;';
+      const assignBtn=el('button');
+      assignBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;border:none;background:var(--gold);color:var(--brown);cursor:pointer;-webkit-appearance:none;';
+      assignBtn.textContent='Assign';
+      assignBtn.onclick=()=>{
+        if(!delSel.value){alert('Please choose a person.');return;}
+        const t=S.tasks.find(x=>x.id===task.id);
+        if(t){t.nextDelegate=delSel.value;t.nextDelegateDate=dateSel.value;save();}
+        overlay.remove();showCardDetail(task,dateCtx);
+      };
+      row2.append(delSel,dateSel,assignBtn);
+      delVal.appendChild(row2);
+    }
+    delRow.append(delLabel,delVal);panel.appendChild(delRow);
+  }
   const actions=el('div','card-detail-actions');
   const editBtn=el('button','btn btn-primary');
   editBtn.style.cssText='flex:1;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:none;cursor:pointer;-webkit-appearance:none;';
@@ -1975,10 +2058,15 @@ function renderCard(task,showArea,opts={}){
   }
 
   // Delegate badge
-  if(task.delegate){
+  if(task.delegate||task.nextDelegate){
     const db=el('div');
     db.style.cssText='font-size:10px;color:var(--brown-light);font-style:italic;margin-bottom:2px;';
-    db.textContent='→ '+task.delegate;
+    if(task.nextDelegate){
+      const dateStr2=task.nextDelegateDate?(' on '+parseDate(task.nextDelegateDate).toLocaleDateString('en-US',{month:'short',day:'numeric'})):'';
+      db.textContent='→ '+task.nextDelegate+dateStr2+' (next instance)';
+    }else{
+      db.textContent='→ '+task.delegate;
+    }
     inner.appendChild(db);
   }
 
@@ -3108,9 +3196,10 @@ function renderBrowse(body){
     body.appendChild(sortToggle);
     // Get tasks for selected person
     const selectedPerson=S.delegateFilter||'__me__';
+    // Include both permanently delegated AND next-instance delegated tasks
     const personTasks=selectedPerson==='__me__'
-      ?activeTasks.filter(t=>!t.delegate)
-      :activeTasks.filter(t=>t.delegate===selectedPerson);
+      ?activeTasks.filter(t=>!t.delegate&&!t.nextDelegate)
+      :activeTasks.filter(t=>t.delegate===selectedPerson||t.nextDelegate===selectedPerson);
     if(!personTasks.length){
       const none=el('div');none.style.cssText='font-size:13px;color:var(--brown-light);padding:20px 0;font-style:italic;text-align:center;';
       none.textContent=selectedPerson==='__me__'?'All tasks are delegated!':'No tasks assigned yet.';
@@ -3234,6 +3323,9 @@ function renderPending(body){
 function renderSettings(body){
   saveLoadBar(body);
   backupWarningBanner(body);
+
+  // ── CLOUD SYNC FIRST ──
+  renderCloudSync(body);
   // About
   const as=el('div','settings-section');
   const at=el('div','settings-title');at.textContent='About & Help';as.appendChild(at);
@@ -3461,9 +3553,7 @@ function renderSettings(body){
   addDlRow.append(dlInput,addDlBtn);dlSection.appendChild(addDlRow);
   body.appendChild(dlSection);
   const bs=el('div','settings-section');
-  // Cloud Sync section
-  renderCloudSync(body);
-
+  // Cloud Sync section already rendered at top
   const bt=el('div','settings-title');bt.textContent='Backup & Restore';bs.appendChild(bt);
   const bwarn=el('div');bwarn.style.cssText='font-size:12px;color:#c0720a;background:rgba(200,100,0,0.08);border:1px solid rgba(200,100,0,0.2);border-radius:6px;padding:10px 12px;margin-bottom:14px;line-height:1.6;';
   bwarn.textContent='⚠️ Important: Clearing your browser cache or deleting browsing history will erase your cards. Always export a backup first before doing this!';
@@ -3499,7 +3589,7 @@ function renderSettings(body){
 // Send delegate's tasks via text/email
 function sendDelegateTasks(name){
   const today=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  const tasks=S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t)&&t.delegate===name&&!isDoneToday(t));
+  const tasks=S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t)&&(t.delegate===name||t.nextDelegate===name)&&!isDoneToday(t));
   if(!tasks.length){
     alert(`No outstanding tasks for ${name} today!`);return;
   }
@@ -3843,6 +3933,16 @@ function renderWalkthrough(body){
       'To quickly apply a coordinated set of colors, choose one of the built-in <strong>Color Themes</strong> in the Appearance section — Parchment, Garden, Ocean, Autumn, Lavender, or Sunrise.',
       'You can then fine-tune individual colors after applying a theme.',
       'Tap <strong>Reset to Defaults</strong> to go back to the original color set at any time.'
+    ]},
+    {title:'☁️ Cloud Sync',steps:[
+      'Cloud sync lets your cards stay up to date across all your devices automatically — no manual saving needed between devices.',
+      'Go to <strong>⚙ Settings → ☁️ Cloud Sync</strong> and tap <strong>✦ Generate a code for me</strong> to get a unique sync code like ROSE-4729.',
+      '<strong>Write your sync code down somewhere safe!</strong> It\'s the only way to access your cards in the cloud. There\'s no account to recover it.',
+      'Tap <strong>Activate</strong> — your cards are now syncing to the cloud automatically whenever you make changes.',
+      'On any other device, go to Settings → ☁️ Cloud Sync, enter your sync code, and tap Activate. Your cards load instantly!',
+      '🔒 <strong>Completely anonymous</strong> — no account, no email, no personal data. Only your card data is stored, and only you can access it with your sync code.',
+      'Cloud sync works alongside the <strong>💾 Save my cards</strong> backup — we recommend keeping both. Cloud sync is your daily convenience; saved files are your permanent backup.',
+      'If you ever get a new device or clear your browser, just enter your sync code and all your cards come back instantly.'
     ]},
     {title:'💾 Saving Your Cards',steps:[
       'Your cards are stored on this device only. To keep them safe and move them between devices, use <strong>💾 Save my cards</strong>.',
@@ -4938,7 +5038,7 @@ function renderCloudSync(body){
     section.appendChild(genBtn);
 
     const privNote=el('div');privNote.style.cssText='font-size:10px;color:var(--brown-light);margin-top:14px;line-height:1.5;font-style:italic;padding:8px;background:var(--parchment-dark);border-radius:6px;';
-    privNote.textContent='🔒 Completely anonymous — no account, no email, no personal data collected. Your sync code is the only key to your cards. Keep it safe!';
+    privNote.textContent='🔒 Completely anonymous — no account, no email, no personal data collected. When you use cloud sync, only your card data and settings are stored. Your sync code is the only identifier — even the app developer cannot tell whose cards belong to whom. Keep your code safe!';
     section.appendChild(privNote);
   }
   body.appendChild(section);
