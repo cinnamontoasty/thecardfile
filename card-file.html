@@ -2540,6 +2540,88 @@ function showTodayProgressPopup(dueTasks,doneCount,total){
   modal.appendChild(cancel);bd.appendChild(modal);document.body.appendChild(bd);
 }
 
+// ══════════════════════════════════════════
+// COLLAPSIBLE SECTION HELPERS
+// ══════════════════════════════════════════
+
+// Make a section collapsible — permanent state (Browse, Schedule, Pending, Settings)
+function makeCollapsible(section,titleText,storageKey,defaultOpen=true){
+  const isOpen=localStorage.getItem(storageKey)!==(defaultOpen?'0':'1');
+  const titleRow=el('div');
+  titleRow.style.cssText='display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:2px 0;';
+  const titleEl=el('div');
+  titleEl.style.cssText='font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brown-light);';
+  titleEl.textContent=titleText;
+  const arrow=el('div');
+  arrow.style.cssText='font-size:13px;color:var(--brown-light);';
+  arrow.textContent=isOpen?'▾':'▸';
+  titleRow.append(titleEl,arrow);
+  const content=el('div');
+  content.style.display=isOpen?'block':'none';
+  while(section.children.length>0) content.appendChild(section.children[0]);
+  section.append(titleRow,content);
+  titleRow.onclick=()=>{
+    const open=content.style.display==='none';
+    content.style.display=open?'block':'none';
+    arrow.textContent=open?'▾':'▸';
+    localStorage.setItem(storageKey,open?(defaultOpen?'1':'1'):'0');
+  };
+  return{section,content,isOpen};
+}
+
+// Make a settings section collapsible — with settings-title styling
+function makeSettingsCollapsible(section,titleText,storageKey,defaultOpen=true){
+  const isOpen=localStorage.getItem(storageKey)!=='0';
+  const titleRow=el('div');
+  titleRow.style.cssText='display:flex;justify-content:space-between;align-items:center;cursor:pointer;';
+  const titleEl=el('div','settings-title');
+  titleEl.textContent=titleText;titleEl.style.marginBottom='0';
+  const arrow=el('div');
+  arrow.style.cssText='font-size:14px;color:var(--brown-light);';
+  arrow.textContent=isOpen?'▾':'▸';
+  titleRow.append(titleEl,arrow);
+  const content=el('div');
+  content.style.display=isOpen?'block':'none';
+  while(section.children.length>0) content.appendChild(section.children[0]);
+  section.append(titleRow,content);
+  titleRow.onclick=()=>{
+    const open=content.style.display==='none';
+    content.style.display=open?'block':'none';
+    arrow.textContent=open?'▾':'▸';
+    localStorage.setItem(storageKey,open?'1':'0');
+  };
+}
+
+// Make a Today view section collapsible — resets each new day
+function makeTodayCollapsible(section,titleText,todKey,count,doneCount){
+  const storeKey='cf4_todCollapse_'+todayStr()+'_'+todKey;
+  const isOpen=localStorage.getItem(storeKey)!=='0';
+  const titleRow=el('div');
+  titleRow.style.cssText='display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:6px 0 4px;border-bottom:1px solid var(--border);margin-bottom:6px;';
+  const left=el('div');left.style.cssText='display:flex;align-items:center;gap:8px;';
+  const titleEl=el('div');
+  titleEl.style.cssText='font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brown-light);';
+  titleEl.textContent=titleText;
+  const badge=el('div');
+  badge.style.cssText='font-size:10px;color:var(--brown-light);opacity:.7;';
+  badge.textContent=doneCount+'/'+count;
+  left.append(titleEl,badge);
+  const arrow=el('div');
+  arrow.style.cssText='font-size:13px;color:var(--brown-light);';
+  arrow.textContent=isOpen?'▾':'▸';
+  titleRow.append(left,arrow);
+  const content=el('div');
+  content.style.display=isOpen?'block':'none';
+  while(section.children.length>0) content.appendChild(section.children[0]);
+  section.append(titleRow,content);
+  titleRow.onclick=()=>{
+    const open=content.style.display==='none';
+    content.style.display=open?'block':'none';
+    arrow.textContent=open?'▾':'▸';
+    localStorage.setItem(storeKey,open?'1':'0');
+  };
+}
+
 function renderToday(body){
   backupWarningBanner(body);
   saveLoadBar(body);
@@ -2647,20 +2729,50 @@ function renderToday(body){
     const todEntries=slotEntries.filter(e=>e.slotId===tod.id);
     if(!todEntries.length)return;
 
+    // Count done vs total for this time slot
+    const slotTotal=todEntries.length;
+    const slotDoneCount=todEntries.filter(e=>e.slotDone||isDoneToday(e.task)).length;
+
+    // Build collapsible time-of-day section
+    const todSection=el('div');
+    todSection.style.cssText='margin:16px 0 8px;';
+
+    // Header
     const todHead=el('div');
-    todHead.style.cssText='display:flex;align-items:center;gap:8px;margin:20px 0 10px;';
+    todHead.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;';
     const todLabel=el('span');
     todLabel.style.cssText=`font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:${tod.color};padding:4px 12px;border-radius:12px;white-space:nowrap;`;
     todLabel.textContent=tod.label;
+    const todBadge=el('span');
+    todBadge.style.cssText='font-size:10px;color:var(--brown-light);';
+    todBadge.textContent=slotDoneCount+'/'+slotTotal;
     const todLine=el('div');todLine.style.cssText='flex:1;height:1px;background:var(--section-line);';
-    todHead.append(todLabel,todLine);body.appendChild(todHead);
+    const todArrow=el('span');
+    todArrow.style.cssText='font-size:13px;color:var(--brown-light);';
+
+    // Check collapse state — resets each new day
+    const storeKey='cf4_todCollapse_'+todayStr()+'_'+(tod.id||'anytime');
+    const isOpen=localStorage.getItem(storeKey)!=='0';
+    todArrow.textContent=isOpen?'▾':'▸';
+
+    todHead.append(todLabel,todBadge,todLine,todArrow);
+    todSection.appendChild(todHead);
+
+    const todContent=el('div');
+    todContent.style.display=isOpen?'block':'none';
+
+    todHead.onclick=()=>{
+      const open=todContent.style.display==='none';
+      todContent.style.display=open?'block':'none';
+      todArrow.textContent=open?'▾':'▸';
+      localStorage.setItem(storeKey,open?'1':'0');
+    };
 
     const areas=sortAreas(new Set(todEntries.map(e=>e.task.area||'General')));
     areas.forEach(area=>{
       const areaEntries=todEntries.filter(e=>(e.task.area||'General')===area);
       if(!areaEntries.length)return;
-      const aHead=el('div','area-heading');aHead.textContent=area;body.appendChild(aHead);
-      // Sort by day order within this time+room group
+      const aHead=el('div','area-heading');aHead.textContent=area;todContent.appendChild(aHead);
       const groupIds=areaEntries.map(e=>e.task.id);
       areaEntries.sort((a,b)=>dayOrder.indexOf(a.task.id)-dayOrder.indexOf(b.task.id));
       const orderedGroupIds=areaEntries.map(e=>e.task.id);
@@ -2679,8 +2791,11 @@ function renderToday(body){
         });
         grid.appendChild(card);
       });
-      body.appendChild(grid);
+      todContent.appendChild(grid);
     });
+
+    todSection.appendChild(todContent);
+    body.appendChild(todSection);
   });
 }
 
@@ -2768,12 +2883,28 @@ function renderDayView(body,d){
     const sorted=dayOrder
       ?[...areaTasks].sort((a,b)=>dayOrder.indexOf(a.id)-dayOrder.indexOf(b.id))
       :sortByFreq(areaTasks);
-    const aHead=el('div','area-heading');aHead.textContent=area;body.appendChild(aHead);
+
+    const areaSection=el('div');areaSection.style.marginBottom='8px;';
+    const aHead=el('div','area-heading');aHead.style.cursor='pointer';
+    aHead.style.display='flex';aHead.style.justifyContent='space-between';aHead.style.alignItems='center';
+    const aHeadText=el('span');aHeadText.textContent=area;
+    const aArrow=el('span');aArrow.style.cssText='font-size:12px;color:var(--brown-light);margin-left:6px;';
+    const aKey='cf4_collapse_schedday_'+area.replace(/\s+/g,'_');
+    const aOpen=localStorage.getItem(aKey)!=='0';
+    aArrow.textContent=aOpen?'▾':'▸';
+    aHead.append(aHeadText,aArrow);
+    const aContent=el('div');aContent.style.display=aOpen?'block':'none';
+    aHead.onclick=()=>{
+      const open=aContent.style.display==='none';
+      aContent.style.display=open?'block':'none';
+      aArrow.textContent=open?'▾':'▸';
+      localStorage.setItem(aKey,open?'1':'0');
+    };
     const grid=el('div','cards-grid');
-    sorted.forEach(task=>{
-      grid.appendChild(renderCard(task,false,{dateContext:ds}));
-    });
-    body.appendChild(grid);
+    sorted.forEach(task=>grid.appendChild(renderCard(task,false,{dateContext:ds})));
+    aContent.appendChild(grid);
+    areaSection.append(aHead,aContent);
+    body.appendChild(areaSection);
   });
 }
 
@@ -3157,10 +3288,28 @@ function renderBrowse(body){
     areas.forEach(area=>{
       const tasks=sortByFreq(activeTasks.filter(t=>t.area===area));
       if(!tasks.length)return;
-      const ah=el('div','area-heading');ah.textContent=area;body.appendChild(ah);
+
+      const areaSection=el('div');areaSection.style.marginBottom='8px;';
+      const ah=el('div','area-heading');
+      ah.style.cssText='display:flex;justify-content:space-between;align-items:center;cursor:pointer;';
+      const ahText=el('span');ahText.textContent=area;
+      const ahArrow=el('span');ahArrow.style.cssText='font-size:12px;color:var(--brown-light);';
+      const ahKey='cf4_collapse_browse_'+area.replace(/\s+/g,'_');
+      const ahOpen=localStorage.getItem(ahKey)!=='0';
+      ahArrow.textContent=ahOpen?'▾':'▸';
+      ah.append(ahText,ahArrow);
+      const ahContent=el('div');ahContent.style.display=ahOpen?'block':'none';
+      ah.onclick=()=>{
+        const open=ahContent.style.display==='none';
+        ahContent.style.display=open?'block':'none';
+        ahArrow.textContent=open?'▾':'▸';
+        localStorage.setItem(ahKey,open?'1':'0');
+      };
       const grid=el('div','cards-grid');
       tasks.forEach(task=>grid.appendChild(renderCard(task,false)));
-      body.appendChild(grid);
+      ahContent.appendChild(grid);
+      areaSection.append(ah,ahContent);
+      body.appendChild(areaSection);
     });
 
   // ── BY DELEGATE ──
@@ -3253,75 +3402,94 @@ function renderPending(body){
     emp.append(ic,tx);body.appendChild(emp);return;
   }
 
-  // One-Time tasks
+  function pendSection(key,label,color,count,buildFn){
+    const storeKey='cf4_collapse_pending_'+key;
+    const isOpen=localStorage.getItem(storeKey)!=='0';
+    const head=sectionHead(label,color,count);
+    head.style.cursor='pointer';
+    const arr=el('span');arr.style.cssText='font-size:12px;color:var(--brown-light);margin-left:8px;';
+    arr.textContent=isOpen?'▾':'▸';
+    head.appendChild(arr);
+    const content=el('div');content.style.display=isOpen?'block':'none';
+    const sec=el('div');
+    buildFn(sec);
+    while(sec.children.length>0) content.appendChild(sec.children[0]);
+    head.onclick=()=>{
+      const open=content.style.display==='none';
+      content.style.display=open?'block':'none';
+      arr.textContent=open?'▾':'▸';
+      localStorage.setItem(storeKey,open?'1':'0');
+    };
+    body.appendChild(head);
+    body.appendChild(content);
+  }
+
   if(oneTime.length){
-    body.appendChild(sectionHead('One-Time Tasks','#a0aab8',oneTimePending.length));
-    const otNote=el('div');otNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
-    otNote.textContent='Tasks that only need to be done once. Once completed they\'re recorded forever.';
-    body.appendChild(otNote);
-    if(oneTimePending.length){
-      const otGrid=el('div','cards-grid');
-      sortByFreq(oneTimePending).forEach(task=>otGrid.appendChild(renderCard(task,true)));
-      body.appendChild(otGrid);
-    }
-    if(oneTimeDone.length){
-      // Show/hide toggle for completed one-time tasks
-      const toggleRow=el('div');toggleRow.style.cssText='display:flex;align-items:center;gap:8px;margin:10px 0;cursor:pointer;';
-      const toggleBtn=el('button');
-      toggleBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;color:var(--brown-light);background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;cursor:pointer;-webkit-appearance:none;';
-      toggleBtn.textContent=(S.showCompletedOnce?'Hide':'Show')+` completed one-time tasks (${oneTimeDone.length})`;
-      toggleBtn.onclick=()=>{S.showCompletedOnce=!S.showCompletedOnce;render();};
-      toggleRow.appendChild(toggleBtn);body.appendChild(toggleRow);
-      if(S.showCompletedOnce){
-        const doneGrid=el('div','cards-grid');
-        sortByFreq(oneTimeDone).forEach(task=>{
-          const card=renderCard(task,true);
-          card.style.opacity='0.5';
-          doneGrid.appendChild(card);
-        });
-        body.appendChild(doneGrid);
+    pendSection('onetime','One-Time Tasks','#a0aab8',oneTimePending.length,sec=>{
+      const otNote=el('div');otNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
+      otNote.textContent="Tasks that only need to be done once. Once completed they're recorded forever.";
+      sec.appendChild(otNote);
+      if(oneTimePending.length){
+        const otGrid=el('div','cards-grid');
+        sortByFreq(oneTimePending).forEach(task=>otGrid.appendChild(renderCard(task,true)));
+        sec.appendChild(otGrid);
       }
-    }
+      if(oneTimeDone.length){
+        const toggleBtn=el('button');
+        toggleBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;color:var(--brown-light);background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;cursor:pointer;-webkit-appearance:none;margin-top:8px;display:block;';
+        toggleBtn.textContent=(S.showCompletedOnce?'Hide':'Show')+` completed one-time tasks (${oneTimeDone.length})`;
+        toggleBtn.onclick=()=>{S.showCompletedOnce=!S.showCompletedOnce;render();};
+        sec.appendChild(toggleBtn);
+        if(S.showCompletedOnce){
+          const doneGrid=el('div','cards-grid');doneGrid.style.marginTop='8px';
+          sortByFreq(oneTimeDone).forEach(task=>{
+            const card=renderCard(task,true);card.style.opacity='0.5';doneGrid.appendChild(card);
+          });
+          sec.appendChild(doneGrid);
+        }
+      }
+    });
   }
 
   if(asNeeded.length){
-    body.appendChild(sectionHead('As-Needed','#b0a898',asNeeded.length));
-    const anNote=el('div');anNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
-    anNote.textContent='These tasks have no schedule — do them whenever you like. Tap ◇ As Needed in the header for quick access.';
-    body.appendChild(anNote);
-    const anGrid=el('div','cards-grid');
-    sortByFreq(asNeeded).forEach(task=>anGrid.appendChild(renderCard(task,true)));
-    body.appendChild(anGrid);
+    pendSection('asneeded','As-Needed','#b0a898',asNeeded.length,sec=>{
+      const anNote=el('div');anNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
+      anNote.textContent='These tasks have no schedule — do them whenever you like. Tap ◇ As Needed in the header for quick access.';
+      sec.appendChild(anNote);
+      const anGrid=el('div','cards-grid');
+      sortByFreq(asNeeded).forEach(task=>anGrid.appendChild(renderCard(task,true)));
+      sec.appendChild(anGrid);
+    });
   }
 
   if(pending.length){
-    body.appendChild(sectionHead('Unscheduled','#9a8870',pending.length));
-    const pendNote=el('div');pendNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
-    pendNote.textContent='These cards have no start date. Edit them to schedule.';
-    body.appendChild(pendNote);
-    const pendGrid=el('div','cards-grid');
-    pending.forEach(task=>pendGrid.appendChild(renderCard(task,true)));
-    body.appendChild(pendGrid);
+    pendSection('unscheduled','Unscheduled','#9a8870',pending.length,sec=>{
+      const pendNote=el('div');pendNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
+      pendNote.textContent='These cards have no start date. Edit them to schedule.';
+      sec.appendChild(pendNote);
+      const pendGrid=el('div','cards-grid');
+      pending.forEach(task=>pendGrid.appendChild(renderCard(task,true)));
+      sec.appendChild(pendGrid);
+    });
   }
 
   if(future.length){
-    body.appendChild(sectionHead('Scheduled — Not Yet Active','#6a9fd4',future.length));
-    const futNote=el('div');futNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
-    futNote.textContent='These cards will become active on their start date.';
-    body.appendChild(futNote);
-    future.sort((a,b)=>a.startDate.localeCompare(b.startDate));
-    const futGrid=el('div','cards-grid');
-    future.forEach(task=>{
-      const card=renderCard(task,true);
-      const sd=el('div');sd.style.cssText='font-size:10px;color:rgba(0,0,0,0.55);padding:4px 20px 6px;font-family:"Lato",sans-serif;font-style:italic;';
-      sd.textContent='Starts: '+parseDate(task.startDate).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-      card.appendChild(sd);
-      futGrid.appendChild(card);
+    pendSection('future','Scheduled — Not Yet Active','#6a9fd4',future.length,sec=>{
+      const futNote=el('div');futNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
+      futNote.textContent='These cards will become active on their start date.';
+      sec.appendChild(futNote);
+      future.sort((a,b)=>a.startDate.localeCompare(b.startDate));
+      const futGrid=el('div','cards-grid');
+      future.forEach(task=>{
+        const card=renderCard(task,true);
+        const sd=el('div');sd.style.cssText='font-size:10px;color:rgba(0,0,0,0.55);padding:4px 20px 6px;font-family:"Lato",sans-serif;font-style:italic;';
+        sd.textContent='Starts: '+parseDate(task.startDate).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+        card.appendChild(sd);futGrid.appendChild(card);
+      });
+      sec.appendChild(futGrid);
     });
-    body.appendChild(futGrid);
   }
 }
-
 // ══════════════════════════════════════════
 // TAB: SETTINGS
 // ══════════════════════════════════════════
@@ -3383,6 +3551,7 @@ function renderSettings(body){
   versionRow.style.cssText='text-align:center;padding:12px 0 4px;font-size:10px;color:var(--brown-light);letter-spacing:.06em;';
   versionRow.textContent='The Card File · Updated April 26, 2026';
   as.appendChild(versionRow);
+  makeSettingsCollapsible(as,'About & Help','cf4_collapse_about');
   body.appendChild(as);
 
   // ── SCHEDULE & TIMING ──
@@ -3469,6 +3638,7 @@ function renderSettings(body){
   resetTodBtn.textContent='Reset to defaults';
   resetTodBtn.onclick=()=>{if(confirm('Reset times of day to defaults?')){S.timeOfDay=[...DEFAULT_TIME_OF_DAY];save();render();}};
   schedSection.appendChild(resetTodBtn);
+  makeSettingsCollapsible(schedSection,'Schedule & Timing','cf4_collapse_sched');
   body.appendChild(schedSection);
 
   // Appearance
@@ -3518,6 +3688,7 @@ function renderSettings(body){
     acPicker.appendChild(sw);
   });
   acRow.append(acd,acPicker);apps.appendChild(acRow);
+  makeSettingsCollapsible(apps,'Appearance','cf4_collapse_appear');
   body.appendChild(apps);
 
   // Color Themes
@@ -3573,7 +3744,7 @@ function renderSettings(body){
   const rb=el('button','settings-btn');rb.textContent='Reset';
   rb.onclick=()=>{if(confirm('Reset all colors to defaults?')){S.freqColors={...DEFAULT_FREQ_COLORS};S.specialTypes=DEFAULT_SPECIAL.map(s=>({...s}));save();render();}};
   resetRow.append(rd,rb);cs.appendChild(resetRow);
-  makeCollapsible(cs,'Card Colors','cf4_collapse_colors');
+  makeSettingsCollapsible(cs,'Card Colors','cf4_collapse_colors');
   body.appendChild(cs);
 
   // Areas
@@ -3605,7 +3776,7 @@ function renderSettings(body){
   };
   areaInput.addEventListener('keydown',e=>{if(e.key==='Enter')addAreaBtn.click();});
   addAreaRow.append(areaInput,addAreaBtn);arSection.appendChild(addAreaRow);
-  makeCollapsible(arSection,'Rooms & Areas','cf4_collapse_areas');
+  makeSettingsCollapsible(arSection,'Rooms & Areas','cf4_collapse_areas');
   body.appendChild(arSection);
 
   // Family Members / Delegates
@@ -3641,7 +3812,7 @@ function renderSettings(body){
   };
   dlInput.addEventListener('keydown',e=>{if(e.key==='Enter')addDlBtn.click();});
   addDlRow.append(dlInput,addDlBtn);dlSection.appendChild(addDlRow);
-  makeCollapsible(dlSection,'Family Members & Helpers','cf4_collapse_delegates');
+  makeSettingsCollapsible(dlSection,'Family Members & Helpers','cf4_collapse_delegates');
   body.appendChild(dlSection);
 
 
@@ -3659,6 +3830,7 @@ function renderSettings(body){
     const d=el('div');const l=el('div','settings-row-label');l.textContent=val;
     const s=el('div','settings-row-sub');s.textContent=sub;d.append(l,s);row.appendChild(d);ss.appendChild(row);
   });
+  makeSettingsCollapsible(ss,'Stats','cf4_collapse_stats');
   body.appendChild(ss);
 }
 
@@ -5088,7 +5260,7 @@ async function disableSync(){
 // Render cloud sync settings section
 function renderCloudSync(body){
   const section=el('div','settings-section');
-  const title=el('div','settings-title');title.textContent='☁️ Cloud Sync';section.appendChild(title);
+  const title=el('div','settings-title');title.textContent='Sync/Backup & Restore';section.appendChild(title);
 
   const syncEnabled=isSyncEnabled();
   const syncMode=localStorage.getItem('cf4_syncMode');
@@ -5199,6 +5371,7 @@ function renderCloudSync(body){
     row.append(d,b);section.appendChild(row);
   });
 
+  makeSettingsCollapsible(section,'Sync/Backup & Restore','cf4_collapse_sync');
   body.appendChild(section);
 }
 load();
