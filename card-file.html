@@ -622,7 +622,7 @@ let S={
   darkAccent:'#c06878',
   theme:'parchment',
   notificationDismissed:false,
-  browseMode:'area',freqFilter:'all',areaFilter:'all',delegateSortMode:'freq',delegateFilter:'__me__',showCompletedOnce:false,
+  browseMode:'area',freqFilter:'all',areaFilter:'all',delegateSortMode:'freq',delegateFilter:'__me__',showCompletedOnce:false,weekStart:0,
   selectMode:false,selectedIds:[],
   scheduleView:'day',
   scheduleDate:new Date(),
@@ -984,6 +984,7 @@ function load(){
   try{S.tasks=JSON.parse(localStorage.getItem('cf4_tasks'))||DEFAULT_TASKS;}catch{S.tasks=DEFAULT_TASKS;}
   try{const fc=localStorage.getItem('cf4_freqColors');if(fc)S.freqColors={...DEFAULT_FREQ_COLORS,...JSON.parse(fc)};}catch{}
   try{const sp=localStorage.getItem('cf4_special');if(sp)S.specialTypes=JSON.parse(sp);}catch{}
+  try{const ws=localStorage.getItem('cf4_weekStart');if(ws!=null)S.weekStart=parseInt(ws);}catch{}
   try{const ar=localStorage.getItem('cf4_areas');if(ar)S.areas=JSON.parse(ar);}catch{}
   try{const tod=localStorage.getItem('cf4_timeOfDay');if(tod)S.timeOfDay=JSON.parse(tod);}catch{}
   try{const dl=localStorage.getItem('cf4_delegates');if(dl)S.delegates=JSON.parse(dl);}catch{}
@@ -1045,6 +1046,7 @@ function exportData(){
     areas:S.areas,timeOfDay:S.timeOfDay||DEFAULT_TIME_OF_DAY,delegates:S.delegates||[],nextId:S.nextId,
     darkMode:S.darkMode,darkAccent:S.darkAccent,theme:S.theme,
     dayEnd:parseInt(localStorage.getItem('cf4_dayEnd')||'0'),
+    weekStart:S.weekStart||0,
     timerKeepRinging:localStorage.getItem('cf4_timerKeepRinging'),
     timerOvertime:localStorage.getItem('cf4_timerOvertime'),
     noConfirmClearDate:localStorage.getItem('cf4_noConfirmClearDate'),
@@ -1103,6 +1105,7 @@ function importData(){
         if(data.darkAccent){S.darkAccent=data.darkAccent;document.body.style.setProperty('--gold',data.darkAccent);}
         if(data.theme)S.theme=data.theme;
         if(data.dayEnd!=null)localStorage.setItem('cf4_dayEnd',String(data.dayEnd));
+        if(data.weekStart!=null){S.weekStart=data.weekStart;localStorage.setItem('cf4_weekStart',String(data.weekStart));}
         if(data.timerKeepRinging!=null)localStorage.setItem('cf4_timerKeepRinging',data.timerKeepRinging);
         if(data.timerOvertime!=null)localStorage.setItem('cf4_timerOvertime',data.timerOvertime);
         if(data.noConfirmClearDate!=null)localStorage.setItem('cf4_noConfirmClearDate',data.noConfirmClearDate);
@@ -1704,44 +1707,53 @@ function toggleDark(){
 // BACKUP WARNING BANNER
 // ══════════════════════════════════════════
 function backupWarningBanner(body){
-  // Daily "Smart SHEs" reminder — shows once per day
+  const syncEnabled=localStorage.getItem('cf4_syncEnabled')==='1'&&localStorage.getItem('cf4_syncCode');
   const reminderKey='cf4_reminderShown';
+  const warnKey='cf4_warnDismissed';
+
+  // If cloud sync is enabled, skip all reminders
+  if(syncEnabled) return;
+
+  // Show at most one reminder — daily nudge takes priority, otherwise warning
   const lastShown=localStorage.getItem(reminderKey)||'';
-  if(lastShown!==todayStr()){
+  const warnDismissed=localStorage.getItem(warnKey)==='1';
+
+  if(!warnDismissed){
+    // Warning banner — dismissible permanently
+    const warn=el('div');
+    warn.style.cssText='background:rgba(200,169,110,0.12);border:1.5px solid rgba(200,169,110,0.3);border-radius:8px;padding:10px 14px;margin-bottom:10px;';
+    const wTop=el('div');wTop.style.cssText='display:flex;align-items:flex-start;gap:10px;';
+    const txt=el('div');txt.style.cssText='flex:1;font-size:11px;color:var(--brown-mid);line-height:1.6;';
+    txt.innerHTML='🌸 <strong>Smart SHEs save their cards every day!</strong> Your cards are stored on this device. Use <strong>💾 Save my cards</strong> regularly so you never lose them. Or enable <strong>☁️ Cloud Sync</strong> above for automatic backup — then you can disregard this reminder!';
+    const closeBtn=el('button');
+    closeBtn.style.cssText='background:none;border:none;font-size:16px;color:var(--brown-light);cursor:pointer;padding:0;flex-shrink:0;';
+    closeBtn.textContent='×';closeBtn.title='Dismiss';
+    closeBtn.onclick=()=>warn.remove();
+    const saveNowBtn=el('button');
+    saveNowBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:6px 12px;border-radius:6px;border:none;background:var(--gold);color:var(--brown);cursor:pointer;white-space:nowrap;flex-shrink:0;margin-top:6px;display:block;';
+    saveNowBtn.textContent='💾 Save now';
+    saveNowBtn.onclick=()=>{exportData();localStorage.setItem(reminderKey,todayStr());warn.remove();};
+    const dontShow=el('button');
+    dontShow.style.cssText='font-family:"Lato",sans-serif;font-size:10px;color:var(--brown-light);background:none;border:none;padding:4px 0 0;cursor:pointer;text-decoration:underline;-webkit-appearance:none;display:block;';
+    dontShow.textContent="I know — don't show this again";
+    dontShow.onclick=()=>{localStorage.setItem(warnKey,'1');warn.remove();};
+    wTop.append(txt,closeBtn);warn.append(wTop,saveNowBtn,dontShow);body.appendChild(warn);
+  }else if(lastShown!==todayStr()){
+    // Daily nudge — once per day only
     const reminder=el('div');
-    reminder.style.cssText='background:rgba(200,169,110,0.15);border:1.5px solid rgba(200,169,110,0.35);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px;';
-    const rtxt=el('div');rtxt.style.cssText='flex:1;font-size:12px;color:var(--brown-mid);font-style:italic;';
+    reminder.style.cssText='background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.25);border-radius:8px;padding:8px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;';
+    const rtxt=el('div');rtxt.style.cssText='flex:1;font-size:11px;color:var(--brown-mid);font-style:italic;';
     rtxt.textContent='Smart SHEs save their cards every day! 🌸';
     const saveNowBtn=el('button');
-    saveNowBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:6px 12px;border-radius:6px;border:none;background:var(--gold);color:var(--brown);cursor:pointer;white-space:nowrap;flex-shrink:0;';
+    saveNowBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:5px 10px;border-radius:6px;border:none;background:var(--gold);color:var(--brown);cursor:pointer;white-space:nowrap;flex-shrink:0;';
     saveNowBtn.textContent='💾 Save now';
     saveNowBtn.onclick=()=>{exportData();localStorage.setItem(reminderKey,todayStr());reminder.remove();};
     const dismissR=el('button');
-    dismissR.style.cssText='background:none;border:none;font-size:16px;color:var(--brown-light);cursor:pointer;padding:0 2px;flex-shrink:0;';
+    dismissR.style.cssText='background:none;border:none;font-size:16px;color:var(--brown-light);cursor:pointer;padding:0;flex-shrink:0;';
     dismissR.textContent='×';
-    dismissR.title='Dismiss for today';
     dismissR.onclick=()=>{localStorage.setItem(reminderKey,todayStr());reminder.remove();};
     reminder.append(rtxt,saveNowBtn,dismissR);body.appendChild(reminder);
   }
-
-  // Warning banner — dismissible per session or permanently
-  const warnKey='cf4_warnDismissed';
-  if(localStorage.getItem(warnKey)==='1') return;
-  const warn=el('div');
-  warn.style.cssText='background:rgba(180,80,0,0.08);border:1.5px solid rgba(180,80,0,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;';
-  const warnTop=el('div');warnTop.style.cssText='display:flex;align-items:flex-start;gap:10px;';
-  const txt=el('div');
-  txt.style.cssText='flex:1;font-size:11px;color:var(--brown-mid);line-height:1.6;';
-  txt.innerHTML='⚠️ Your cards are stored on this device only. Use <strong>💾 Save my cards</strong> regularly so you never lose them!';
-  const dismissBtn=el('button');
-  dismissBtn.style.cssText='background:none;border:none;font-size:16px;color:var(--brown-light);cursor:pointer;padding:0;flex-shrink:0;';
-  dismissBtn.textContent='×';dismissBtn.title='Dismiss';
-  dismissBtn.onclick=()=>warn.remove();
-  const dontShow=el('button');
-  dontShow.style.cssText='font-family:"Lato",sans-serif;font-size:10px;color:var(--brown-light);background:none;border:none;padding:3px 0 0;cursor:pointer;text-decoration:underline;-webkit-appearance:none;display:block;';
-  dontShow.textContent="I know — don't show this again";
-  dontShow.onclick=()=>{localStorage.setItem(warnKey,'1');warn.remove();};
-  warnTop.append(txt,dismissBtn);warn.append(warnTop,dontShow);body.appendChild(warn);
 }
 
 // Discreet Save/Load/Paste bar — one hide button for all three
@@ -2325,12 +2337,24 @@ function showBatchReschedule(){
 }
 
 function applyBatchReschedule(newDate,modal,bd,updateSchedule){
+  const today=todayStr();
   S.selectedIds.forEach(id=>{
     const t=S.tasks.find(x=>x.id===id);if(!t)return;
+    const oldDate=t.nextDueDate;
     t.nextDueDate=newDate;
     if(updateSchedule){
       t.startDate=newDate;
       delete t.originalDueDate;
+      // Reset pinned weekday/monthday so it doesn't snap back
+      delete t.weekday;delete t.weekdays;delete t.monthday;delete t.monthday2;
+    }
+    // Remove from old day order so card doesn't appear on old date
+    if(oldDate&&oldDate!==newDate){
+      try{
+        const oldOrder=JSON.parse(localStorage.getItem('cf4_order_'+oldDate)||'[]');
+        const filtered=oldOrder.filter(oid=>oid!==id);
+        localStorage.setItem('cf4_order_'+oldDate,JSON.stringify(filtered));
+      }catch{}
     }
   });
   S.selectedIds=[];
@@ -2822,8 +2846,11 @@ function showDayTasksPopup(ds,tasks){
 }
 
 function renderWeekView(body,d){
+  const weekStart=S.weekStart||0;
   const dow=d.getDay();
-  const sunday=addDays(d,-dow);
+  // Calculate days until the start of the week
+  const diff=(dow-weekStart+7)%7;
+  const sunday=addDays(d,-diff);
   const days=Array.from({length:7},(_,i)=>addDays(sunday,i));
   const label=days[0].toLocaleDateString('en-US',{month:'short',day:'numeric'})+' – '+days[6].toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   const{nav,prev,next}=navBar(label);
@@ -3362,6 +3389,27 @@ function renderSettings(body){
   const schedSection=el('div','settings-section');
   const schedTitle=el('div','settings-title');schedTitle.textContent='Schedule & Timing';schedSection.appendChild(schedTitle);
 
+  // Week starts on
+  const wsRow=el('div','settings-row');
+  const wsD=el('div');
+  const wsL=el('div','settings-row-label');wsL.textContent='My week starts on';
+  const wsS=el('div','settings-row-sub');wsS.textContent='Sets the first day shown in Schedule Week view';
+  wsD.append(wsL,wsS);
+  const wsSel=el('select');
+  wsSel.style.cssText='font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--text);-webkit-appearance:auto;';
+  [0,1,2,3,4,5,6].forEach(d=>{
+    const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const o=document.createElement('option');o.value=String(d);o.textContent=days[d];
+    if(d===S.weekStart)o.selected=true;
+    wsSel.appendChild(o);
+  });
+  wsSel.onchange=e=>{
+    S.weekStart=parseInt(e.target.value);
+    localStorage.setItem('cf4_weekStart',String(S.weekStart));
+    render();
+  };
+  wsRow.append(wsD,wsSel);schedSection.appendChild(wsRow);
+
   // Day ends at
   const dayEndRow=el('div','settings-row');
   const dayEndD=el('div');
@@ -3498,7 +3546,6 @@ function renderSettings(body){
   ts.appendChild(themeGrid);
   body.appendChild(ts);
   const cs=el('div','settings-section');
-  const ct=el('div','settings-title');ct.textContent='Card Colors';cs.appendChild(ct);
   const cnote=el('div');cnote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:14px;';
   cnote.textContent='Tap a frequency to change its color.';cs.appendChild(cnote);
   FREQS.forEach(f=>{
@@ -3531,7 +3578,6 @@ function renderSettings(body){
 
   // Areas
   const arSection=el('div','settings-section');
-  const arTitle=el('div','settings-title');arTitle.textContent='Rooms & Areas';arSection.appendChild(arTitle);
   const arNote=el('div');arNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:12px;';
   arNote.textContent='Customize the list of rooms and areas for your home.';arSection.appendChild(arNote);
   S.areas.forEach((area,i)=>{
@@ -3564,7 +3610,6 @@ function renderSettings(body){
 
   // Family Members / Delegates
   const dlSection=el('div','settings-section');
-  const dlTitle=el('div','settings-title');dlTitle.textContent='Family Members & Helpers';dlSection.appendChild(dlTitle);
   const dlNote=el('div');dlNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:12px;line-height:1.6;';
   dlNote.textContent='Add family members or helpers to delegate tasks to them. You can then assign cards and send their task list via text or email.';
   dlSection.appendChild(dlNote);
@@ -3598,22 +3643,7 @@ function renderSettings(body){
   addDlRow.append(dlInput,addDlBtn);dlSection.appendChild(addDlRow);
   makeCollapsible(dlSection,'Family Members & Helpers','cf4_collapse_delegates');
   body.appendChild(dlSection);
-  const bs=el('div','settings-section');
-  // Cloud Sync section already rendered at top
-  const bt=el('div','settings-title');bt.textContent='Backup & Restore';bs.appendChild(bt);
-  const bwarn=el('div');bwarn.style.cssText='font-size:12px;color:#c0720a;background:rgba(200,100,0,0.08);border:1px solid rgba(200,100,0,0.2);border-radius:6px;padding:10px 12px;margin-bottom:14px;line-height:1.6;';
-  bwarn.textContent='⚠️ Important: Clearing your browser cache or deleting browsing history will erase your cards. Always export a backup first before doing this!';
-  bs.appendChild(bwarn);
-  [[exportData,'💾 Save my cards','Download a backup file to save your cards & settings'],
-   [importData,'📂 Load my cards','Restore cards from a previously saved file'],
-   [pasteToRestore,'📋 Paste to restore','Restore by pasting backup text — great for older devices']].forEach(([fn,label,sub])=>{
-    const row=el('div','settings-row');
-    const d=el('div');const l=el('div','settings-row-label');l.textContent=label;
-    const s=el('div','settings-row-sub');s.textContent=sub;d.append(l,s);
-    const b=el('button','settings-btn');b.textContent=label.split(' ')[0];b.onclick=fn;
-    row.append(d,b);bs.appendChild(row);
-  });
-  body.appendChild(bs);
+
 
   // Stats
   const ss=el('div','settings-section');
@@ -3683,8 +3713,9 @@ function sendDelegateTasks(name){
   smsBtn.style.cssText='width:100%;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:none;cursor:pointer;margin-bottom:8px;-webkit-appearance:none;';
   smsBtn.textContent='📱 Send via Text Message';
   smsBtn.onclick=()=>{
+    if(!confirm('This will open your messaging app with a pre-filled message.\n\nNote: Standard carrier rates may apply.')){return;}
     bd.remove();
-    window.location.href=`sms:?body=${encodeURIComponent(msg+'\n\n(Sent from The Card File — standard carrier rates may apply)')}`;
+    window.location.href=`sms:?body=${encodeURIComponent(msg)}`;
   };
 
   const emailBtn=el('button','btn btn-ghost');
@@ -4481,7 +4512,7 @@ function buildModal(data,isEdit){
   // Time of day
   const f8=el('div','field');const l8=el('label');l8.textContent='Time of Day';
   const sel8=el('select');
-  [['','No preference (Anytime)'],['dawn','🌅 Dawn'],['morning','🌞 Morning'],['afternoon','☀️ Afternoon'],['evening','🌙 Evening']].forEach(([val,txt2])=>{
+  [['','No preference (Anytime)'],...getTimeOfDay().filter(t=>t.id).map(t=>[t.id,t.label])].forEach(([val,txt2])=>{
     const o=document.createElement('option');o.value=val;o.textContent=txt2;
     if((data.timeOfDay||'')=== val)o.selected=true;sel8.appendChild(o);
   });
@@ -4492,7 +4523,7 @@ function buildModal(data,isEdit){
   const f8b=el('div','field');
   const l8b=el('label');l8b.textContent='Second Time of Day (2/D only)';
   const sel8b=el('select');
-  [['','None'],['dawn','🌅 Dawn'],['morning','🌞 Morning'],['afternoon','☀️ Afternoon'],['evening','🌙 Evening']].forEach(([val,txt2])=>{
+  [['','None'],...getTimeOfDay().filter(t=>t.id).map(t=>[t.id,t.label])].forEach(([val,txt2])=>{
     const o=document.createElement('option');o.value=val;o.textContent=txt2;
     if((data.timeOfDay2||'')=== val)o.selected=true;sel8b.appendChild(o);
   });
@@ -5140,6 +5171,27 @@ function renderCloudSync(body){
     privNote.textContent='🔒 Completely anonymous — no account, no email, no personal data collected. When you use cloud sync, only your card data and settings are stored. Your sync code is the only identifier — even the app developer cannot tell whose cards belong to whom. Keep your code safe!';
     section.appendChild(privNote);
   }
+  // Backup & Restore — included here alongside sync
+  const backupTitle=el('div');
+  backupTitle.style.cssText='font-size:12px;font-weight:700;color:var(--brown-mid);margin:16px 0 8px;';
+  backupTitle.textContent='Backup & Restore';
+  section.appendChild(backupTitle);
+
+  const bwarn=el('div');
+  bwarn.style.cssText='font-size:11px;color:#c0720a;background:rgba(200,100,0,0.08);border:1px solid rgba(200,100,0,0.2);border-radius:6px;padding:8px 12px;margin-bottom:10px;line-height:1.6;';
+  bwarn.textContent='⚠️ Clearing your browser cache will erase your cards. Always save a backup first!';
+  section.appendChild(bwarn);
+
+  [[exportData,'💾 Save my cards','Download a backup file to your device'],
+   [importData,'📂 Load my cards','Restore from a previously saved file'],
+   [pasteToRestore,'📋 Paste to restore','Restore by pasting backup text']].forEach(([fn,label,sub])=>{
+    const row=el('div','settings-row');
+    const d=el('div');const l=el('div','settings-row-label');l.textContent=label;
+    const s=el('div','settings-row-sub');s.textContent=sub;d.append(l,s);
+    const b=el('button','settings-btn');b.textContent=label.split(' ')[0];b.onclick=fn;
+    row.append(d,b);section.appendChild(row);
+  });
+
   body.appendChild(section);
 }
 load();
