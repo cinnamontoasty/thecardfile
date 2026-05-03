@@ -579,13 +579,18 @@ function moveTodayTask(id,direction,groupIds){
   render();
 }
 
-const TIME_OF_DAY=[
+const DEFAULT_TIME_OF_DAY=[
   {id:'dawn',    label:'🌅 Dawn',      color:'#c8a878'},
   {id:'morning', label:'🌞 Morning',   color:'#e8b040'},
   {id:'afternoon',label:'☀️ Afternoon',color:'#d4784a'},
   {id:'evening', label:'🌙 Evening',   color:'#7878b8'},
-  {id:'',        label:'✨ Anytime',   color:'#9a8870'},
 ];
+// TIME_OF_DAY is now dynamic — loaded from S.timeOfDay
+// Always includes Anytime (empty id) as last option
+function getTimeOfDay(){
+  const custom=S.timeOfDay||DEFAULT_TIME_OF_DAY;
+  return [...custom,{id:'',label:'✨ Anytime',color:'#9a8870'}];
+}
 
 const DEFAULT_TASKS=[
   {id:1, name:'Shine sink',            area:'Kitchen',            freq:'d',  time:"5'",    supplies:'Scrub brush, dish detergent',        mini:true, special:'',       startDate:todayStr(),nextDueDate:todayStr(),completions:[],timeOfDay:'evening'},
@@ -611,6 +616,7 @@ let S={
   freqColors:{...DEFAULT_FREQ_COLORS},
   specialTypes:[...DEFAULT_SPECIAL.map(s=>({...s}))],
   areas:[...DEFAULT_AREAS],
+  timeOfDay:[...DEFAULT_TIME_OF_DAY],
   delegates:[],
   darkMode:false,
   darkAccent:'#c06878',
@@ -979,6 +985,7 @@ function load(){
   try{const fc=localStorage.getItem('cf4_freqColors');if(fc)S.freqColors={...DEFAULT_FREQ_COLORS,...JSON.parse(fc)};}catch{}
   try{const sp=localStorage.getItem('cf4_special');if(sp)S.specialTypes=JSON.parse(sp);}catch{}
   try{const ar=localStorage.getItem('cf4_areas');if(ar)S.areas=JSON.parse(ar);}catch{}
+  try{const tod=localStorage.getItem('cf4_timeOfDay');if(tod)S.timeOfDay=JSON.parse(tod);}catch{}
   try{const dl=localStorage.getItem('cf4_delegates');if(dl)S.delegates=JSON.parse(dl);}catch{}
   try{S.darkMode=localStorage.getItem('cf4_dark')==='1';}catch{}
   try{S.darkAccent=localStorage.getItem('cf4_darkAccent')||'#c06878';}catch{}
@@ -1011,6 +1018,7 @@ function save(){
   localStorage.setItem('cf4_freqColors',JSON.stringify(S.freqColors));
   localStorage.setItem('cf4_special',JSON.stringify(S.specialTypes));
   localStorage.setItem('cf4_areas',JSON.stringify(S.areas));
+  localStorage.setItem('cf4_timeOfDay',JSON.stringify(S.timeOfDay||DEFAULT_TIME_OF_DAY));
   localStorage.setItem('cf4_delegates',JSON.stringify(S.delegates||[]));
   localStorage.setItem('cf4_dark',S.darkMode?'1':'0');
   localStorage.setItem('cf4_darkAccent',S.darkAccent);
@@ -1034,7 +1042,7 @@ function exportData(){
   }
   const data={
     tasks:S.tasks,freqColors:S.freqColors,specialTypes:S.specialTypes,
-    areas:S.areas,delegates:S.delegates||[],nextId:S.nextId,
+    areas:S.areas,timeOfDay:S.timeOfDay||DEFAULT_TIME_OF_DAY,delegates:S.delegates||[],nextId:S.nextId,
     darkMode:S.darkMode,darkAccent:S.darkAccent,theme:S.theme,
     dayEnd:parseInt(localStorage.getItem('cf4_dayEnd')||'0'),
     timerKeepRinging:localStorage.getItem('cf4_timerKeepRinging'),
@@ -1089,6 +1097,7 @@ function importData(){
         if(data.freqColors)S.freqColors={...DEFAULT_FREQ_COLORS,...data.freqColors};
         if(data.specialTypes)S.specialTypes=data.specialTypes;
         if(data.areas)S.areas=data.areas;
+        if(data.timeOfDay)S.timeOfDay=data.timeOfDay;
         if(data.delegates)S.delegates=data.delegates;
         if(data.darkMode!=null)S.darkMode=data.darkMode;
         if(data.darkAccent){S.darkAccent=data.darkAccent;document.body.style.setProperty('--gold',data.darkAccent);}
@@ -1309,11 +1318,11 @@ function showCardDetail(task,dateCtx){
     if(sp) row('Card Type',sp.label);
   }
   if(task.timeOfDay){
-    const tod=TIME_OF_DAY.find(t=>t.id===task.timeOfDay);
+    const tod=getTimeOfDay().find(t=>t.id===task.timeOfDay);
     if(tod) row('Time of Day',tod.label);
   }
   if(task.timeOfDay2){
-    const tod2=TIME_OF_DAY.find(t=>t.id===task.timeOfDay2);
+    const tod2=getTimeOfDay().find(t=>t.id===task.timeOfDay2);
     if(tod2) row('2nd Time of Day',tod2.label);
   }
   if(task.delegate) row('Delegated to','→ '+task.delegate);
@@ -1735,69 +1744,38 @@ function backupWarningBanner(body){
   warnTop.append(txt,dismissBtn);warn.append(warnTop,dontShow);body.appendChild(warn);
 }
 
-// Discreet Save/Load bar shown at top of every tab
+// Discreet Save/Load/Paste bar — one hide button for all three
 function saveLoadBar(body){
+  const isHidden=localStorage.getItem('cf4_saveBarHidden')==='1';
   const bar=el('div');
   bar.style.cssText='display:flex;gap:6px;justify-content:flex-end;align-items:center;margin-bottom:10px;flex-wrap:wrap;';
 
-  // Hide button
-  const hideBtn=el('button');
-  hideBtn.style.cssText='font-family:"Lato",sans-serif;font-size:9px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:2px 4px;-webkit-appearance:none;opacity:.5;margin-right:2px;';
-
-  if(localStorage.getItem('cf4_saveBarHidden')==='1'){
-    // Collapsed state — show only paste and a show button
-    hideBtn.textContent='💾 show';hideBtn.title='Show save/load buttons';
-    hideBtn.onclick=()=>{localStorage.removeItem('cf4_saveBarHidden');render();};
-
-    if(localStorage.getItem('cf4_pasteBarHidden')!=='1'){
-      const pasteBtn=el('button');
-      pasteBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:5px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;white-space:nowrap;';
-      pasteBtn.innerHTML='📋 Paste to restore';
-      pasteBtn.onclick=pasteToRestore;
-      bar.append(hideBtn,pasteBtn);
-    }else{
-      bar.append(hideBtn);
-    }
-    body.appendChild(bar);
-    return;
+  if(isHidden){
+    const showBtn=el('button');
+    showBtn.style.cssText='font-family:"Lato",sans-serif;font-size:9px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:2px 4px;-webkit-appearance:none;opacity:.5;';
+    showBtn.textContent='💾 show';showBtn.title='Show save/load buttons';
+    showBtn.onclick=()=>{localStorage.removeItem('cf4_saveBarHidden');render();};
+    bar.appendChild(showBtn);body.appendChild(bar);return;
   }
 
-  hideBtn.textContent='hide';hideBtn.title='Hide save/load buttons';
-  hideBtn.onclick=()=>{localStorage.setItem('cf4_saveBarHidden','1');render()};
+  const hideBtn=el('button');
+  hideBtn.style.cssText='font-family:"Lato",sans-serif;font-size:9px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:2px 4px;-webkit-appearance:none;opacity:.5;';
+  hideBtn.textContent='hide';hideBtn.title='Hide all save/load buttons';
+  hideBtn.onclick=()=>{localStorage.setItem('cf4_saveBarHidden','1');render();};
 
   const saveBtn=el('button');
   saveBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:5px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;white-space:nowrap;';
-  saveBtn.innerHTML='💾 Save my cards';
-  saveBtn.title='Save all your cards & settings to a file on your device';
-  saveBtn.onclick=exportData;
+  saveBtn.innerHTML='💾 Save my cards';saveBtn.onclick=exportData;
 
   const loadBtn=el('button');
   loadBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:5px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;white-space:nowrap;';
-  loadBtn.innerHTML='📂 Load my cards';
-  loadBtn.title='Load your cards & settings from a previously saved file';
-  loadBtn.onclick=importData;
+  loadBtn.innerHTML='📂 Load my cards';loadBtn.onclick=importData;
 
   const pasteBtn=el('button');
   pasteBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:5px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--brown-light);cursor:pointer;-webkit-appearance:none;white-space:nowrap;';
-  pasteBtn.innerHTML='📋 Paste to restore';
-  pasteBtn.title='Restore cards by pasting backup text (great for older devices)';
-  pasteBtn.onclick=pasteToRestore;
+  pasteBtn.innerHTML='📋 Paste to restore';pasteBtn.onclick=pasteToRestore;
 
-  const hidePasteBtn=el('button');
-  hidePasteBtn.style.cssText='font-family:"Lato",sans-serif;font-size:9px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:2px 4px;-webkit-appearance:none;opacity:.5;';
-  hidePasteBtn.textContent='hide 📋';hidePasteBtn.title='Hide paste button';
-  hidePasteBtn.onclick=()=>{localStorage.setItem('cf4_pasteBarHidden','1');render();};
-
-  if(localStorage.getItem('cf4_pasteBarHidden')==='1'){
-    const showPasteBtn=el('button');
-    showPasteBtn.style.cssText='font-family:"Lato",sans-serif;font-size:9px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:2px 4px;-webkit-appearance:none;opacity:.5;';
-    showPasteBtn.textContent='show 📋';showPasteBtn.title='Show paste button';
-    showPasteBtn.onclick=()=>{localStorage.removeItem('cf4_pasteBarHidden');render();};
-    bar.append(hideBtn,saveBtn,loadBtn,showPasteBtn);
-  }else{
-    bar.append(hideBtn,saveBtn,loadBtn,pasteBtn,hidePasteBtn);
-  }
-  body.appendChild(bar);
+  bar.append(hideBtn,saveBtn,loadBtn,pasteBtn);body.appendChild(bar);
 }
 
 // ══════════════════════════════════════════
@@ -2045,7 +2023,7 @@ function renderCard(task,showArea,opts={}){
   const mi=el('span','card-mini-icon');mi.textContent='✦';
   // Time of day badge if set
   if(task.timeOfDay){
-    const tod=TIME_OF_DAY.find(t=>t.id===task.timeOfDay);
+    const tod=getTimeOfDay().find(t=>t.id===task.timeOfDay);
     if(tod){const tb=el('span');tb.style.cssText='font-size:9px;opacity:.7;margin-left:4px;';tb.textContent=tod.label.split(' ')[0];fb.after(tb);}
   }
   const ti=el('span','card-time');ti.textContent=task.time||'';
@@ -2218,8 +2196,8 @@ function sectionHead(label,color,count){
 // ══════════════════════════════════════════
 // 2/D slot-specific completion popup
 function show2dSlotPopup(task,slotIndex){
-  const tod0=TIME_OF_DAY.find(t=>t.id===(task.timeOfDay||''));
-  const tod1=TIME_OF_DAY.find(t=>t.id===(task.timeOfDay2||''));
+  const tod0=getTimeOfDay().find(t=>t.id===(task.timeOfDay||''));
+  const tod1=getTimeOfDay().find(t=>t.id===(task.timeOfDay2||''));
   const slot0Label=tod0?tod0.label:'First slot';
   const slot1Label=tod1?tod1.label:'Second slot';
   const thisSlotLabel=slotIndex===0?slot0Label:slot1Label;
@@ -2417,7 +2395,7 @@ function showTaskListPopup(title,subtitle,tasks,accentColor,bgTint){
         const meta=el('div');meta.style.cssText='font-size:11px;color:var(--brown-light);margin-top:1px;';
         const parts=[fById(task.freq).label];
         if(task.time) parts.push(task.time);
-        if(task.timeOfDay){const tod=TIME_OF_DAY.find(t=>t.id===task.timeOfDay);if(tod)parts.push(tod.label);}
+        if(task.timeOfDay){const tod=getTimeOfDay().find(t=>t.id===task.timeOfDay);if(tod)parts.push(tod.label);}
         meta.textContent=parts.join(' · ');
         info.append(name,meta);
 
@@ -2641,7 +2619,7 @@ function renderToday(body){
   });
 
   // Group by time of day → area
-  TIME_OF_DAY.forEach(tod=>{
+  getTimeOfDay().forEach(tod=>{
     const todEntries=slotEntries.filter(e=>e.slotId===tod.id);
     if(!todEntries.length)return;
 
@@ -2789,7 +2767,7 @@ function showDayTasksPopup(ds,tasks){
   panel.append(title,sub);
 
   // Group by time of day
-  const todOrder=['dawn','morning','afternoon','evening',''];
+  const todOrder=getTimeOfDay().map(t=>t.id);
   const sorted=[...tasks].sort((a,b)=>todOrder.indexOf(a.timeOfDay||'')-todOrder.indexOf(b.timeOfDay||''));
 
   const areas=sortAreas(new Set(sorted.map(t=>t.area||'General')));
@@ -2816,7 +2794,7 @@ function showDayTasksPopup(ds,tasks){
       const meta=el('div');meta.style.cssText='font-size:11px;color:var(--brown-light);margin-top:1px;';
       const parts=[fById(task.freq).label];
       if(task.time) parts.push(task.time);
-      if(task.timeOfDay){const tod=TIME_OF_DAY.find(t=>t.id===task.timeOfDay);if(tod)parts.push(tod.label);}
+      if(task.timeOfDay){const tod=getTimeOfDay().find(t=>t.id===task.timeOfDay);if(tod)parts.push(tod.label);}
       meta.textContent=parts.join(' · ');
       info.append(name,meta);
 
@@ -2887,7 +2865,7 @@ function renderWeekView(body,d){
     col.style.cssText='min-width:0;display:flex;flex-direction:column;gap:3px;';
 
     // Sort tasks by timeOfDay order
-    const todOrder=['dawn','morning','afternoon','evening',''];
+    const todOrder=getTimeOfDay().map(t=>t.id);
     const tasks=tasksDueOn(ds).sort((a,b)=>{
       return todOrder.indexOf(a.timeOfDay||'')- todOrder.indexOf(b.timeOfDay||'');
     });
@@ -2924,7 +2902,7 @@ function renderWeekView(body,d){
         const needsDark=lum>0.62||task.freq==='d';
         mc.style.color=needsDark?'rgba(0,0,0,0.78)':'rgba(255,255,255,0.92)';
         if(S.darkMode&&!needsDark) mc.style.color='rgba(255,240,220,0.88)';
-        const tod=TIME_OF_DAY.find(t=>t.id===(task.timeOfDay||''));
+        const tod=getTimeOfDay().find(t=>t.id===(task.timeOfDay||''));
         const todEmoji=tod&&tod.id?tod.label.split(' ')[0]:'';
         mc.textContent=(todEmoji?todEmoji+' ':'')+task.name;
         mc.title=task.name+' ('+fById(task.freq).label+(task.timeOfDay?' · '+(tod&&tod.label||''):'')+')';
@@ -2987,7 +2965,7 @@ function renderMonthView(body,d){
     const isToday=ds===todayStr();
     const cell=el('div','month-cell'+(isToday?' today':''));
     const dn=el('div','month-cell-date');dn.textContent=day;cell.appendChild(dn);
-    const todOrder=['dawn','morning','afternoon','evening',''];
+    const todOrder=getTimeOfDay().map(t=>t.id);
     const tasks=tasksDueOn(ds).sort((a,b)=>todOrder.indexOf(a.timeOfDay||'')-todOrder.indexOf(b.timeOfDay||''));
     if(tasks.length){
       const dotRow=el('div','month-dot-row');
@@ -3324,9 +3302,32 @@ function renderSettings(body){
   saveLoadBar(body);
   backupWarningBanner(body);
 
-  // ── CLOUD SYNC FIRST ──
+  // Helper: collapsible section
+  function makeCollapsible(section,titleText,storageKey){
+    const isOpen=localStorage.getItem(storageKey)!=='0';
+    const titleRow=el('div');
+    titleRow.style.cssText='display:flex;justify-content:space-between;align-items:center;cursor:pointer;';
+    const titleEl=el('div','settings-title');titleEl.textContent=titleText;titleEl.style.marginBottom='0';
+    const arrow=el('div');arrow.style.cssText='font-size:14px;color:var(--brown-light);transition:transform .2s;';
+    arrow.textContent=isOpen?'▾':'▸';
+    titleRow.append(titleEl,arrow);
+    section.insertBefore(titleRow,section.firstChild);
+    const content=el('div');content.style.display=isOpen?'block':'none';
+    // Move all children except titleRow into content
+    while(section.children.length>1) content.appendChild(section.children[1]);
+    section.appendChild(content);
+    titleRow.onclick=()=>{
+      const open=content.style.display==='none';
+      content.style.display=open?'block':'none';
+      arrow.textContent=open?'▾':'▸';
+      localStorage.setItem(storageKey,open?'1':'0');
+    };
+  }
+
+  // ── CLOUD SYNC (top) ──
   renderCloudSync(body);
-  // About
+
+  // ── ABOUT & HELP ──
   const as=el('div','settings-section');
   const at=el('div','settings-title');at.textContent='About & Help';as.appendChild(at);
   [['Welcome & About','View credits and privacy info',()=>{S.showWelcome=true;render();}],
@@ -3357,6 +3358,71 @@ function renderSettings(body){
   as.appendChild(versionRow);
   body.appendChild(as);
 
+  // ── SCHEDULE & TIMING ──
+  const schedSection=el('div','settings-section');
+  const schedTitle=el('div','settings-title');schedTitle.textContent='Schedule & Timing';schedSection.appendChild(schedTitle);
+
+  // Day ends at
+  const dayEndRow=el('div','settings-row');
+  const dayEndD=el('div');
+  const dayEndL=el('div','settings-row-label');dayEndL.textContent='My day ends at';
+  const dayEndS=el('div','settings-row-sub');dayEndS.textContent='Cards roll to tomorrow after this time. Useful for night owls!';
+  dayEndD.append(dayEndL,dayEndS);
+  const dayEndSel=el('select');
+  dayEndSel.style.cssText='font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--text);-webkit-appearance:auto;';
+  [[0,'Midnight (12:00 AM)'],[1,'1:00 AM'],[2,'2:00 AM'],[3,'3:00 AM'],[4,'4:00 AM']].forEach(([val,label])=>{
+    const o=document.createElement('option');o.value=String(val);o.textContent=label;
+    if(val===parseInt(localStorage.getItem('cf4_dayEnd')||'0'))o.selected=true;
+    dayEndSel.appendChild(o);
+  });
+  dayEndSel.onchange=e=>{localStorage.setItem('cf4_dayEnd',e.target.value);render();};
+  dayEndRow.append(dayEndD,dayEndSel);schedSection.appendChild(dayEndRow);
+
+  // Custom times of day
+  const todTitle=el('div','settings-row-label');todTitle.textContent='Times of Day';todTitle.style.cssText='font-size:12px;font-weight:700;color:var(--brown-mid);margin:14px 0 6px;';
+  const todNote=el('div','settings-row-sub');todNote.textContent='Customize your time-of-day labels. These appear in cards and Today view.';todNote.style.marginBottom='10px;';
+  schedSection.append(todTitle,todNote);
+
+  const todList=S.timeOfDay||DEFAULT_TIME_OF_DAY;
+  todList.forEach((tod,i)=>{
+    const row=el('div','settings-row');
+    const inp=el('input');inp.type='text';inp.value=tod.label;
+    inp.style.cssText='flex:1;font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--border);border-radius:6px;padding:6px 10px;background:var(--bg);color:var(--text);-webkit-appearance:none;';
+    inp.oninput=e=>{(S.timeOfDay||DEFAULT_TIME_OF_DAY)[i].label=e.target.value;save();};
+    const actions=el('div');actions.style.cssText='display:flex;gap:4px;align-items:center;';
+    const upB=el('button','settings-btn');upB.textContent='↑';upB.style.padding='4px 8px';
+    upB.style.opacity=i===0?'0.25':'1';
+    upB.onclick=()=>{if(i>0){const arr=S.timeOfDay||DEFAULT_TIME_OF_DAY;[arr[i-1],arr[i]]=[arr[i],arr[i-1]];S.timeOfDay=arr;save();render();}};
+    const dnB=el('button','settings-btn');dnB.textContent='↓';dnB.style.padding='4px 8px';
+    dnB.style.opacity=i===todList.length-1?'0.25':'1';
+    dnB.onclick=()=>{if(i<todList.length-1){const arr=S.timeOfDay||DEFAULT_TIME_OF_DAY;[arr[i],arr[i+1]]=[arr[i+1],arr[i]];S.timeOfDay=arr;save();render();}};
+    const delB=el('button','settings-btn');delB.textContent='✕';delB.style.cssText='color:#c0392b;padding:4px 8px;';
+    delB.onclick=()=>{if(confirm('Remove this time of day?')){S.timeOfDay=(S.timeOfDay||DEFAULT_TIME_OF_DAY).filter((_,j)=>j!==i);save();render();}};
+    actions.append(upB,dnB,delB);row.append(inp,actions);schedSection.appendChild(row);
+  });
+
+  // Add new time of day
+  const addTodRow=el('div');addTodRow.style.cssText='display:flex;gap:8px;margin-top:10px;';
+  const todInput=el('input');todInput.type='text';todInput.placeholder='e.g. 🌤 Mid-Morning';
+  todInput.style.cssText='flex:1;font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--bg);color:var(--text);-webkit-appearance:none;';
+  const addTodBtn=el('button','settings-btn');addTodBtn.textContent='Add';
+  addTodBtn.style.cssText='background:var(--brown);color:var(--bg);border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:"Lato",sans-serif;font-size:12px;font-weight:700;-webkit-appearance:none;';
+  addTodBtn.onclick=()=>{
+    const v=todInput.value.trim();if(!v)return;
+    const id='custom_'+Date.now();
+    if(!S.timeOfDay) S.timeOfDay=[...DEFAULT_TIME_OF_DAY];
+    S.timeOfDay.push({id,label:v,color:'#9a8870'});
+    todInput.value='';save();render();
+  };
+  addTodRow.append(todInput,addTodBtn);schedSection.appendChild(addTodRow);
+
+  const resetTodBtn=el('button');
+  resetTodBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;color:var(--brown-light);background:none;border:none;cursor:pointer;padding:8px 0 0;text-decoration:underline;-webkit-appearance:none;';
+  resetTodBtn.textContent='Reset to defaults';
+  resetTodBtn.onclick=()=>{if(confirm('Reset times of day to defaults?')){S.timeOfDay=[...DEFAULT_TIME_OF_DAY];save();render();}};
+  schedSection.appendChild(resetTodBtn);
+  body.appendChild(schedSection);
+
   // Appearance
   const apps=el('div','settings-section');
   const appt=el('div','settings-title');appt.textContent='Appearance';apps.appendChild(appt);
@@ -3373,29 +3439,6 @@ function renderSettings(body){
   dmToggle.append(dmInput,dmSlider);
   dmRow.append(dmd,dmToggle);apps.appendChild(dmRow);
 
-  // Day ends at setting
-  const dayEndRow=el('div','settings-row');
-  const dayEndD=el('div');
-  const dayEndL=el('div','settings-row-label');dayEndL.textContent='My day ends at';
-  const dayEndS=el('div','settings-row-sub');dayEndS.textContent='Cards roll to tomorrow after this time. Useful for night owls!';
-  dayEndD.append(dayEndL,dayEndS);
-  const dayEndSel=el('select');
-  dayEndSel.style.cssText='font-family:"Lato",sans-serif;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--text);-webkit-appearance:auto;';
-  const dayEndOptions=[
-    [0,'Midnight (12:00 AM)'],
-    [1,'1:00 AM'],[2,'2:00 AM'],[3,'3:00 AM'],[4,'4:00 AM'],
-  ];
-  const currentDayEnd=parseInt(localStorage.getItem('cf4_dayEnd')||'0');
-  dayEndOptions.forEach(([val,label])=>{
-    const o=document.createElement('option');o.value=String(val);o.textContent=label;
-    if(val===currentDayEnd)o.selected=true;
-    dayEndSel.appendChild(o);
-  });
-  dayEndSel.onchange=e=>{
-    localStorage.setItem('cf4_dayEnd',e.target.value);
-    render();
-  };
-  dayEndRow.append(dayEndD,dayEndSel);apps.appendChild(dayEndRow);
   const ACCENTS=[
     {color:'#c06878',name:'Deep Rose'},
     {color:'#8878c8',name:'Soft Violet'},
@@ -3483,6 +3526,7 @@ function renderSettings(body){
   const rb=el('button','settings-btn');rb.textContent='Reset';
   rb.onclick=()=>{if(confirm('Reset all colors to defaults?')){S.freqColors={...DEFAULT_FREQ_COLORS};S.specialTypes=DEFAULT_SPECIAL.map(s=>({...s}));save();render();}};
   resetRow.append(rd,rb);cs.appendChild(resetRow);
+  makeCollapsible(cs,'Card Colors','cf4_collapse_colors');
   body.appendChild(cs);
 
   // Areas
@@ -3515,6 +3559,7 @@ function renderSettings(body){
   };
   areaInput.addEventListener('keydown',e=>{if(e.key==='Enter')addAreaBtn.click();});
   addAreaRow.append(areaInput,addAreaBtn);arSection.appendChild(addAreaRow);
+  makeCollapsible(arSection,'Rooms & Areas','cf4_collapse_areas');
   body.appendChild(arSection);
 
   // Family Members / Delegates
@@ -3551,6 +3596,7 @@ function renderSettings(body){
   };
   dlInput.addEventListener('keydown',e=>{if(e.key==='Enter')addDlBtn.click();});
   addDlRow.append(dlInput,addDlBtn);dlSection.appendChild(addDlRow);
+  makeCollapsible(dlSection,'Family Members & Helpers','cf4_collapse_delegates');
   body.appendChild(dlSection);
   const bs=el('div','settings-section');
   // Cloud Sync section already rendered at top
@@ -3586,25 +3632,78 @@ function renderSettings(body){
   body.appendChild(ss);
 }
 
-// Send delegate's tasks via text/email
+// Send delegate's tasks via text or email
 function sendDelegateTasks(name){
   const today=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  const tasks=S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t)&&(t.delegate===name||t.nextDelegate===name)&&!isDoneToday(t));
-  if(!tasks.length){
-    alert(`No outstanding tasks for ${name} today!`);return;
-  }
-  const todOrder=['dawn','morning','afternoon','evening',''];
+  // Include: permanent delegate tasks due today, AND nextDelegate tasks (regardless of schedule)
+  const tasks=S.tasks.filter(t=>{
+    if(t.delegate===name&&isActiveTask(t)&&wasPartOfToday(t)&&!isDoneToday(t)) return true;
+    if(t.nextDelegate===name){
+      // A/N and 1X: show if date matches today or earlier
+      if(isAsNeededTask(t)||isOneTimeTask(t)){
+        const delegateDate=t.nextDelegateDate||todayStr();
+        return delegateDate<=todayStr()&&!isDoneToday(t);
+      }
+      // Scheduled: show if due today
+      return isActiveTask(t)&&wasPartOfToday(t)&&!isDoneToday(t);
+    }
+    return false;
+  });
+  if(!tasks.length){alert(`No outstanding tasks for ${name} today!`);return;}
+  const todOrder=getTimeOfDay().map(t=>t.id);
   const sorted=[...tasks].sort((a,b)=>todOrder.indexOf(a.timeOfDay||'')-todOrder.indexOf(b.timeOfDay||''));
   const lines=sorted.map(t=>{
-    const tod=TIME_OF_DAY.find(x=>x.id===(t.timeOfDay||''));
+    const tod=getTimeOfDay().find(x=>x.id===(t.timeOfDay||''));
     const todLabel=tod&&tod.id?tod.label+' — ':'';
     const time=t.time?` (${t.time})`:'';
     const area=t.area?` [${t.area}]`:'';
-    return `• ${todLabel}${t.name}${area}${time}`;
+    const isAN=isAsNeededTask(t)?` [As Needed]`:'';
+    const is1X=isOneTimeTask(t)?` [One-Time]`:'';
+    return `• ${todLabel}${t.name}${area}${time}${isAN}${is1X}`;
   }).join('\n');
-  const msg=`Hi ${name}! Here are your tasks for ${today}:\n\n${lines}\n\nThanks! 🌸\n\n(Sent from The Card File — standard carrier rates may apply)`;
-  // Open Messages/Mail with pre-filled message
-  window.location.href=`sms:?body=${encodeURIComponent(msg)}`;
+  const msg=`Hi ${name}! Here are your tasks for ${today}:\n\n${lines}\n\nThanks! 🌸`;
+
+  // Show send options popup
+  const bd=el('div','backdrop');
+  bd.onclick=e=>{if(e.target===bd)bd.remove();};
+  const modal=el('div','modal');
+  modal.style.cssText='background:var(--card-bg);border-radius:16px 16px 0 0;padding:22px 18px 32px;width:100%;max-height:70vh;overflow-y:auto;animation:slideUp .28s ease;';
+  const title=el('div','modal-title');title.textContent='Send tasks to '+name;
+  const sub=el('div','modal-sub');sub.textContent=tasks.length+' task'+(tasks.length!==1?'s':'');
+  modal.append(title,sub);
+
+  // Preview
+  const preview=el('div');
+  preview.style.cssText='font-size:12px;color:var(--brown-mid);background:var(--parchment-dark);border-radius:8px;padding:12px;margin:12px 0;white-space:pre-wrap;line-height:1.6;';
+  preview.textContent=msg;
+  modal.appendChild(preview);
+
+  // Send buttons
+  const smsBtn=el('button','btn btn-primary');
+  smsBtn.style.cssText='width:100%;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:none;cursor:pointer;margin-bottom:8px;-webkit-appearance:none;';
+  smsBtn.textContent='📱 Send via Text Message';
+  smsBtn.onclick=()=>{
+    bd.remove();
+    window.location.href=`sms:?body=${encodeURIComponent(msg+'\n\n(Sent from The Card File — standard carrier rates may apply)')}`;
+  };
+
+  const emailBtn=el('button','btn btn-ghost');
+  emailBtn.style.cssText='width:100%;font-family:"Lato",sans-serif;font-size:13px;font-weight:700;padding:14px;border-radius:8px;border:1px solid var(--border);cursor:pointer;margin-bottom:8px;-webkit-appearance:none;';
+  emailBtn.textContent='📧 Send via Email';
+  emailBtn.onclick=()=>{
+    bd.remove();
+    const subject=encodeURIComponent(`Your tasks for ${today}`);
+    const body=encodeURIComponent(msg);
+    window.location.href=`mailto:?subject=${subject}&body=${body}`;
+  };
+
+  const cancelBtn=el('button','btn btn-ghost');
+  cancelBtn.style.cssText='width:100%;font-family:"Lato",sans-serif;font-size:13px;padding:12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;-webkit-appearance:none;color:var(--brown-light);';
+  cancelBtn.textContent='Cancel';
+  cancelBtn.onclick=()=>bd.remove();
+
+  modal.append(smsBtn,emailBtn,cancelBtn);
+  bd.appendChild(modal);document.body.appendChild(bd);
 }
 function showColorPicker(type,id,currentColor){
   const bd=el('div','backdrop');
@@ -4158,7 +4257,7 @@ function buildModal(data,isEdit){
   // Area
   const f2=el('div','field');const l2=el('label');l2.textContent='Area / Room';
   const sel2=el('select');
-  const allAreas=[...new Set([...S.areas,...(data.area?[data.area]:[])])].sort();
+  const allAreas=sortAreas(new Set([...S.areas,...(data.area?[data.area]:[])]));
   allAreas.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;if(a===data.area)o.selected=true;sel2.appendChild(o);});
   const customOpt=document.createElement('option');customOpt.value='__custom__';customOpt.textContent='+ Add new area...';sel2.appendChild(customOpt);
   sel2.onchange=e=>{
@@ -4487,8 +4586,8 @@ function buildModal(data,isEdit){
   }
   updateDayFields();
 
-  // Delegate — only show if there are family members set up
-  if((S.delegates||[]).length){
+  // Delegate — only for scheduled and 1X tasks (not A/N)
+  if((S.delegates||[]).length&&data.freq!=='an'){
     const fdel=el('div','field');
     const ldel=el('label');ldel.textContent='Delegate to';
     const seldel=el('select');
@@ -4728,7 +4827,7 @@ function render(){
     list.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:2px 16px;margin:8px 0;width:100%;';
 
     // Sort by timeOfDay then name for consistent order
-    const todOrder=['dawn','morning','afternoon','evening',''];
+    const todOrder=getTimeOfDay().map(t=>t.id);
     const sorted=[...allDueTasks].sort((a,b)=>todOrder.indexOf(a.timeOfDay||'')-todOrder.indexOf(b.timeOfDay||''));
 
     sorted.forEach(task=>{
