@@ -474,7 +474,59 @@ const DEFAULT_SPECIAL=[
   {id:'selfcare', label:'Self-Care', color:'#d488a8'},
   {id:'medical',  label:'Medical',   color:'#e8843a'},
   {id:'financial',label:'Financial', color:'#72aa82'},
-  {id:'meals',    label:'Meals',     color:'#e8a048'},
+  {id:'nutrition',label:'Nutrition', color:'#80b870'},
+];
+
+const FLYLADY_STEPS=[
+  {name:'Step 1 — Shine Your Sink',area:'Kitchen',freq:'d',time:"5'",supplies:'Dish soap, scrub brush, dry cloth',timeOfDay:'evening',special:'',desc:'Scrub, rinse, and dry your sink before bed. The cornerstone habit of the whole system.'},
+  {name:'Step 2 — Get Dressed to Shoes',area:'Master Bedroom',freq:'d',time:"10'",supplies:'',timeOfDay:'morning',special:'selfcare',desc:'Real clothes and lace-up shoes every morning. It changes how you feel and what you get done.'},
+  {name:'Step 3 — Make Your Bed',area:'Master Bedroom',freq:'d',time:"5'",supplies:'',timeOfDay:'morning',special:'',desc:'Five minutes. The whole room looks better and your day starts with a win.'},
+  {name:'Step 4 — Drink Your Water',area:'Kitchen',freq:'d',time:"2'",supplies:'Water glass or bottle',timeOfDay:'morning',special:'',desc:'Aim for eight glasses a day. Keep a full glass or bottle where you\'ll see it.'},
+  {name:'Step 5 — Hot Spot Fire Drill',area:'Whole House',freq:'d',time:"5'",supplies:'',timeOfDay:'evening',special:'',desc:'Spend 5 minutes clearing your most cluttered surface before bed. Prevent piles before they start.'},
+  {name:'Step 6 — Review Your Routines',area:'',freq:'d',time:"2'",supplies:'',timeOfDay:'morning',special:'',desc:'Glance at your morning and evening routines each day so they stay top of mind.'},
+  {name:'Step 7 — Drink More Water',area:'Kitchen',freq:'d',time:"1'",supplies:'Water glass or bottle',timeOfDay:'afternoon',special:'',desc:'Your afternoon reminder to refill and keep going.'},
+  {name:'Step 8 — Set Out Tomorrow\'s Clothes',area:'Master Bedroom',freq:'d',time:"5'",supplies:'',timeOfDay:'evening',special:'',desc:'Decide tonight so mornings are calm. Include shoes, accessories — everything.'},
+  {name:'Step 9 — Check Your Calendar',area:'',freq:'d',time:"2'",supplies:'',timeOfDay:'morning',special:'',desc:'Know what\'s coming before the day starts. No surprises.'},
+  {name:'Step 10 — Declutter 15 Minutes',area:'Whole House',freq:'d',time:"15'",supplies:'Trash bag, donate box',timeOfDay:'',special:'',desc:'One area, 15 minutes, no agonizing. Toss or donate — keep moving.'},
+  {name:'Step 11 — Write in Your Planner',area:'',freq:'d',time:"5'",supplies:'Planner or notebook',timeOfDay:'morning',special:'',desc:'Capture to-dos, appointments, and ideas before they slip away.'},
+  {name:'Step 12 — Plan Dinner',area:'Kitchen',freq:'d',time:"2'",supplies:'',timeOfDay:'morning',special:'',desc:'Decide in the morning so you can defrost, prep, or make a backup plan in time.'},
+  {name:'Step 13 — Morning Self-Care Routine',area:'Master Bathroom',freq:'d',time:"15'",supplies:'',timeOfDay:'morning',special:'selfcare',desc:'Hair, face, getting ready — so you feel put-together before the day begins.'},
+  {name:'Step 14 — Move Your Body',area:'',freq:'d',time:"20'",supplies:'',timeOfDay:'morning',special:'selfcare',desc:'A walk, a stretch, or a workout. Any movement counts — just do it.'},
+  {name:'Step 15 — Build Your Control Journal',area:'',freq:'1x',time:"30'",supplies:'Binder or notebook, pens, tabs',timeOfDay:'',special:'',desc:'Your household management binder: routines, contacts, menus, emergency info. Build it once.'},
+  {name:'Step 16 — Weekly Home Blessing Hour',area:'Whole House',freq:'w',time:"1 hr.",supplies:'Vacuum, mop, dusters, cloths',timeOfDay:'morning',special:'',desc:'One hour of light cleaning split into 10-minute segments: vacuum, mop, dust, mirrors, trash, toilets.'},
+  {name:'Step 17 — Do a Load of Laundry',area:'Laundry Room',freq:'d',time:"10'",supplies:'Detergent',timeOfDay:'morning',special:'',desc:'Start a load in the morning, switch it at lunch, fold it by evening. Don\'t let it pile up.'},
+  {name:'Step 18 — Swish and Swipe',area:'Master Bathroom',freq:'d',time:"5'",supplies:'Toilet brush, cleaning wipe',timeOfDay:'morning',special:'',desc:'Swish the toilet bowl, swipe the counter and mirror. Done in five minutes every morning.'},
+  {name:'Step 19 — Before Bed Tidy',area:'Whole House',freq:'d',time:"10'",supplies:'',timeOfDay:'evening',special:'',desc:'A quick walk-through to reset the house so you wake up to a calm, tidy home.'},
+  {name:'Step 20 — Wipe Kitchen Counters',area:'Kitchen',freq:'d',time:"5'",supplies:'Cloth or sponge',timeOfDay:'evening',special:'',desc:'After dinner, wipe all surfaces and the stovetop. Kitchen closes clean every night.'},
+  {name:'Step 21 — Daily Hot Spot Boost',area:'Whole House',freq:'d',time:"5'",supplies:'',timeOfDay:'evening',special:'',desc:'A second pass at clutter magnets — the table, the chair, the counter. Keep them clear.'},
+  {name:'Step 22 — Take a Walk Outdoors',area:'',freq:'d',time:"15'",supplies:'',timeOfDay:'morning',special:'selfcare',desc:'Fresh air and daylight. Even 15 minutes improves mood and energy all day.'},
+  {name:'Step 23 — Prep for Tomorrow Night',area:'Master Bedroom',freq:'d',time:"10'",supplies:'',timeOfDay:'evening',special:'',desc:'Bag packed, lunch ready, clothes out, keys in place. Morning-you will be grateful.'},
+  {name:'Step 24 — Break a Project into Steps',area:'',freq:'w',time:"15'",supplies:'Planner or notebook',timeOfDay:'',special:'',desc:'Pick one big task and write the first three steps. Big jobs only feel impossible until they\'re started.'},
+  {name:'Step 25 — Weekly Menu Plan',area:'Kitchen',freq:'w',time:"15'",supplies:'',timeOfDay:'morning',special:'',desc:'Plan your meals for the week to save money, reduce waste, and end the "what\'s for dinner" panic.'},
+  {name:'Step 26 — Gratitude Journal',area:'',freq:'d',time:"5'",supplies:'Journal',timeOfDay:'evening',special:'selfcare',desc:'Write three things you\'re grateful for today. Small habit, big shift in perspective.'},
+  {name:'Step 27 — Monthly Declutter Session',area:'Whole House',freq:'m',time:"30'",supplies:'Trash bag, donate box',timeOfDay:'',special:'',desc:'Choose one area each month for a deeper sort and remove. Closet, drawer, shelf — pick one.'},
+  {name:'Step 28 — Pamper Yourself',area:'',freq:'w',time:"30'",supplies:'',timeOfDay:'',special:'selfcare',desc:'A bath, a face mask, a good book. You are worth taking care of.'},
+  {name:'Step 29 — Grocery List and Shop',area:'',freq:'w',time:"1 hr.",supplies:'List, reusable bags',timeOfDay:'',special:'',desc:'Write your list from the menu plan and shop once. Saves time, money, and mid-week scrambles.'},
+  {name:'Step 30 — Weekend Home Reset',area:'Whole House',freq:'w',time:"30'",supplies:'',timeOfDay:'morning',special:'',desc:'A lighter version of the Home Blessing on Saturday or Sunday. Set the week up right.'},
+  {name:'Step 31 — Celebrate Your Progress',area:'',freq:'an',time:"5'",supplies:'',timeOfDay:'',special:'',desc:'You are building a home, not just cleaning one. Notice how far you\'ve come and celebrate it.'},
+];
+
+const FLYLADY_EXTRA=[
+  {name:'27-Fling Boogie',area:'Whole House',freq:'an',time:"15'",supplies:'Trash bag',timeOfDay:'',special:'',desc:'Throw away 27 things — no thinking, just toss. Papers, broken things, duplicates, expired items.'},
+  {name:'Swish and Swipe — Hall Bath',area:'Hall Bath',freq:'d',time:"5'",supplies:'Toilet brush, cleaning wipe',timeOfDay:'morning',special:'',desc:'Quick daily clean of the second bathroom. Same as the master bath routine.'},
+  {name:'Clear Kitchen Sink',area:'Kitchen',freq:'d',time:"3'",supplies:'',timeOfDay:'evening',special:'',desc:'Empty, rinse, and leave the sink clear before bed. Pairs with Shine Your Sink.'},
+  {name:'Wipe Stovetop',area:'Kitchen',freq:'d',time:"5'",supplies:'Degreaser spray, cloth',timeOfDay:'evening',special:'',desc:'Wipe down burners and stovetop after dinner while it\'s still warm. Prevents buildup.'},
+  {name:'Run Dishwasher',area:'Kitchen',freq:'d',time:"2'",supplies:'Dishwasher pod',timeOfDay:'evening',special:'',desc:'Load and run every evening so dishes are clean and ready to put away in the morning.'},
+  {name:'Empty Dishwasher',area:'Kitchen',freq:'d',time:"5'",supplies:'',timeOfDay:'morning',special:'',desc:'Start the day with an empty dishwasher so dirty dishes always have a home.'},
+  {name:'Take Vitamins',area:'Kitchen',freq:'d',time:"1'",supplies:'Vitamins or supplements',timeOfDay:'morning',special:'selfcare',desc:'A small act of self-care each morning. Keep them visible so you remember.'},
+  {name:'Change Hand Towels',area:'Whole House',freq:'w',time:"5'",supplies:'Fresh hand towels',timeOfDay:'',special:'',desc:'Swap hand towels in bathrooms and kitchen weekly. Fresh towels, fresh feeling.'},
+  {name:'Wipe Light Switches and Doorknobs',area:'Whole House',freq:'w',time:"5'",supplies:'Disinfecting wipes',timeOfDay:'',special:'',desc:'High-touch surfaces that gather germs. Takes almost no time and makes a real difference.'},
+  {name:'Clean Microwave',area:'Kitchen',freq:'m',time:"10'",supplies:'Bowl of water, lemon juice, cloth',timeOfDay:'',special:'',desc:'Microwave a bowl of water with lemon juice until steamy, then wipe clean. Easy.'},
+  {name:'Dust Ceiling Fans',area:'Whole House',freq:'m',time:"10'",supplies:'Pillowcase or extendable duster',timeOfDay:'',special:'',desc:'Slide a pillowcase over each blade to catch dust without scattering it. Once a month is enough.'},
+  {name:'Vacuum Under Beds',area:'Master Bedroom',freq:'m',time:"10'",supplies:'Vacuum with wand or attachment',timeOfDay:'',special:'',desc:'Dust bunnies hide under there. Monthly is enough to keep them from taking over.'},
+  {name:'Zone Clean — Entrance and Dining',area:'Entryway',freq:'m',time:"1 hr.",supplies:'All-purpose cleaner, vacuum, mop',timeOfDay:'',special:'',desc:'FlyLady Zone 1: detail clean your entry, front porch, and dining area once a month.'},
+  {name:'Zone Clean — Main Bathroom',area:'Hall Bath',freq:'m',time:"45'",supplies:'Scrubber, cleaner, mop, fresh towels',timeOfDay:'',special:'',desc:'FlyLady Zone 3: deep clean the main bathroom and any guest rooms this week.'},
+  {name:'Zone Clean — Living Room',area:'Living Room',freq:'m',time:"1 hr.",supplies:'Vacuum, dusters, all-purpose cleaner',timeOfDay:'',special:'',desc:'FlyLady Zone 5: deep clean the living room, den, or family room once a month.'},
 ];
 
 const DEFAULT_AREAS=[
@@ -984,6 +1036,9 @@ function load(){
   try{S.tasks=JSON.parse(localStorage.getItem('cf4_tasks'))||DEFAULT_TASKS;}catch{S.tasks=DEFAULT_TASKS;}
   try{const fc=localStorage.getItem('cf4_freqColors');if(fc)S.freqColors={...DEFAULT_FREQ_COLORS,...JSON.parse(fc)};}catch{}
   try{const sp=localStorage.getItem('cf4_special');if(sp)S.specialTypes=JSON.parse(sp);}catch{}
+  // Migrate: remove meals, ensure nutrition is present
+  S.specialTypes=S.specialTypes.filter(s=>s.id!=='meals');
+  if(!S.specialTypes.some(s=>s.id==='nutrition'))S.specialTypes.push({id:'nutrition',label:'Nutrition',color:'#80b870'});
   try{const ws=localStorage.getItem('cf4_weekStart');if(ws!=null)S.weekStart=parseInt(ws);}catch{}
   try{const ar=localStorage.getItem('cf4_areas');if(ar)S.areas=JSON.parse(ar);}catch{}
   try{const tod=localStorage.getItem('cf4_timeOfDay');if(tod)S.timeOfDay=JSON.parse(tod);}catch{}
@@ -1221,9 +1276,10 @@ function showCompletionPopup(task,dateContext){
     opts=[
       {label:`✓ Completed on this day`,sub:pastLabel,fn:()=>{bd.remove();markDone(task.id,dateContext);}},
       {label:`✓ Completed today`,sub:todayLabel+' — filed under '+pastLabel,fn:()=>{
-        bd.remove();
-        markDone(task.id,todayStr(),dateContext);
+        if(isAnOr1x){bd.remove();markDone(task.id,todayStr(),dateContext);}
+        else{showDatePickerCompletion(task,modal,bd,dateContext,todayStr());}
       }},
+      {label:`✓ Another day…`,sub:'Choose the actual date it was done',fn:()=>{showDatePickerCompletion(task,modal,bd,dateContext);}},
     ];
     if(!isAnOr1x) opts.push({label:`→ Skip this day`,sub:'Records this day as skipped — no schedule change',fn:()=>{
       bd.remove();
@@ -1234,6 +1290,8 @@ function showCompletionPopup(task,dateContext){
   }else{
     opts=[
       {label:`✓ Completed today`,sub:todayLabel,fn:()=>{bd.remove();markDone(task.id,todayStr());}},
+      {label:`✓ Completed yesterday`,sub:yestLabel,fn:()=>{bd.remove();markDone(task.id,yesterday);}},
+      {label:`✓ Another day…`,sub:'Choose a specific date',fn:()=>{showDatePickerCompletion(task,modal,bd);}},
     ];
     if(!isAnOr1x) opts.push({label:`→ Skip this time`,sub:'Advance to next due date without marking complete',fn:()=>{
       bd.remove();
@@ -1257,6 +1315,57 @@ function showCompletionPopup(task,dateContext){
   const cancel=el('button','btn btn-ghost');cancel.style.marginTop='16px';cancel.textContent='Cancel';cancel.onclick=()=>bd.remove();
   modal.appendChild(cancel);
   bd.appendChild(modal);document.body.appendChild(bd);
+}
+
+function showDatePickerCompletion(task,modal,bd,anchorDate,lockedDate){
+  modal.innerHTML='';
+  const isScheduled=!isAsNeededTask(task)&&!isOneTimeTask(task);
+  const taskAnchor=anchorDate||task.nextDueDate||todayStr();
+  const btnBase='width:100%;padding:12px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:"Lato",sans-serif;margin-bottom:8px;-webkit-appearance:none;';
+  const title=el('div','modal-title');title.textContent='Mark Complete';
+  const sub=el('div','modal-sub');sub.textContent=task.name;
+  let getDate;
+  if(lockedDate){
+    const dl=el('div');
+    dl.style.cssText='font-size:13px;color:var(--brown-light);margin:10px 0 6px;';
+    dl.textContent='Recording as: '+parseDate(lockedDate).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    modal.append(title,sub,dl);
+    getDate=function(){return lockedDate;};
+  }else{
+    const inp=document.createElement('input');
+    inp.type='date';
+    inp.value=todayStr();
+    inp.max=todayStr();
+    inp.style.cssText='width:100%;padding:10px;font-size:16px;border-radius:8px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);margin:16px 0;-webkit-appearance:none;font-family:"Lato",sans-serif;box-sizing:border-box;';
+    modal.append(title,sub,inp);
+    getDate=function(){return inp.value;};
+  }
+  const cancelBtn=el('button');
+  cancelBtn.textContent='Cancel';
+  cancelBtn.style.cssText='width:100%;padding:10px;background:none;border:none;color:var(--brown-light);font-size:14px;cursor:pointer;font-family:"Lato",sans-serif;';
+  cancelBtn.onclick=function(){bd.remove();};
+  if(isScheduled){
+    const note=el('div');
+    note.style.cssText='font-size:12px;color:var(--brown-light);margin:8px 0 14px;line-height:1.5;';
+    note.textContent='How should this affect your schedule?';
+    const keepBtn=el('button');
+    keepBtn.textContent='One-time — keep my schedule';
+    keepBtn.title='Records this completion without shifting future due dates';
+    keepBtn.style.cssText=btnBase+'background:var(--card-bg);color:var(--text);border:1.5px solid var(--border);';
+    keepBtn.onclick=function(){const d=getDate();if(d){bd.remove();markDone(task.id,d,taskAnchor);}};
+    const resetBtn=el('button');
+    resetBtn.textContent='Reset schedule from this date';
+    resetBtn.title='Recalculates all future due dates starting from the chosen date';
+    resetBtn.style.cssText=btnBase+'background:var(--gold);color:var(--brown);border:none;font-weight:700;';
+    resetBtn.onclick=function(){const d=getDate();if(d){bd.remove();markDone(task.id,d,d);}};
+    modal.append(note,keepBtn,resetBtn,cancelBtn);
+  }else{
+    const okBtn=el('button');
+    okBtn.textContent='Mark Complete';
+    okBtn.style.cssText=btnBase+'background:var(--gold);color:var(--brown);border:none;font-weight:700;';
+    okBtn.onclick=function(){const d=getDate();if(d){bd.remove();markDone(task.id,d);}};
+    modal.append(okBtn,cancelBtn);
+  }
 }
 
 // Card detail overlay — tap a card to see full details in large readable view
@@ -2362,6 +2471,81 @@ function applyBatchReschedule(newDate,modal,bd,updateSchedule){
   bd.remove();
   save();render();
 }
+function showBatchMoveToPending(){
+  if(!S.selectedIds.length) return;
+  const count=S.selectedIds.length;
+  const bd=el('div','backdrop');
+  bd.onclick=function(e){if(e.target===bd)bd.remove();};
+  const modal=el('div','modal');
+  modal.style.cssText='background:var(--card-bg);border-radius:16px 16px 0 0;padding:22px 18px 32px;width:100%;max-height:70vh;overflow-y:auto;animation:slideUp .28s ease;';
+  const title=el('div','modal-title');title.textContent='Move to Pending';
+  const sub=el('div','modal-sub');sub.textContent=count+' card'+(count!==1?'s':'')+' selected';
+  const note=el('div');
+  note.style.cssText='font-size:13px;color:var(--brown-light);margin:12px 0 20px;line-height:1.5;';
+  note.textContent='Removes the due date from the selected cards. They will move to the Pending tab and can be rescheduled when you\'re ready. Completion history is kept.';
+  const okBtn=el('button');
+  okBtn.textContent='Move '+count+' Card'+(count!==1?'s':'')+' to Pending';
+  okBtn.style.cssText='width:100%;padding:14px;background:var(--gold);color:var(--brown);border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:"Lato",sans-serif;';
+  okBtn.onclick=function(){
+    S.selectedIds.forEach(function(id){
+      var t=S.tasks.find(function(x){return x.id===id;});
+      if(!t) return;
+      t.nextDueDate='';
+      t.startDate='';
+      delete t.originalDueDate;
+    });
+    S.selectedIds=[];
+    S.selectMode=false;
+    save();
+    bd.remove();
+    render();
+  };
+  const cancelBtn=el('button');
+  cancelBtn.textContent='Cancel';
+  cancelBtn.style.cssText='width:100%;padding:10px;background:none;border:none;color:var(--brown-light);font-size:14px;cursor:pointer;font-family:"Lato",sans-serif;margin-top:8px;';
+  cancelBtn.onclick=function(){bd.remove();};
+  modal.append(title,sub,note,okBtn,cancelBtn);
+  bd.appendChild(modal);
+  document.body.appendChild(bd);
+}
+
+function showBatchClearHistory(){
+  if(!S.selectedIds.length) return;
+  const count=S.selectedIds.length;
+  const bd=el('div','backdrop');
+  bd.onclick=function(e){if(e.target===bd)bd.remove();};
+  const modal=el('div','modal');
+  modal.style.cssText='background:var(--card-bg);border-radius:16px 16px 0 0;padding:22px 18px 32px;width:100%;max-height:70vh;overflow-y:auto;animation:slideUp .28s ease;';
+  const title=el('div','modal-title');title.textContent='Clear Completion History';
+  const sub=el('div','modal-sub');sub.textContent=count+' card'+(count!==1?'s':'')+' selected';
+  const note=el('div');
+  note.style.cssText='font-size:13px;color:var(--brown-light);margin:12px 0 20px;line-height:1.5;';
+  note.textContent='Removes all completion records from the selected cards. This cannot be undone.';
+  const okBtn=el('button');
+  okBtn.textContent='Clear History for '+count+' Card'+(count!==1?'s':'');
+  okBtn.style.cssText='width:100%;padding:14px;background:#c0705a;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:"Lato",sans-serif;';
+  okBtn.onclick=function(){
+    S.selectedIds.forEach(function(id){
+      var t=S.tasks.find(function(x){return x.id===id;});
+      if(!t) return;
+      t.completions=[];
+      t.skips=[];
+    });
+    S.selectedIds=[];
+    S.selectMode=false;
+    save();
+    bd.remove();
+    render();
+  };
+  const cancelBtn=el('button');
+  cancelBtn.textContent='Cancel';
+  cancelBtn.style.cssText='width:100%;padding:10px;background:none;border:none;color:var(--brown-light);font-size:14px;cursor:pointer;font-family:"Lato",sans-serif;margin-top:8px;';
+  cancelBtn.onclick=function(){bd.remove();};
+  modal.append(title,sub,note,okBtn,cancelBtn);
+  bd.appendChild(modal);
+  document.body.appendChild(bd);
+}
+
 function showMiniTasksPopup(){
   // Include all mini tasks — active, future, and pending
   const tasks=S.tasks.filter(t=>t.mini&&!isAsNeededTask(t));
@@ -3467,9 +3651,26 @@ function renderPending(body){
       const pendNote=el('div');pendNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
       pendNote.textContent='These cards have no start date. Edit them to schedule.';
       sec.appendChild(pendNote);
-      const pendGrid=el('div','cards-grid');
-      pending.forEach(task=>pendGrid.appendChild(renderCard(task,true)));
-      sec.appendChild(pendGrid);
+      const roomLabelStyle='font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-light);margin:12px 0 6px;padding-left:2px;';
+      const withRoom=pending.filter(t=>t.area);
+      const noRoom=pending.filter(t=>!t.area);
+      const areaSet=new Set(withRoom.map(t=>t.area));
+      sortAreas([...areaSet]).forEach(area=>{
+        const areaCards=pending.filter(t=>t.area===area);
+        if(!areaCards.length) return;
+        const ah=el('div');ah.style.cssText=roomLabelStyle;ah.textContent=area;
+        sec.appendChild(ah);
+        const g=el('div','cards-grid');
+        areaCards.forEach(task=>g.appendChild(renderCard(task,true)));
+        sec.appendChild(g);
+      });
+      if(noRoom.length){
+        const ah=el('div');ah.style.cssText=roomLabelStyle;ah.textContent='No Room Assigned';
+        sec.appendChild(ah);
+        const g=el('div','cards-grid');
+        noRoom.forEach(task=>g.appendChild(renderCard(task,true)));
+        sec.appendChild(g);
+      }
     });
   }
 
@@ -3489,6 +3690,94 @@ function renderPending(body){
       sec.appendChild(futGrid);
     });
   }
+
+  // FlyLady Baby Steps library — only shown when personal flag is set
+  if(localStorage.getItem('cf4_flylady')!=='1')return;
+  const flyNotAdded=FLYLADY_STEPS.filter(s=>!S.tasks.some(t=>t.name===s.name)).length;
+  pendSection('flylady','✦ FlyLady 31 Baby Steps','#b09070',flyNotAdded,sec=>{
+    const flyNote=el('div');flyNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:14px;font-style:italic;line-height:1.5;';
+    flyNote.textContent='Add any step to your card file as an unscheduled card — then edit and schedule it whenever you\'re ready.';
+    sec.appendChild(flyNote);
+    FLYLADY_STEPS.forEach(step=>{
+      const existsAlready=S.tasks.some(t=>t.name===step.name);
+      const row=el('div');
+      row.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--border);gap:8px;';
+      const nameWrap=el('div');nameWrap.style.cssText='flex:1;line-height:1.3;';
+      const nameEl=el('div');nameEl.style.cssText='font-size:13px;color:var(--text);';nameEl.textContent=step.name;
+      nameWrap.appendChild(nameEl);
+      if(step.desc){const descEl=el('div');descEl.style.cssText='font-size:11px;color:var(--brown-light);margin-top:2px;line-height:1.4;';descEl.textContent=step.desc;nameWrap.appendChild(descEl);}
+      if(existsAlready){
+        const tick=el('span');tick.style.cssText='font-size:12px;color:#4a9e5c;font-weight:600;white-space:nowrap;flex-shrink:0;margin-top:1px;';
+        tick.textContent='✓ Added';
+        row.append(nameWrap,tick);
+      }else{
+        const addBtn=el('button','settings-btn');addBtn.textContent='Add';addBtn.style.flexShrink='0';
+        const sName=step.name;
+        addBtn.onclick=()=>{
+          const task={id:S.nextId++,name:sName,area:step.area,freq:step.freq,time:step.time,supplies:step.supplies,timeOfDay:step.timeOfDay,special:step.special,mini:false,completions:[],skips:[],startDate:'',nextDueDate:''};
+          S.tasks.push(task);save();render();
+        };
+        row.append(nameWrap,addBtn);
+      }
+      sec.appendChild(row);
+    });
+    const addAllBtn=el('button');
+    addAllBtn.style.cssText='width:100%;margin-top:14px;padding:12px;background:var(--gold);color:var(--brown);border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:"Lato",sans-serif;-webkit-appearance:none;';
+    const remaining=FLYLADY_STEPS.filter(s=>!S.tasks.some(t=>t.name===s.name));
+    addAllBtn.textContent=remaining.length?'Add All '+remaining.length+' Remaining Steps':'All Steps Added ✓';
+    addAllBtn.disabled=!remaining.length;
+    addAllBtn.onclick=()=>{
+      FLYLADY_STEPS.forEach(step=>{
+        if(S.tasks.some(t=>t.name===step.name))return;
+        S.tasks.push({id:S.nextId++,name:step.name,area:step.area,freq:step.freq,time:step.time,supplies:step.supplies,timeOfDay:step.timeOfDay,special:step.special,mini:false,completions:[],skips:[],startDate:'',nextDueDate:''});
+      });
+      save();render();
+    };
+    sec.appendChild(addAllBtn);
+  });
+  // FlyLady Extra Tasks library
+  const extraNotAdded=FLYLADY_EXTRA.filter(s=>!S.tasks.some(t=>t.name===s.name)).length;
+  pendSection('flylady_extra','✦ FlyLady Extra Tasks','#9a8870',extraNotAdded,sec=>{
+    const extraNote=el('div');extraNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:14px;font-style:italic;line-height:1.5;';
+    extraNote.textContent='FlyLady-inspired routines and zone tasks. Add any that fit your home.';
+    sec.appendChild(extraNote);
+    FLYLADY_EXTRA.forEach(step=>{
+      const existsAlready=S.tasks.some(t=>t.name===step.name);
+      const row=el('div');
+      row.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--border);gap:8px;';
+      const nameWrap=el('div');nameWrap.style.cssText='flex:1;line-height:1.3;';
+      const nameEl=el('div');nameEl.style.cssText='font-size:13px;color:var(--text);';nameEl.textContent=step.name;
+      nameWrap.appendChild(nameEl);
+      if(step.desc){const descEl=el('div');descEl.style.cssText='font-size:11px;color:var(--brown-light);margin-top:2px;line-height:1.4;';descEl.textContent=step.desc;nameWrap.appendChild(descEl);}
+      if(existsAlready){
+        const tick=el('span');tick.style.cssText='font-size:12px;color:#4a9e5c;font-weight:600;white-space:nowrap;flex-shrink:0;margin-top:1px;';
+        tick.textContent='✓ Added';
+        row.append(nameWrap,tick);
+      }else{
+        const addBtn=el('button','settings-btn');addBtn.textContent='Add';addBtn.style.flexShrink='0';
+        const sName=step.name;
+        addBtn.onclick=()=>{
+          const task={id:S.nextId++,name:sName,area:step.area,freq:step.freq,time:step.time,supplies:step.supplies,timeOfDay:step.timeOfDay,special:step.special,mini:false,completions:[],skips:[],startDate:'',nextDueDate:''};
+          S.tasks.push(task);save();render();
+        };
+        row.append(nameWrap,addBtn);
+      }
+      sec.appendChild(row);
+    });
+    const addAllExtraBtn=el('button');
+    addAllExtraBtn.style.cssText='width:100%;margin-top:14px;padding:12px;background:var(--gold);color:var(--brown);border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:"Lato",sans-serif;-webkit-appearance:none;';
+    const remainingExtra=FLYLADY_EXTRA.filter(s=>!S.tasks.some(t=>t.name===s.name));
+    addAllExtraBtn.textContent=remainingExtra.length?'Add All '+remainingExtra.length+' Remaining Tasks':'All Tasks Added ✓';
+    addAllExtraBtn.disabled=!remainingExtra.length;
+    addAllExtraBtn.onclick=()=>{
+      FLYLADY_EXTRA.forEach(step=>{
+        if(S.tasks.some(t=>t.name===step.name))return;
+        S.tasks.push({id:S.nextId++,name:step.name,area:step.area,freq:step.freq,time:step.time,supplies:step.supplies,timeOfDay:step.timeOfDay,special:step.special,mini:false,completions:[],skips:[],startDate:'',nextDueDate:''});
+      });
+      save();render();
+    };
+    sec.appendChild(addAllExtraBtn);
+  });
 }
 // ══════════════════════════════════════════
 // TAB: SETTINGS
@@ -3524,7 +3813,6 @@ function renderSettings(body){
 
   // ── ABOUT & HELP ──
   const as=el('div','settings-section');
-  const at=el('div','settings-title');at.textContent='About & Help';as.appendChild(at);
   [['Welcome & About','View credits and privacy info',()=>{S.showWelcome=true;render();}],
    ['How To Install','Step-by-step guide for phone & computer',()=>{S.tab='howto';render();}],
    ['Getting Started','How to use The Card File',()=>{S.tab='walkthrough';render();}],
@@ -3556,7 +3844,6 @@ function renderSettings(body){
 
   // ── SCHEDULE & TIMING ──
   const schedSection=el('div','settings-section');
-  const schedTitle=el('div','settings-title');schedTitle.textContent='Schedule & Timing';schedSection.appendChild(schedTitle);
 
   // Week starts on
   const wsRow=el('div','settings-row');
@@ -3643,7 +3930,6 @@ function renderSettings(body){
 
   // Appearance
   const apps=el('div','settings-section');
-  const appt=el('div','settings-title');appt.textContent='Appearance';apps.appendChild(appt);
 
   // Dark mode toggle
   const dmRow=el('div','settings-row');
@@ -3688,15 +3974,12 @@ function renderSettings(body){
     acPicker.appendChild(sw);
   });
   acRow.append(acd,acPicker);apps.appendChild(acRow);
-  makeSettingsCollapsible(apps,'Appearance','cf4_collapse_appear');
-  body.appendChild(apps);
-
-  // Color Themes
-  const ts=el('div','settings-section');
-  const tt=el('div','settings-title');tt.textContent='Color Themes';ts.appendChild(tt);
+  // Color Themes inside Appearance — collapses together with Dark Mode and Accent Color
+  const themeDivider=el('div');themeDivider.style.cssText='border-top:1px solid var(--border);margin:16px 0 14px;';apps.appendChild(themeDivider);
+  const tt=el('div','settings-row-label');tt.textContent='Color Themes';tt.style.marginBottom='10px';apps.appendChild(tt);
   const tnote=el('div');tnote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:14px;line-height:1.5;';
-  tnote.textContent='Choose a theme to set all card colors at once. Special card colors (Self-Care, Medical, Financial) stay the same across all themes. You can still fine-tune individual colors below.';
-  ts.appendChild(tnote);
+  tnote.textContent='Choose a theme to set all card colors at once. Fine-tune individual colors in Card Color / Frequency below.';
+  apps.appendChild(tnote);
   const themeGrid=el('div');themeGrid.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px;';
   Object.entries(THEMES).forEach(([id,theme])=>{
     const isActive=S.theme===id;
@@ -3710,41 +3993,66 @@ function renderSettings(body){
       dot.style.cssText=`width:14px;height:14px;border-radius:3px;background:${c}${a};border:0.5px solid rgba(0,0,0,0.08);`;
       dots.appendChild(dot);
     });
-    btn.append(bname,dots);
-    btn.onclick=()=>applyTheme(id);
+    btn.append(bname,dots);btn.onclick=()=>applyTheme(id);
     themeGrid.appendChild(btn);
   });
-  ts.appendChild(themeGrid);
-  body.appendChild(ts);
+  apps.appendChild(themeGrid);
+  makeSettingsCollapsible(apps,'Appearance','cf4_collapse_appear');
+  body.appendChild(apps);
+
+  // Card Color / Frequency
   const cs=el('div','settings-section');
   const cnote=el('div');cnote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:14px;';
-  cnote.textContent='Tap a frequency to change its color.';cs.appendChild(cnote);
+  cnote.textContent='Tap a color swatch to change it.';cs.appendChild(cnote);
   FREQS.forEach(f=>{
     const row=el('div','settings-row');
     const d=el('div','settings-row-label');d.textContent=`${f.label} — ${f.name}`;
     const c=S.freqColors[f.id];
-    // In dark mode show how the color actually appears on cards
     const swatchBg=S.darkMode?`linear-gradient(135deg,${c}aa,${c}88)`:`linear-gradient(135deg,${c}cc,${c}99)`;
     const swatch=el('div');swatch.style.cssText=`width:32px;height:32px;border-radius:6px;background:${swatchBg};border:2px solid var(--border);cursor:pointer;flex-shrink:0;`;
     swatch.onclick=()=>showColorPicker('freq',f.id,S.freqColors[f.id]);
     row.append(d,swatch);cs.appendChild(row);
   });
+  const spDiv=el('div');spDiv.style.cssText='border-top:1px solid var(--border);margin:12px 0 10px;';cs.appendChild(spDiv);
+  const spHead=el('div');spHead.style.cssText='font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-light);margin-bottom:10px;';spHead.textContent='Special Card Types';cs.appendChild(spHead);
   S.specialTypes.forEach(sp=>{
     const row=el('div','settings-row');
-    const d=el('div','settings-row-label');d.textContent=sp.label+' cards';
+    const d=el('div');const dl=el('div','settings-row-label');dl.textContent=sp.label;d.appendChild(dl);
+    const actions=el('div');actions.style.cssText='display:flex;align-items:center;gap:8px;';
     const swatchBg=`linear-gradient(135deg,${sp.color}cc,${sp.color}99)`;
     const swatch=el('div');swatch.style.cssText=`width:32px;height:32px;border-radius:6px;background:${swatchBg};border:2px solid var(--border);cursor:pointer;flex-shrink:0;`;
     swatch.onclick=()=>showColorPicker('special',sp.id,sp.color);
-    row.append(d,swatch);cs.appendChild(row);
+    const rmBtn=el('button','settings-btn');rmBtn.textContent='Remove';
+    rmBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;padding:5px 10px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--brown-light);cursor:pointer;-webkit-appearance:none;';
+    const spId=sp.id;const spLabel=sp.label;
+    rmBtn.onclick=()=>{
+      const used=S.tasks.filter(t=>t.special===spId).length;
+      const msg=used?('Remove "'+spLabel+'"? '+used+' card'+(used!==1?'s':'')+' will revert to standard color.'):'Remove "'+spLabel+'"?';
+      if(confirm(msg)){S.specialTypes=S.specialTypes.filter(s=>s.id!==spId);save();render();}
+    };
+    actions.append(swatch,rmBtn);row.append(d,actions);cs.appendChild(row);
   });
+  const addSpRow=el('div');addSpRow.style.cssText='margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
+  const spNameInp=document.createElement('input');spNameInp.type='text';spNameInp.placeholder='New type name…';
+  spNameInp.style.cssText='font-family:"Lato",sans-serif;font-size:13px;padding:7px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);flex:1;min-width:100px;-webkit-appearance:none;box-sizing:border-box;';
+  const spColorInp=document.createElement('input');spColorInp.type='color';spColorInp.value='#a0b8c8';
+  spColorInp.style.cssText='width:36px;height:36px;border-radius:6px;border:2px solid var(--border);cursor:pointer;padding:2px;flex-shrink:0;-webkit-appearance:none;';
+  const spAddBtn=el('button','settings-btn');spAddBtn.textContent='Add';
+  spAddBtn.onclick=()=>{
+    const name=spNameInp.value.trim();if(!name)return;
+    const id=name.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+    if(!id||S.specialTypes.some(s=>s.id===id))return;
+    S.specialTypes.push({id,label:name,color:spColorInp.value});save();render();
+  };
+  addSpRow.append(spNameInp,spColorInp,spAddBtn);cs.appendChild(addSpRow);
   const resetRow=el('div','settings-row');
   const rd=el('div');const rl=el('div','settings-row-label');rl.textContent='Reset All Colors';
-  const rs=el('div','settings-row-sub');rs.textContent='Restore default color scheme';
+  const rs=el('div','settings-row-sub');rs.textContent='Restore default frequency colors and special types';
   rd.append(rl,rs);
   const rb=el('button','settings-btn');rb.textContent='Reset';
   rb.onclick=()=>{if(confirm('Reset all colors to defaults?')){S.freqColors={...DEFAULT_FREQ_COLORS};S.specialTypes=DEFAULT_SPECIAL.map(s=>({...s}));save();render();}};
   resetRow.append(rd,rb);cs.appendChild(resetRow);
-  makeSettingsCollapsible(cs,'Card Colors','cf4_collapse_colors');
+  makeSettingsCollapsible(cs,'Card Color / Frequency','cf4_collapse_colors');
   body.appendChild(cs);
 
   // Areas
@@ -3818,7 +4126,6 @@ function renderSettings(body){
 
   // Stats
   const ss=el('div','settings-section');
-  const st=el('div','settings-title');st.textContent='Stats';ss.appendChild(st);
   const totalDone=S.tasks.reduce((a,t)=>a+(t.completions||[]).length,0);
   [[`${S.tasks.length} cards total`,'In your card file'],
    [`${S.tasks.filter(t=>isActiveTask(t)).length} active cards`,'Currently scheduled'],
@@ -3915,7 +4222,7 @@ function showColorPicker(type,id,currentColor){
   const title=el('div','modal-title');title.textContent='Choose Color';
   const sub=el('div','modal-sub');
   if(type==='freq'){const f=FREQS.find(f=>f.id===id);sub.textContent=f?`${f.label} — ${f.name}`:'Frequency';}
-  else{const sp=S.specialTypes.find(s=>s.id===id);sub.textContent=sp?sp.label+' cards':'Special';}
+  else{const sp=S.specialTypes.find(s=>s.id===id);sub.textContent=sp?sp.label:'Special';}
   const grid=el('div','color-grid');
   COLOR_PALETTE.forEach(c=>{
     const sw=el('div','color-swatch'+(c===currentColor?' selected':''));
@@ -4371,7 +4678,7 @@ function buildWelcomeScreen(){
   content.appendChild(txt('div','font-family:"Lato",sans-serif;font-size:13px;color:#5a4a38;line-height:1.7;margin-bottom:14px;text-align:center;font-style:italic;','I hope you find this app useful! I created it for myself and then thought that others in our group might like to use it.'));
   content.appendChild(txt('div','font-family:"Playfair Display",serif;font-size:10px;color:#9a8870;text-align:center;margin-bottom:18px;','Created with love for SHEs by fellow SHE, Beth Kahler'));
   const d2=el('div');d2.style.cssText=div1();content.appendChild(d2);
-  content.appendChild(txt('div','font-family:"Lato",sans-serif;font-size:11px;color:#7a6a5a;line-height:1.7;margin-bottom:16px;text-align:center;','Inspired by the card file system from Sidetracked Home Executives by Pam Young and Peggy Jones. This app is an independent personal project and is not affiliated with, endorsed by, or connected to the authors or their work.'));
+  content.appendChild(txt('div','font-family:"Lato",sans-serif;font-size:11px;color:#7a6a5a;line-height:1.7;margin-bottom:8px;text-align:center;','Inspired by the card file system from Sidetracked Home Executives by Pam Young and Peggy Jones. This app is an independent personal project and is not affiliated with, endorsed by, or connected to the authors or their work.'));
 
   const priv=el('div');priv.style.cssText='background:rgba(255,255,255,0.5);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-family:"Lato",sans-serif;font-size:11px;color:#5a4a38;line-height:1.7;';
   const privT=el('div');privT.style.cssText='font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#3a3128;margin-bottom:5px;';privT.textContent='🔒 Your Privacy';
@@ -5092,9 +5399,15 @@ function render(){
     const txt=el('div','select-bar-text');txt.textContent=`${S.selectedIds.length} card${S.selectedIds.length!==1?'s':''} selected`;
     const reschedBtn=el('button','select-bar-btn');reschedBtn.textContent='Reschedule';
     reschedBtn.onclick=()=>showBatchReschedule();
+    const pendingBtn=el('button','select-bar-btn');pendingBtn.textContent='→ Pending';
+    pendingBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-radius:16px;border:none;background:rgba(255,255,255,0.18);color:var(--bg);cursor:pointer;-webkit-appearance:none;';
+    pendingBtn.onclick=()=>showBatchMoveToPending();
+    const clearBtn=el('button','select-bar-btn');clearBtn.textContent='Clear History';
+    clearBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-radius:16px;border:none;background:rgba(192,112,90,0.35);color:#ffd0c0;cursor:pointer;-webkit-appearance:none;';
+    clearBtn.onclick=()=>showBatchClearHistory();
     const cancelBtn=el('button','select-bar-cancel');cancelBtn.textContent='Cancel';
     cancelBtn.onclick=()=>{S.selectMode=false;S.selectedIds=[];render();};
-    bar.append(txt,reschedBtn,cancelBtn);app.appendChild(bar);
+    bar.append(txt,reschedBtn,pendingBtn,clearBtn,cancelBtn);app.appendChild(bar);
   }
 
   // FAB — available on all tabs
@@ -5260,7 +5573,6 @@ async function disableSync(){
 // Render cloud sync settings section
 function renderCloudSync(body){
   const section=el('div','settings-section');
-  const title=el('div','settings-title');title.textContent='Sync/Backup & Restore';section.appendChild(title);
 
   const syncEnabled=isSyncEnabled();
   const syncMode=localStorage.getItem('cf4_syncMode');
