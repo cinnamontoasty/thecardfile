@@ -1201,6 +1201,8 @@ function markDone(id,onDateStr,originalDueDateStr){
   task.completions=[...(task.completions||[]),ts];
   if(originalDueDateStr) task.originalDueDate=originalDueDateStr;
   task.nextDueDate=calcNextDueDate(task,anchorDate);
+  // If card was unscheduled (no startDate), give it one so it moves out of Pending
+  if(task.nextDueDate&&!task.startDate) task.startDate=task.nextDueDate;
   // Clear one-time delegation after completion
   if(task.nextDelegate){
     if(isAsNeededTask(task)||isOneTimeTask(task)){
@@ -2451,8 +2453,8 @@ function applyBatchReschedule(newDate,modal,bd,updateSchedule){
     const t=S.tasks.find(x=>x.id===id);if(!t)return;
     const oldDate=t.nextDueDate;
     t.nextDueDate=newDate;
+    if(!t.startDate) t.startDate=newDate; // always schedule pending cards regardless of checkbox
     if(updateSchedule){
-      t.startDate=newDate;
       delete t.originalDueDate;
       // Reset pinned weekday/monthday so it doesn't snap back
       delete t.weekday;delete t.weekdays;delete t.monthday;delete t.monthday2;
@@ -3584,6 +3586,19 @@ function renderPending(body){
     const ic=el('div','empty-icon');ic.textContent='📋';
     const tx=el('div','empty-text');tx.textContent='No pending cards. All tasks are scheduled!';
     emp.append(ic,tx);body.appendChild(emp);return;
+  }
+
+  if(pending.length||asNeeded.length||oneTime.length){
+    const hdr=el('div');hdr.style.cssText='display:flex;justify-content:flex-end;margin-bottom:4px;';
+    const selBtn=el('button');
+    selBtn.style.cssText='font-family:"Lato",sans-serif;font-size:10px;font-weight:700;padding:6px 12px;border-radius:10px;border:1.5px solid '+(S.selectMode?'var(--gold)':'var(--border)')+';background:'+(S.selectMode?'rgba(232,216,0,0.15)':'var(--card-bg)')+';color:'+(S.selectMode?'var(--gold)':'var(--brown-light)')+';cursor:pointer;-webkit-appearance:none;';
+    selBtn.textContent=S.selectMode?'✓ '+S.selectedIds.length+' selected':'Select';
+    selBtn.onclick=function(){
+      if(S.selectMode&&S.selectedIds.length===0){S.selectMode=false;}
+      else{S.selectMode=!S.selectMode;if(!S.selectMode)S.selectedIds=[];}
+      render();
+    };
+    hdr.appendChild(selBtn);body.appendChild(hdr);
   }
 
   function pendSection(key,label,color,count,buildFn){
@@ -5396,18 +5411,23 @@ function render(){
   // Select mode action bar
   if(S.selectMode&&S.selectedIds.length>0){
     const bar=el('div','select-bar');
-    const txt=el('div','select-bar-text');txt.textContent=`${S.selectedIds.length} card${S.selectedIds.length!==1?'s':''} selected`;
-    const reschedBtn=el('button','select-bar-btn');reschedBtn.textContent='Reschedule';
+    const txt=el('div','select-bar-text');txt.textContent=S.selectedIds.length+' card'+(S.selectedIds.length!==1?'s':'')+' selected';
+    const inPending=S.tab==='pending';
+    const reschedBtn=el('button','select-bar-btn');reschedBtn.textContent=inPending?'Schedule':'Reschedule';
     reschedBtn.onclick=()=>showBatchReschedule();
-    const pendingBtn=el('button','select-bar-btn');pendingBtn.textContent='→ Pending';
-    pendingBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-radius:16px;border:none;background:rgba(255,255,255,0.18);color:var(--bg);cursor:pointer;-webkit-appearance:none;';
-    pendingBtn.onclick=()=>showBatchMoveToPending();
+    bar.append(txt,reschedBtn);
+    if(!inPending){
+      const pendingBtn=el('button','select-bar-btn');pendingBtn.textContent='→ Pending';
+      pendingBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-radius:16px;border:none;background:rgba(255,255,255,0.18);color:var(--bg);cursor:pointer;-webkit-appearance:none;';
+      pendingBtn.onclick=()=>showBatchMoveToPending();
+      bar.appendChild(pendingBtn);
+    }
     const clearBtn=el('button','select-bar-btn');clearBtn.textContent='Clear History';
     clearBtn.style.cssText='font-family:"Lato",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-radius:16px;border:none;background:rgba(192,112,90,0.35);color:#ffd0c0;cursor:pointer;-webkit-appearance:none;';
     clearBtn.onclick=()=>showBatchClearHistory();
     const cancelBtn=el('button','select-bar-cancel');cancelBtn.textContent='Cancel';
     cancelBtn.onclick=()=>{S.selectMode=false;S.selectedIds=[];render();};
-    bar.append(txt,reschedBtn,pendingBtn,clearBtn,cancelBtn);app.appendChild(bar);
+    bar.append(clearBtn,cancelBtn);app.appendChild(bar);
   }
 
   // FAB — available on all tabs
