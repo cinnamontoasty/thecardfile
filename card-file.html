@@ -597,7 +597,7 @@ function getTodayOrder(todayTasks){
 
   if(!order){
     // Try to carry forward from yesterday
-    const yesterday=dateStr(addDays(new Date(),-1));
+    const yesterday=dateStr(addDays(parseDate(todayStr()),-1));
     const yOrder=getDayOrder(yesterday);
     if(yOrder){
       order=yOrder.filter(id=>todayIds.includes(id));
@@ -1258,9 +1258,9 @@ function showCompletionPopup(task,dateContext){
   modal.append(title,sub);
 
   const isPastDate=dateContext&&dateContext<todayStr();
-  const yesterday=dateStr(addDays(new Date(),-1));
+  const yesterday=dateStr(addDays(parseDate(todayStr()),-1));
   const yestLabel=parseDate(yesterday).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  const todayLabel=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const todayLabel=parseDate(todayStr()).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 
   let opts;
   const isAnOr1x=task.freq==='an'||task.freq==='1x';
@@ -1274,7 +1274,7 @@ function showCompletionPopup(task,dateContext){
   }
   if(isPastDate){
     const pastLabel=parseDate(dateContext).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-    const todayLabel=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    const todayLabel=parseDate(todayStr()).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
     opts=[
       {label:`✓ Completed on this day`,sub:pastLabel,fn:()=>{bd.remove();markDone(task.id,dateContext);}},
       {label:`✓ Completed today`,sub:todayLabel+' — filed under '+pastLabel,fn:()=>{
@@ -2627,11 +2627,13 @@ function showTaskListPopup(title,subtitle,tasks,accentColor,bgTint){
 
 function showTodayProgressPopup(dueTasks,doneCount,total){
   const bd=el('div','backdrop');
-  bd.onclick=e=>{if(e.target===bd)bd.remove();};
+  bd.id='today-progress-popup';
+  bd.onclick=e=>{if(e.target===bd)bd.remove()};
   const modal=el('div','modal');
   const title=el('div','modal-title');title.textContent='Today at a Glance';
 
-  const doneTasks=S.tasks.filter(t=>isActiveTask(t)&&isDoneToday(t));
+  const anDoneToday=S.tasks.filter(t=>isAsNeededTask(t)&&(t.completions||[]).some(c=>c.startsWith(todayStr())));
+  const doneTasks=S.tasks.filter(t=>isActiveTask(t)&&isDoneToday(t)).concat(anDoneToday);
   const skippedTasks=S.tasks.filter(t=>isActiveTask(t)&&(t.skips||[]).includes(todayStr()));
   const outstanding=dueTasks.filter(t=>!isDoneToday(t)&&!(t.skips||[]).includes(todayStr()));
   // Total excludes skipped tasks
@@ -4142,7 +4144,7 @@ function renderSettings(body){
 
 // Send delegate's tasks via text or email
 function sendDelegateTasks(name){
-  const today=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const today=parseDate(todayStr()).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   // Include: permanent delegate tasks due today, AND nextDelegate tasks (regardless of schedule)
   const tasks=S.tasks.filter(t=>{
     if(t.delegate===name&&isActiveTask(t)&&wasPartOfToday(t)&&!isDoneToday(t)) return true;
@@ -5192,7 +5194,13 @@ function buildModal(data,isEdit){
 // ══════════════════════════════════════════
 // MAIN RENDER
 // ══════════════════════════════════════════
+let _lastRenderDate='';
 function render(){
+  const today=todayStr();
+  if(_lastRenderDate&&_lastRenderDate!==today){advanceOverdueTasks();}
+  _lastRenderDate=today;
+  const stalePopup=document.getElementById('today-progress-popup');
+  if(stalePopup)stalePopup.remove();
   const app=document.getElementById('app');app.innerHTML='';
   // Remove old side flowers
   document.querySelectorAll('.side-flowers').forEach(e=>e.remove());
@@ -5229,7 +5237,7 @@ function render(){
   const ht=el('div','htitle');ht.textContent='The Card File';
   hleft.append(ey,ht);
   const hr=el('div','hright');
-  const hd=el('div','hdate');hd.textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const hd=el('div','hdate');hd.textContent=parseDate(todayStr()).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   const dueCount=S.tasks.filter(t=>isActiveTask(t)&&isDueToday(t)&&!isDoneToday(t)).length;
   const hdu=el('div','hdue');
   hdu.textContent=`${dueCount} task${dueCount!==1?'s':''} due`;
@@ -5295,7 +5303,7 @@ function render(){
   if(S._notification&&!S.notificationDismissed){
     const nb=el('div','notif');
     const bd2=el('div','notif-body');
-    const t=el('div','notif-title');t.textContent='Tasks due today — '+new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    const t=el('div','notif-title');t.textContent='Tasks due today — '+parseDate(todayStr()).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 
     // Build accent-aware flower garland SVG — truly full width using JS measurement
     function makeGarland(){
