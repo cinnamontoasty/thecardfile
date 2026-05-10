@@ -5350,7 +5350,7 @@ function render(){
     const sorted=[...allDueTasks].sort((a,b)=>todOrder.indexOf(a.timeOfDay||'')-todOrder.indexOf(b.timeOfDay||''));
 
     sorted.forEach(task=>{
-      const done=isDoneToday(task);
+      const done=isAsNeededTask(task)?(task.completions||[]).some(c=>c.startsWith(todayStr())):isDoneToday(task);
       const skipped=(task.skips||[]).includes(todayStr())||
         false; // carry-over feature removed
       const d=el('div');
