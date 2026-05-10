@@ -3197,8 +3197,10 @@ function renderWeekView(body,d){
     const ds=dateStr(day);
     const isToday=ds===todayStr();
     const hdr=el('div','week-col-header'+(isToday?' today':''));
-    hdr.style.cssText+='min-width:0;';
-    hdr.innerHTML=`<div style="font-size:9px;">${DAY_NAMES[i]}</div><div style="font-size:11px;font-weight:700;">${day.getDate()}</div>`;
+    hdr.style.cssText+='min-width:0;cursor:pointer;';
+    hdr.title='Go to '+DAY_NAMES[day.getDay()]+' day view';
+    hdr.innerHTML='<div style="font-size:9px;">'+DAY_NAMES[day.getDay()]+'</div><div style="font-size:11px;font-weight:700;text-decoration:underline;">'+day.getDate()+'</div>';
+    hdr.onclick=function(){S.scheduleView='day';S.scheduleDate=day;render();};
     grid.appendChild(hdr);
   });
 
@@ -3575,13 +3577,12 @@ function renderPending(body){
   backupWarningBanner(body);
   saveLoadBar(body);
   const pending=S.tasks.filter(t=>isPendingTask(t));
-  const future=S.tasks.filter(t=>isFutureTask(t));
   const asNeeded=S.tasks.filter(t=>isAsNeededTask(t));
   const oneTime=S.tasks.filter(t=>isOneTimeTask(t));
   const oneTimePending=oneTime.filter(t=>!isOneTimeDone(t));
   const oneTimeDone=oneTime.filter(t=>isOneTimeDone(t));
 
-  if(!pending.length&&!future.length&&!asNeeded.length&&!oneTime.length){
+  if(!pending.length&&!asNeeded.length&&!oneTime.length){
     const emp=el('div','empty');
     const ic=el('div','empty-icon');ic.textContent='📋';
     const tx=el('div','empty-text');tx.textContent='No pending cards. All tasks are scheduled!';
@@ -3686,23 +3687,6 @@ function renderPending(body){
         noRoom.forEach(task=>g.appendChild(renderCard(task,true)));
         sec.appendChild(g);
       }
-    });
-  }
-
-  if(future.length){
-    pendSection('future','Scheduled — Not Yet Active','#6a9fd4',future.length,sec=>{
-      const futNote=el('div');futNote.style.cssText='font-size:12px;color:var(--brown-light);margin-bottom:10px;font-style:italic;';
-      futNote.textContent='These cards will become active on their start date.';
-      sec.appendChild(futNote);
-      future.sort((a,b)=>a.startDate.localeCompare(b.startDate));
-      const futGrid=el('div','cards-grid');
-      future.forEach(task=>{
-        const card=renderCard(task,true);
-        const sd=el('div');sd.style.cssText='font-size:10px;color:rgba(0,0,0,0.55);padding:4px 20px 6px;font-family:"Lato",sans-serif;font-style:italic;';
-        sd.textContent='Starts: '+parseDate(task.startDate).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-        card.appendChild(sd);futGrid.appendChild(card);
-      });
-      sec.appendChild(futGrid);
     });
   }
 
