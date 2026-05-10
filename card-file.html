@@ -5454,14 +5454,20 @@ async function syncToCloud(){
       const key=localStorage.key(i);
       if(key&&key.startsWith('cf4_order_')) dayOrders[key]=localStorage.getItem(key);
     }
+    const collapseStates={};
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key&&key.startsWith('cf4_collapse_')) collapseStates[key]=localStorage.getItem(key);
+    }
     const data={
       tasks:S.tasks,freqColors:S.freqColors,specialTypes:S.specialTypes,
       areas:S.areas,delegates:S.delegates||[],nextId:S.nextId,
       darkMode:S.darkMode,darkAccent:S.darkAccent,theme:S.theme,
       dayEnd:parseInt(localStorage.getItem('cf4_dayEnd')||'0'),
+      weekStart:S.weekStart||0,
       timerKeepRinging:localStorage.getItem('cf4_timerKeepRinging'),
       timerOvertime:localStorage.getItem('cf4_timerOvertime'),
-      dayOrders,exported:new Date().toISOString(),version:4
+      dayOrders,collapseStates,exported:new Date().toISOString(),version:4
     };
     await setDoc(doc(db,col,id),{data:JSON.stringify(data),updated:new Date().toISOString()});
     localStorage.setItem('cf4_lastSync',new Date().toISOString());
@@ -5493,7 +5499,10 @@ async function syncFromCloud(){
       if(cloudData.darkMode!=null)S.darkMode=cloudData.darkMode;
       if(cloudData.darkAccent){S.darkAccent=cloudData.darkAccent;document.body.style.setProperty('--gold',cloudData.darkAccent);}
       if(cloudData.theme)S.theme=cloudData.theme;
+      if(cloudData.dayEnd!=null)localStorage.setItem('cf4_dayEnd',String(cloudData.dayEnd));
+      if(cloudData.weekStart!=null){S.weekStart=cloudData.weekStart;localStorage.setItem('cf4_weekStart',String(cloudData.weekStart));}
       if(cloudData.dayOrders) Object.entries(cloudData.dayOrders).forEach(([k,v])=>localStorage.setItem(k,v));
+      if(cloudData.collapseStates) Object.entries(cloudData.collapseStates).forEach(([k,v])=>localStorage.setItem(k,v));
       save();
       return true;
     }
