@@ -168,6 +168,9 @@ body.dark .card-supplies{border-top-color:rgba(255,255,255,0.15);}
 .card-actions{display:flex;gap:2px;align-items:center;}
 .icon-btn{background:none;border:none;cursor:pointer;padding:4px 5px;color:rgba(0,0,0,0.45);font-size:13px;line-height:1;-webkit-appearance:none;transition:color .15s;}
 body.dark .icon-btn{color:rgba(255,240,220,0.5);}
+body.dark .card-inner.dark-text .icon-btn{color:rgba(255,240,220,0.5);}
+body.dark .card-inner.dark-text .del-btn{color:rgba(255,160,160,0.65);}
+body.dark .card-inner.dark-text .check-btn{border-color:rgba(255,240,220,0.35);background:rgba(255,240,220,0.1);}
 .icon-btn:active{color:rgba(0,0,0,0.85);}
 .del-btn{color:rgba(180,60,60,0.55);}
 .check-btn{width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,0.6);background:rgba(255,255,255,0.3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .2s;-webkit-appearance:none;flex-shrink:0;}
@@ -679,6 +682,7 @@ let S={
   delegates:[],
   darkMode:false,
   darkAccent:'#c06878',
+  darkColorFlowers:false,
   theme:'parchment',
   notificationDismissed:false,
   browseMode:'area',freqFilter:'all',areaFilter:'all',delegateSortMode:'freq',delegateFilter:'__me__',showCompletedOnce:false,weekStart:0,
@@ -1006,6 +1010,8 @@ function tasksDueOn(dateS){
     if(isPast){
       // Only active tasks in past view
       if(!taskIsActive) return false;
+      // Skip dates this task was explicitly rescheduled away from
+      if(t.rescheduledFrom&&t.rescheduledFrom.indexOf(dateS)!==-1) return false;
       // Completed on that date counts
       if(isDoneOn(t,dateS)) return true;
       // Reconstruct from startDate cycle
@@ -1052,6 +1058,7 @@ function load(){
   try{const dl=localStorage.getItem('cf4_delegates');if(dl)S.delegates=JSON.parse(dl);}catch{}
   try{S.darkMode=localStorage.getItem('cf4_dark')==='1';}catch{}
   try{S.darkAccent=localStorage.getItem('cf4_darkAccent')||'#c06878';}catch{}
+  try{S.darkColorFlowers=localStorage.getItem('cf4_darkColorFlowers')==='1';}catch{}
   try{S.theme=localStorage.getItem('cf4_theme')||'parchment';}catch{}
   try{S.nextId=parseInt(localStorage.getItem('cf4_nid'))||200;}catch{}
   if(S.darkMode){
@@ -1085,6 +1092,7 @@ function save(){
   localStorage.setItem('cf4_delegates',JSON.stringify(S.delegates||[]));
   localStorage.setItem('cf4_dark',S.darkMode?'1':'0');
   localStorage.setItem('cf4_darkAccent',S.darkAccent);
+  localStorage.setItem('cf4_darkColorFlowers',S.darkColorFlowers?'1':'0');
   localStorage.setItem('cf4_theme',S.theme);
   localStorage.setItem('cf4_nid',String(S.nextId));
   localStorage.setItem('cf4_lastSave',new Date().toISOString());
@@ -1818,7 +1826,7 @@ function toggleDark(){
   S.darkMode=!S.darkMode;
   document.body.classList.toggle('dark',S.darkMode);
   document.body.style.setProperty('--gold',S.darkAccent);
-  save();render();
+  save();buildSideFlowers();render();
 }
 
 // ══════════════════════════════════════════
@@ -1914,25 +1922,30 @@ function saveLoadBar(body){
 // SIDE FLOWERS
 // ══════════════════════════════════════════
 function buildSideFlowers(){
+  ['left','right'].forEach(function(side){
+    var old=document.querySelector('.side-flowers-'+side);
+    if(old) old.remove();
+  });
   const isLight=!S.darkMode;
   const acc=S.darkAccent||'#c06878';
   const r=parseInt(acc.slice(1,3),16),g=parseInt(acc.slice(3,5),16),b=parseInt(acc.slice(5,7),16);
   const lighter=`rgb(${Math.min(255,r+55)},${Math.min(255,g+55)},${Math.min(255,b+55)})`;
   const darker=`rgb(${Math.max(0,r-40)},${Math.max(0,g-40)},${Math.max(0,b-40)})`;
+  const colorful=!isLight&&S.darkColorFlowers;
   const C={
-    rose:    isLight?'#f0b0c0':lighter,
-    roseD:   isLight?'#d4788a':acc,
-    daisy:   isLight?'#b8a0d4':lighter,
-    dCtr:    isLight?'#e8d840':lighter,
-    sfP:     isLight?'#f5c842':lighter,
-    sfC:     isLight?'#8B6914':darker,
-    pOut:    isLight?'#7060c0':acc,
-    pIn:     isLight?'#5048a8':darker,
-    pLt:     isLight?'#8878d0':lighter,
-    pCtr:    isLight?'#f5e87a':lighter,
-    leaf:    isLight?'#7a9a6a':'#907878',
-    leafD:   isLight?'#5a7a4a':'#785858',
-    vine:    isLight?'#5a7a4a':'#907878',
+    rose:    isLight?'#f0b0c0':colorful?'#e87090':lighter,
+    roseD:   isLight?'#d4788a':colorful?'#c04065':acc,
+    daisy:   isLight?'#b8a0d4':colorful?'#b08cd8':lighter,
+    dCtr:    isLight?'#e8d840':colorful?'#f0d030':lighter,
+    sfP:     isLight?'#f5c842':colorful?'#f0c030':lighter,
+    sfC:     isLight?'#8B6914':colorful?'#a07820':darker,
+    pOut:    isLight?'#7060c0':colorful?'#7868c8':acc,
+    pIn:     isLight?'#5048a8':colorful?'#5848b0':darker,
+    pLt:     isLight?'#8878d0':colorful?'#9080d8':lighter,
+    pCtr:    isLight?'#f5e87a':colorful?'#f5e870':lighter,
+    leaf:    isLight?'#7a9a6a':colorful?'#5a9060':'#907878',
+    leafD:   isLight?'#5a7a4a':colorful?'#406848':'#785858',
+    vine:    isLight?'#5a7a4a':colorful?'#5a9060':'#907878',
   };
 
   // Build flower pattern for a given column width W
@@ -2473,6 +2486,8 @@ function applyBatchReschedule(newDate,modal,bd,updateSchedule){
         const filtered=oldOrder.filter(oid=>oid!==id);
         localStorage.setItem('cf4_order_'+oldDate,JSON.stringify(filtered));
       }catch{}
+      if(!t.rescheduledFrom) t.rescheduledFrom=[];
+      if(t.rescheduledFrom.indexOf(oldDate)===-1) t.rescheduledFrom.push(oldDate);
     }
   });
   S.selectedIds=[];
@@ -2656,13 +2671,14 @@ function showTodayProgressPopup(dueTasks,doneCount,total){
   // Full-width garland that spans whatever width the modal is
   function makeGarland(){
     const isLight=!S.darkMode;
+    const colorful=!isLight&&S.darkColorFlowers;
     const acc=S.darkAccent||'#c06878';
     const ra=parseInt(acc.slice(1,3),16),ga=parseInt(acc.slice(3,5),16),ba=parseInt(acc.slice(5,7),16);
     const lighter=`rgb(${Math.min(255,ra+55)},${Math.min(255,ga+55)},${Math.min(255,ba+55)})`;
-    const rc=isLight?'#f0b0c0':lighter,rd=isLight?'#d4788a':acc;
-    const dp=isLight?'#b8a0d4':lighter,dc=isLight?'#e8d840':lighter;
-    const sf2=isLight?'#f5c842':lighter;
-    const lc=isLight?'#7a9a6a':'#907878';
+    const rc=isLight?'#f0b0c0':colorful?'#e87090':lighter,rd=isLight?'#d4788a':colorful?'#c04065':acc;
+    const dp=isLight?'#b8a0d4':colorful?'#b08cd8':lighter,dc=isLight?'#e8d840':colorful?'#f0d030':lighter;
+    const sf2=isLight?'#f5c842':colorful?'#f0c030':lighter;
+    const lc=isLight?'#7a9a6a':colorful?'#5a9060':'#907878';
     // Use wide viewBox with many flowers so it truly fills any width
     const VW=1200;
     const positions=Array.from({length:30},(_,i)=>20+i*(VW-40)/29);
@@ -3954,6 +3970,18 @@ function renderSettings(body){
   const dmSlider=el('span','toggle-slider');
   dmToggle.append(dmInput,dmSlider);
   dmRow.append(dmd,dmToggle);apps.appendChild(dmRow);
+
+  const cfRow=el('div','settings-row');
+  const cfd=el('div');
+  const cfl=el('div','settings-row-label');cfl.textContent='Colorful Flowers in Dark Mode';
+  const cfs=el('div','settings-row-sub');cfs.textContent='Show full flower colors instead of accent tones';
+  cfd.append(cfl,cfs);
+  const cfToggle=el('label','toggle');
+  const cfInput=document.createElement('input');cfInput.type='checkbox';cfInput.checked=S.darkColorFlowers;
+  cfInput.onchange=function(){S.darkColorFlowers=cfInput.checked;save();buildSideFlowers();};
+  const cfSlider=el('span','toggle-slider');
+  cfToggle.append(cfInput,cfSlider);
+  cfRow.append(cfd,cfToggle);apps.appendChild(cfRow);
 
   const ACCENTS=[
     {color:'#c06878',name:'Deep Rose'},
@@ -5319,15 +5347,16 @@ function render(){
     // Build accent-aware flower garland SVG — truly full width using JS measurement
     function makeGarland(){
       const isLight=!S.darkMode;
+      const colorful=!isLight&&S.darkColorFlowers;
       const acc=S.darkAccent||'#c06878';
       const ra=parseInt(acc.slice(1,3),16),ga=parseInt(acc.slice(3,5),16),ba=parseInt(acc.slice(5,7),16);
       const lighter=`rgb(${Math.min(255,ra+55)},${Math.min(255,ga+55)},${Math.min(255,ba+55)})`;
-      const rc=isLight?'#f0b0c0':lighter;
-      const rd=isLight?'#d4788a':acc;
-      const dp=isLight?'#b8a0d4':lighter;
-      const dc=isLight?'#e8d840':lighter;
-      const sf=isLight?'#f5c842':lighter;
-      const lc=isLight?'#7a9a6a':'#907878';
+      const rc=isLight?'#f0b0c0':colorful?'#e87090':lighter;
+      const rd=isLight?'#d4788a':colorful?'#c04065':acc;
+      const dp=isLight?'#b8a0d4':colorful?'#b08cd8':lighter;
+      const dc=isLight?'#e8d840':colorful?'#f0d030':lighter;
+      const sf=isLight?'#f5c842':colorful?'#f0c030':lighter;
+      const lc=isLight?'#7a9a6a':colorful?'#5a9060':'#907878';
       const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
       // Use a wide viewBox with many flowers — SVG scales to fill width
       const VW=800;
