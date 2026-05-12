@@ -29,7 +29,7 @@
 <meta name="theme-color" content="#3a3128"/>
 <title>The Card File</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;500;700&family=Dancing+Script:wght@700&family=EB+Garamond:wght@700&display=swap');
 
 /* ── LIGHT MODE ── */
 :root {
@@ -217,6 +217,13 @@ body.dark .browse-btn.active{background:var(--gold);color:#2a1f18;}
 .fab{position:fixed;bottom:calc(22px + var(--safe-bottom));right:18px;width:52px;height:52px;border-radius:50%;background:var(--brown);color:var(--bg);border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.28);display:flex;align-items:center;justify-content:center;z-index:50;transition:transform .15s;-webkit-appearance:none;}
 body.dark .fab{background:var(--gold);color:#2a1f18;}
 .fab:active{transform:scale(.92);}
+.fab-ai{position:fixed;bottom:calc(22px + var(--safe-bottom));left:18px;width:52px;height:52px;border-radius:50%;background:var(--brown);color:var(--bg);border:none;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.28);display:flex;align-items:center;justify-content:center;z-index:50;transition:transform .15s;-webkit-appearance:none;padding:0;}
+body.dark .fab-ai{background:var(--gold);color:#2a1f18;}
+.fab-ai:active{transform:scale(.92);}
+.ask-ai-menu{position:fixed;bottom:calc(82px + var(--safe-bottom));left:10px;background:var(--card-bg);border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,0.32);padding:6px;z-index:100;min-width:188px;animation:slideUp .2s ease;}
+.ask-ai-menu-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light);padding:6px 14px 4px;}
+.ask-ai-choice{display:block;width:100%;text-align:left;padding:11px 14px;background:none;border:none;cursor:pointer;font-family:'Lato',sans-serif;font-size:14px;font-weight:700;color:var(--text);border-radius:8px;-webkit-appearance:none;transition:background .12s;}
+.ask-ai-choice:hover{background:var(--parchment-dark);}
 
 /* ── MODALS ── */
 .backdrop{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:flex-end;-webkit-overflow-scrolling:touch;cursor:pointer;}
@@ -2409,7 +2416,7 @@ function showBatchReschedule(){
   modal.appendChild(nameList);
 
   // Quick options
-  const tomorrow=dateStr(addDays(new Date(),1));
+  const tomorrow=dateStr(addDays(parseDate(todayStr()),1));
   const tomorrowLabel=parseDate(tomorrow).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   const quickRow=el('div');quickRow.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;';
   const tomorrowBtn=el('button','btn btn-primary');
@@ -2471,6 +2478,10 @@ function applyBatchReschedule(newDate,modal,bd,updateSchedule){
   S.selectedIds=[];
   S.selectMode=false;
   bd.remove();
+  // Navigate to the new date so the user can see the cards moved there
+  S.tab='schedule';
+  S.scheduleView='day';
+  S.scheduleDate=parseDate(newDate)||new Date();
   save();render();
 }
 function showBatchMoveToPending(){
@@ -5426,6 +5437,49 @@ function render(){
   {
     const fab=el('button','fab');fab.textContent='+';fab.title='Add card';
     fab.onclick=()=>{S.showAdd=true;render();};app.appendChild(fab);
+  }
+
+  // Ask AI FAB — bottom left
+  {
+    const aiFab=el('button','fab-ai');
+    aiFab.title='Ask AI for cleaning tips';
+    aiFab.innerHTML='<svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><path id="cf4-ai-arc" d="M 10,35 A 18,18 0 0,0 42,35" fill="none"/></defs><text font-size="10" font-family="EB Garamond,serif" font-weight="700" letter-spacing="2" fill="currentColor"><textPath xlink:href="#cf4-ai-arc" startOffset="50%" text-anchor="middle">ASK AI</textPath></text><text x="26" y="27" text-anchor="middle" font-size="20">&#x2728;</text></svg>';
+    aiFab.onclick=function(e){
+      e.stopPropagation();
+      const existing=document.getElementById('cf4-ask-ai-menu');
+      if(existing){existing.remove();return;}
+      const menu=document.createElement('div');
+      menu.id='cf4-ask-ai-menu';
+      menu.className='ask-ai-menu';
+      const ttl=document.createElement('div');
+      ttl.className='ask-ai-menu-title';
+      ttl.textContent='Ask for cleaning tips';
+      menu.appendChild(ttl);
+      function makeChoice(label,url){
+        const btn=document.createElement('button');
+        btn.className='ask-ai-choice';
+        btn.textContent=label;
+        btn.onclick=function(){
+          menu.remove();
+          var w=window.open(url,'_blank','width=430,height=680,resizable=yes,scrollbars=yes');
+          if(!w) window.open(url,'_blank');
+        };
+        return btn;
+      }
+      menu.appendChild(makeChoice('✦ Ask Claude','https://claude.ai'));
+      menu.appendChild(makeChoice('Ask ChatGPT','https://chatgpt.com'));
+      document.body.appendChild(menu);
+      setTimeout(function(){
+        function closeMenu(ev){
+          if(!menu.contains(ev.target)&&ev.target!==aiFab){
+            menu.remove();
+            document.removeEventListener('click',closeMenu);
+          }
+        }
+        document.addEventListener('click',closeMenu);
+      },50);
+    };
+    app.appendChild(aiFab);
   }
 
   // Modals
