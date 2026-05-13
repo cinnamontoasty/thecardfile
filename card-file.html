@@ -862,8 +862,10 @@ function isDueOn(task,dateS){
 
 // No auto-advance of overdue tasks — all tasks stay on their original due date
 // Users handle past days via Schedule view (mark complete, skip, or ignore)
+var _reschMigDone=false;
 function migrateRescheduledFrom(){
-  if(localStorage.getItem('cf4_reschMig')==='1') return;
+  if(_reschMigDone) return;
+  _reschMigDone=true;
   var today=todayStr();
   var cutoff=dateStr(addDays(parseDate(today),-90));
   var changed=false;
@@ -893,7 +895,6 @@ function migrateRescheduledFrom(){
       }
     }
   });
-  localStorage.setItem('cf4_reschMig','1');
   if(changed) save();
 }
 
@@ -5641,6 +5642,10 @@ async function syncFromCloud(){
       if(cloudData.weekStart!=null){S.weekStart=cloudData.weekStart;localStorage.setItem('cf4_weekStart',String(cloudData.weekStart));}
       if(cloudData.dayOrders) Object.entries(cloudData.dayOrders).forEach(([k,v])=>localStorage.setItem(k,v));
       if(cloudData.collapseStates) Object.entries(cloudData.collapseStates).forEach(([k,v])=>localStorage.setItem(k,v));
+      // Run advance + migration on freshly loaded cloud data
+      advanceOverdueTasks();
+      _reschMigDone=false;
+      migrateRescheduledFrom();
       save();
       return true;
     }
