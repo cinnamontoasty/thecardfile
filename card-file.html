@@ -1016,6 +1016,8 @@ function tasksDueOn(dateS){
       if(isDoneOn(t,dateS)) return true;
       // Reconstruct from startDate cycle
       const f=fById(t.freq);
+      // A/N and 1X have days:0 — no cycle, only show if completed on this date (handled above)
+      if(!f.days) return false;
       const start=parseDate(t.startDate);
       const target=parseDate(dateS);
       const diff=(target-start)/86400000;
@@ -2234,7 +2236,9 @@ function renderCard(task,showArea,opts={}){
     lastEl.style.color='var(--brown-light)';
     lastEl.style.fontStyle='italic';
   }else{
-    lastEl.textContent=ds===null?'Never done':ds===0?'Done today':`${ds}d ago`;
+    if(ds===null){lastEl.textContent='Never done';}
+    else if(ds===0){lastEl.textContent='Done today';}
+    else{const ld=parseDate((task.completions||[]).slice(-1)[0].slice(0,10));lastEl.textContent='Done '+ld.toLocaleDateString('en-US',{month:'short',day:'numeric'});}
   }
   lfoot.appendChild(lastEl);
 
