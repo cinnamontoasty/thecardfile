@@ -863,6 +863,7 @@ function isDueOn(task,dateS){
 // No auto-advance of overdue tasks — all tasks stay on their original due date
 // Users handle past days via Schedule view (mark complete, skip, or ignore)
 var _reschMigDone=false;
+var _reschPendingSave=false;
 function migrateRescheduledFrom(){
   if(_reschMigDone) return;
   _reschMigDone=true;
@@ -1071,7 +1072,11 @@ function tasksDueOn(dateS){
       if(t.nextDueDate&&t.nextDueDate>dateS){
         const cycleNext=dateStr(addDays(start,Math.round((cycles+1)*f.days)));
         const drift=Math.abs((parseDate(t.nextDueDate)-parseDate(cycleNext))/86400000);
-        if(drift>1.5) return false;
+        if(drift>1.5){
+          if(!t.rescheduledFrom) t.rescheduledFrom=[];
+          if(t.rescheduledFrom.indexOf(dateS)===-1){t.rescheduledFrom.push(dateS);_reschPendingSave=true;}
+          return false;
+        }
       }
       return true;
     }else{
@@ -2523,6 +2528,8 @@ function showBatchReschedule(){
 
 function applyBatchReschedule(newDate,modal,bd,updateSchedule){
   const today=todayStr();
+  // The currently-viewed date (may differ from nextDueDate if advanceOverdueTasks already stepped it forward)
+  var viewedDate=S.scheduleDate instanceof Date?dateStr(S.scheduleDate):null;
   S.selectedIds.forEach(id=>{
     const t=S.tasks.find(x=>x.id===id);if(!t)return;
     const oldDate=t.nextDueDate;
@@ -2533,15 +2540,21 @@ function applyBatchReschedule(newDate,modal,bd,updateSchedule){
       // Reset pinned weekday/monthday so it doesn't snap back
       delete t.weekday;delete t.weekdays;delete t.monthday;delete t.monthday2;
     }
-    // Remove from old day order so card doesn't appear on old date
-    if(oldDate&&oldDate!==newDate){
+    // Stamp rescheduledFrom so the card is hidden from its old past dates immediately
+    if(!t.rescheduledFrom) t.rescheduledFrom=[];
+    // Stamp nextDueDate (before change) if it was a past date different from newDate
+    if(oldDate&&oldDate!==newDate&&oldDate<today){
+      if(t.rescheduledFrom.indexOf(oldDate)===-1) t.rescheduledFrom.push(oldDate);
       try{
         const oldOrder=JSON.parse(localStorage.getItem('cf4_order_'+oldDate)||'[]');
         const filtered=oldOrder.filter(oid=>oid!==id);
         localStorage.setItem('cf4_order_'+oldDate,JSON.stringify(filtered));
       }catch{}
-      if(!t.rescheduledFrom) t.rescheduledFrom=[];
-      if(t.rescheduledFrom.indexOf(oldDate)===-1) t.rescheduledFrom.push(oldDate);
+    }
+    // Also stamp the viewed date — advanceOverdueTasks may have already moved nextDueDate
+    // forward, so viewedDate and oldDate can be different dates
+    if(viewedDate&&viewedDate!==newDate&&viewedDate<today){
+      if(t.rescheduledFrom.indexOf(viewedDate)===-1) t.rescheduledFrom.push(viewedDate);
     }
   });
   S.selectedIds=[];
@@ -5568,6 +5581,9 @@ function render(){
 
   // Side flowers (wide screens only — CSS handles hiding on mobile)
   buildSideFlowers();
+
+  // Lazily persist rescheduledFrom entries stamped during this render
+  if(_reschPendingSave){_reschPendingSave=false;save();}
 }
 
 // ══════════════════════════════════════════
