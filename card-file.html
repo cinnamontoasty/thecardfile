@@ -2493,10 +2493,6 @@ function applyBatchReschedule(newDate,modal,bd,updateSchedule){
   S.selectedIds=[];
   S.selectMode=false;
   bd.remove();
-  // Navigate to the new date so the user can see the cards moved there
-  S.tab='schedule';
-  S.scheduleView='day';
-  S.scheduleDate=parseDate(newDate)||new Date();
   save();render();
 }
 function showBatchMoveToPending(){
@@ -3890,7 +3886,7 @@ function renderSettings(body){
   wsSel.onchange=e=>{
     S.weekStart=parseInt(e.target.value);
     localStorage.setItem('cf4_weekStart',String(S.weekStart));
-    render();
+    save();render();
   };
   wsRow.append(wsD,wsSel);schedSection.appendChild(wsRow);
 
@@ -3907,7 +3903,7 @@ function renderSettings(body){
     if(val===parseInt(localStorage.getItem('cf4_dayEnd')||'0'))o.selected=true;
     dayEndSel.appendChild(o);
   });
-  dayEndSel.onchange=e=>{localStorage.setItem('cf4_dayEnd',e.target.value);render();};
+  dayEndSel.onchange=e=>{localStorage.setItem('cf4_dayEnd',e.target.value);save();render();};
   dayEndRow.append(dayEndD,dayEndSel);schedSection.appendChild(dayEndRow);
 
   // Custom times of day
