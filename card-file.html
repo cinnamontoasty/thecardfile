@@ -874,12 +874,14 @@ function migrateRescheduledFrom(){
     var f=fById(task.freq);
     if(!f.days) return;
     if(!task.nextDueDate||!task.startDate) return;
+    if(task.startDate>=today) return;
     var start=parseDate(task.startDate);
     if(!start) return;
     var diff0=(parseDate(cutoff)-start)/86400000;
-    if(diff0<0) return;
+    // c0=0 for tasks started after cutoff, otherwise start near the cutoff date
     var c0=Math.max(0,Math.floor(diff0/f.days));
-    for(var c=c0;c<=c0+Math.ceil(90/f.days)+2;c++){
+    var maxC=c0+Math.ceil(90/f.days)+2;
+    for(var c=c0;c<=maxC;c++){
       var d=dateStr(addDays(start,Math.round(c*f.days)));
       if(!d||d<cutoff) continue;
       if(d>=today) break;
