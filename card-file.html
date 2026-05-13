@@ -5686,6 +5686,9 @@ async function enableSyncCode(code){
         if(cloudData.darkAccent){S.darkAccent=cloudData.darkAccent;document.body.style.setProperty('--gold',cloudData.darkAccent);}
         if(cloudData.theme)S.theme=cloudData.theme;
         if(cloudData.dayOrders) Object.entries(cloudData.dayOrders).forEach(([k,v])=>localStorage.setItem(k,v));
+        advanceOverdueTasks();
+        _reschMigDone=false;
+        migrateRescheduledFrom();
         save();render();
         alert('✓ Cards loaded from cloud!\n\nYour cards will now sync automatically. Any changes on this device will update the cloud.');
         return;
