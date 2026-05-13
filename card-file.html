@@ -1023,7 +1023,17 @@ function tasksDueOn(dateS){
       if(diff===0) return true;
       const cycles=Math.round(diff/f.days);
       const predicted=addDays(start,Math.round(cycles*f.days));
-      return Math.abs((parseDate(dateStr(predicted))-target)/86400000)<0.6;
+      if(Math.abs((parseDate(dateStr(predicted))-target)/86400000)>=0.6) return false;
+      // Card falls on this date by cycle. Check if it was rescheduled away:
+      // advanceOverdueTasks steps by ceil(f.days), so nextDueDate for a missed card
+      // exactly matches the next cycle step. If nextDueDate differs from that, the
+      // card was manually rescheduled to a different date — don't show it here.
+      if(t.nextDueDate&&t.nextDueDate>dateS){
+        const cycleNext=dateStr(addDays(start,Math.round((cycles+1)*f.days)));
+        const drift=Math.abs((parseDate(t.nextDueDate)-parseDate(cycleNext))/86400000);
+        if(drift>1.5) return false;
+      }
+      return true;
     }else{
       // Today or future: task must be exactly on nextDueDate
       if(t.nextDueDate===dateS) return true;
