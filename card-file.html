@@ -2876,6 +2876,7 @@ function makeSettingsCollapsible(section,titleText,storageKey,defaultOpen=true){
     content.style.display=open?'block':'none';
     arrow.textContent=open?'▾':'▸';
     localStorage.setItem(storageKey,open?'1':'0');
+    if(typeof isSyncEnabled==='function'&&isSyncEnabled()&&typeof syncToCloud==='function') syncToCloud();
   };
 }
 
@@ -3905,6 +3906,7 @@ function renderSettings(body){
       content.style.display=open?'block':'none';
       arrow.textContent=open?'▾':'▸';
       localStorage.setItem(storageKey,open?'1':'0');
+      if(typeof isSyncEnabled==='function'&&isSyncEnabled()&&typeof syncToCloud==='function') syncToCloud();
     };
   }
 
