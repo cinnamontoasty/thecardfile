@@ -1041,8 +1041,9 @@ function tasksDueOn(dateS){
   const isPast=dateS<todayStr();
 
   // For today: use wasPartOfToday so completed/carried/skipped/overdue tasks all appear
+  // Also include tasks completed today even if startDate is in the future (marked done from Browse)
   if(isToday){
-    return S.tasks.filter(t=>isActiveTask(t)&&wasPartOfToday(t));
+    return S.tasks.filter(t=>(isActiveTask(t)&&wasPartOfToday(t))||((t.completions||[]).some(c=>c.startsWith(today))));
   }
 
   return S.tasks.filter(t=>{
@@ -1281,7 +1282,8 @@ function markDone(id,onDateStr,originalDueDateStr){
   if(originalDueDateStr) task.originalDueDate=originalDueDateStr;
   task.nextDueDate=calcNextDueDate(task,anchorDate);
   // If card was unscheduled (no startDate), give it one so it moves out of Pending
-  if(task.nextDueDate&&!task.startDate) task.startDate=task.nextDueDate;
+  // Use the completion date (not next due date) so the card shows as active today
+  if(task.nextDueDate&&!task.startDate) task.startDate=dStr;
   // Clear one-time delegation after completion
   if(task.nextDelegate){
     if(isAsNeededTask(task)||isOneTimeTask(task)){
@@ -2729,7 +2731,7 @@ function showTodayProgressPopup(dueTasks,doneCount,total){
   const title=el('div','modal-title');title.textContent='Today at a Glance';
 
   const anDoneToday=S.tasks.filter(t=>isAsNeededTask(t)&&(t.completions||[]).some(c=>c.startsWith(todayStr())));
-  const doneTasks=S.tasks.filter(t=>isActiveTask(t)&&isDoneToday(t)).concat(anDoneToday);
+  const doneTasks=S.tasks.filter(t=>isDoneToday(t)&&(isActiveTask(t)||(t.completions||[]).some(c=>c.startsWith(todayStr())))).concat(anDoneToday);
   const skippedTasks=S.tasks.filter(t=>isActiveTask(t)&&(t.skips||[]).includes(todayStr()));
   const outstanding=dueTasks.filter(t=>!isDoneToday(t)&&!(t.skips||[]).includes(todayStr()));
   // Total excludes skipped tasks
