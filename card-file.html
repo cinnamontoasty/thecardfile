@@ -956,10 +956,12 @@ function isDueToday(task){
 // and tasks skipped today
 // and tasks whose nextDueDate is in the past (slipped through advance)
 function wasPartOfToday(task){
-  if(!isActiveTask(task)) return false;
   const today=todayStr();
+  // Always include if completed or skipped today, even if card is pending/future-start
+  if((task.completions||[]).some(c=>c.startsWith(today))) return true;
+  if(!isActiveTask(task)) return false;
 
-  // A/N tasks: count if completed any time today
+  // A/N tasks: count if completed any time today (already caught above, but kept for clarity)
   if(isAsNeededTask(task)){
     return (task.completions||[]).some(c=>c.startsWith(today));
   }
