@@ -1281,9 +1281,9 @@ function markDone(id,onDateStr,originalDueDateStr){
   task.completions=[...(task.completions||[]),ts];
   if(originalDueDateStr) task.originalDueDate=originalDueDateStr;
   task.nextDueDate=calcNextDueDate(task,anchorDate);
-  // If card was unscheduled (no startDate), give it one so it moves out of Pending
-  // Use the completion date (not next due date) so the card shows as active today
-  if(task.nextDueDate&&!task.startDate) task.startDate=dStr;
+  // If card has no startDate or a future startDate, set it to the completion date
+  // so it's immediately active and visible in today's views
+  if(task.nextDueDate&&(!task.startDate||task.startDate>dStr)) task.startDate=dStr;
   // If completing for today, snap the Schedule view to today so the card is visible there
   if(dStr===todayStr()) S.scheduleDate=new Date();
   // Clear one-time delegation after completion
@@ -2916,18 +2916,27 @@ function renderToday(body){
   backupWarningBanner(body);
   saveLoadBar(body);
   const dueTasks=S.tasks.filter(t=>isActiveTask(t)&&isDueToday(t)&&!isDoneToday(t));
-  const todayAll=S.tasks.filter(t=>isActiveTask(t)&&!isAsNeededTask(t)&&wasPartOfToday(t));
+  // todayAll: tasks that were part of today — include completions-today fallback for Browse-completed cards
+  const todayAll=S.tasks.filter(t=>!isAsNeededTask(t)&&(
+    (isActiveTask(t)&&wasPartOfToday(t))||
+    ((t.completions||[]).some(function(c){return c.startsWith(todayStr());}))
+  ));
   const skippedCount=todayAll.filter(t=>(t.skips||[]).includes(todayStr())).length;
   const anCompletionsToday=S.tasks.filter(t=>isAsNeededTask(t))
     .reduce((sum,t)=>{
       return sum+(t.completions||[]).filter(c=>c.startsWith(todayStr())).length;
     },0);
   const todayTotal=todayAll.length-skippedCount+anCompletionsToday;
-  const doneCount=S.tasks.filter(t=>isActiveTask(t)&&!isAsNeededTask(t)&&isDoneToday(t)).length
+  const doneCount=S.tasks.filter(t=>!isAsNeededTask(t)&&isDoneToday(t)&&(isActiveTask(t)||(t.completions||[]).some(function(c){return c.startsWith(todayStr());})))
+    .length
     +S.tasks.filter(t=>isAsNeededTask(t))
       .reduce((sum,t)=>{
         return sum+(t.completions||[]).filter(c=>c.startsWith(todayStr())).length;
       },0);
+  // Cards completed today outside the regular schedule (Browse, Pending, etc.)
+  const extraDoneToday=S.tasks.filter(function(t){
+    return (t.completions||[]).some(function(c){return c.startsWith(todayStr());});
+  });
 
   if(todayTotal>0){
     const topRow=el('div');topRow.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;';
@@ -2974,7 +2983,7 @@ function renderToday(body){
     }
   }
 
-  if(!dueTasks.length){
+  if(!dueTasks.length&&!extraDoneToday.length){
     const emp=el('div','empty');
     const ic=el('div','empty-icon');ic.textContent='✓';
     const tx=el('div','empty-text');
@@ -3088,14 +3097,11 @@ function renderToday(body){
     body.appendChild(todSection);
   });
 
-  // Done Today section — cards completed today that aren't in the scheduled slots above
+  // Done Today section — cards completed today that aren't already in the scheduled slots above
   // (e.g. Browse-completed cards, A/N tasks, 1x tasks)
   const scheduledIds=slotEntries.map(function(e){return e.task.id;});
-  const extraDoneToday=S.tasks.filter(function(t){
-    if(scheduledIds.indexOf(t.id)!==-1) return false;
-    return (t.completions||[]).some(function(c){return c.startsWith(todayStr());});
-  });
-  if(extraDoneToday.length){
+  const extraDone=extraDoneToday.filter(function(t){return scheduledIds.indexOf(t.id)===-1;});
+  if(extraDone.length){
     const doneSection=el('div');doneSection.style.cssText='margin:16px 0 8px;';
     const doneHead=el('div');
     doneHead.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;';
@@ -3117,7 +3123,7 @@ function renderToday(body){
       localStorage.setItem(doneKey,open?'1':'0');
     };
     const doneGrid=el('div','cards-grid');
-    extraDoneToday.forEach(function(task){
+    extraDone.forEach(function(task){
       doneGrid.appendChild(renderCard(task,true));
     });
     doneContent.appendChild(doneGrid);
