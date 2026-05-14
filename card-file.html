@@ -1284,6 +1284,8 @@ function markDone(id,onDateStr,originalDueDateStr){
   // If card was unscheduled (no startDate), give it one so it moves out of Pending
   // Use the completion date (not next due date) so the card shows as active today
   if(task.nextDueDate&&!task.startDate) task.startDate=dStr;
+  // If completing for today, snap the Schedule view to today so the card is visible there
+  if(dStr===todayStr()) S.scheduleDate=new Date();
   // Clear one-time delegation after completion
   if(task.nextDelegate){
     if(isAsNeededTask(task)||isOneTimeTask(task)){
@@ -3085,6 +3087,43 @@ function renderToday(body){
     todSection.appendChild(todContent);
     body.appendChild(todSection);
   });
+
+  // Done Today section — cards completed today that aren't in the scheduled slots above
+  // (e.g. Browse-completed cards, A/N tasks, 1x tasks)
+  const scheduledIds=slotEntries.map(function(e){return e.task.id;});
+  const extraDoneToday=S.tasks.filter(function(t){
+    if(scheduledIds.indexOf(t.id)!==-1) return false;
+    return (t.completions||[]).some(function(c){return c.startsWith(todayStr());});
+  });
+  if(extraDoneToday.length){
+    const doneSection=el('div');doneSection.style.cssText='margin:16px 0 8px;';
+    const doneHead=el('div');
+    doneHead.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;';
+    const doneLbl=el('span');
+    doneLbl.style.cssText='font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--brown-light);background:var(--parchment-dark);padding:4px 12px;border-radius:12px;white-space:nowrap;';
+    doneLbl.textContent='Done Today';
+    const doneLine=el('div');doneLine.style.cssText='flex:1;height:1px;background:var(--section-line);';
+    const doneArrow=el('span');doneArrow.style.cssText='font-size:13px;color:var(--brown-light);';
+    const doneKey='cf4_todCollapse_'+todayStr()+'_extraDone';
+    const doneOpen=localStorage.getItem(doneKey)!=='0';
+    doneArrow.textContent=doneOpen?'▾':'▸';
+    doneHead.append(doneLbl,doneLine,doneArrow);
+    doneSection.appendChild(doneHead);
+    const doneContent=el('div');doneContent.style.display=doneOpen?'block':'none';
+    doneHead.onclick=function(){
+      var open=doneContent.style.display==='none';
+      doneContent.style.display=open?'block':'none';
+      doneArrow.textContent=open?'▾':'▸';
+      localStorage.setItem(doneKey,open?'1':'0');
+    };
+    const doneGrid=el('div','cards-grid');
+    extraDoneToday.forEach(function(task){
+      doneGrid.appendChild(renderCard(task,true));
+    });
+    doneContent.appendChild(doneGrid);
+    doneSection.appendChild(doneContent);
+    body.appendChild(doneSection);
+  }
 }
 
 // ══════════════════════════════════════════
