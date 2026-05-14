@@ -5623,8 +5623,8 @@ async function syncToCloud(){
     }
     const data={
       tasks:S.tasks,freqColors:S.freqColors,specialTypes:S.specialTypes,
-      areas:S.areas,delegates:S.delegates||[],nextId:S.nextId,
-      darkMode:S.darkMode,darkAccent:S.darkAccent,theme:S.theme,
+      areas:S.areas,timeOfDay:S.timeOfDay||DEFAULT_TIME_OF_DAY,delegates:S.delegates||[],nextId:S.nextId,
+      darkMode:S.darkMode,darkAccent:S.darkAccent,darkColorFlowers:S.darkColorFlowers||false,theme:S.theme,
       dayEnd:parseInt(localStorage.getItem('cf4_dayEnd')||'0'),
       weekStart:S.weekStart||0,
       timerKeepRinging:localStorage.getItem('cf4_timerKeepRinging'),
@@ -5657,9 +5657,11 @@ async function syncFromCloud(){
       if(cloudData.freqColors)S.freqColors={...DEFAULT_FREQ_COLORS,...cloudData.freqColors};
       if(cloudData.specialTypes)S.specialTypes=cloudData.specialTypes;
       if(cloudData.areas)S.areas=cloudData.areas;
+      if(cloudData.timeOfDay)S.timeOfDay=cloudData.timeOfDay;
       if(cloudData.delegates)S.delegates=cloudData.delegates;
-      if(cloudData.darkMode!=null)S.darkMode=cloudData.darkMode;
+      if(cloudData.darkMode!=null){S.darkMode=cloudData.darkMode;document.body.classList.toggle('dark',S.darkMode);}
       if(cloudData.darkAccent){S.darkAccent=cloudData.darkAccent;document.body.style.setProperty('--gold',cloudData.darkAccent);}
+      if(cloudData.darkColorFlowers!=null){S.darkColorFlowers=cloudData.darkColorFlowers;localStorage.setItem('cf4_darkColorFlowers',S.darkColorFlowers?'1':'0');}
       if(cloudData.theme)S.theme=cloudData.theme;
       if(cloudData.dayEnd!=null)localStorage.setItem('cf4_dayEnd',String(cloudData.dayEnd));
       if(cloudData.weekStart!=null){S.weekStart=cloudData.weekStart;localStorage.setItem('cf4_weekStart',String(cloudData.weekStart));}
@@ -5704,11 +5706,16 @@ async function enableSyncCode(code){
         if(cloudData.freqColors)S.freqColors={...DEFAULT_FREQ_COLORS,...cloudData.freqColors};
         if(cloudData.specialTypes)S.specialTypes=cloudData.specialTypes;
         if(cloudData.areas)S.areas=cloudData.areas;
+        if(cloudData.timeOfDay)S.timeOfDay=cloudData.timeOfDay;
         if(cloudData.delegates)S.delegates=cloudData.delegates;
-        if(cloudData.darkMode!=null)S.darkMode=cloudData.darkMode;
+        if(cloudData.darkMode!=null){S.darkMode=cloudData.darkMode;document.body.classList.toggle('dark',S.darkMode);}
         if(cloudData.darkAccent){S.darkAccent=cloudData.darkAccent;document.body.style.setProperty('--gold',cloudData.darkAccent);}
+        if(cloudData.darkColorFlowers!=null){S.darkColorFlowers=cloudData.darkColorFlowers;localStorage.setItem('cf4_darkColorFlowers',S.darkColorFlowers?'1':'0');}
         if(cloudData.theme)S.theme=cloudData.theme;
+        if(cloudData.dayEnd!=null)localStorage.setItem('cf4_dayEnd',String(cloudData.dayEnd));
+        if(cloudData.weekStart!=null){S.weekStart=cloudData.weekStart;localStorage.setItem('cf4_weekStart',String(cloudData.weekStart));}
         if(cloudData.dayOrders) Object.entries(cloudData.dayOrders).forEach(([k,v])=>localStorage.setItem(k,v));
+        if(cloudData.collapseStates) Object.entries(cloudData.collapseStates).forEach(([k,v])=>localStorage.setItem(k,v));
         advanceOverdueTasks();
         _reschMigDone=false;
         migrateRescheduledFrom();
