@@ -1004,16 +1004,21 @@ function isDoneOn(task,dateS){
 function isDoneForDay(task,dateS){
   // First check: completion recorded on that exact date
   if(isDoneOn(task,dateS)) return true;
-  // Second check: for past days, see if there's a completion recorded
-  // AFTER dateS but BEFORE the next expected occurrence
-  // This catches "completed today" for a past-day task
   if(dateS>=todayStr()) return false;
   const f=fById(task.freq);
-  const nextExpected=dateStr(addDays(parseDate(dateS),Math.ceil(f.days)));
-  return (task.completions||[]).some(c=>{
-    const cDate=c.length>=10?c.slice(0,10):c.slice(0,10);
-    return cDate>dateS&&cDate<nextExpected;
-  });
+  if(!f||!f.days) return false;
+  const step=Math.ceil(f.days);
+  // Second check: completion recorded AFTER dateS but before next expected occurrence
+  // (e.g., "completed today" for a past-day task)
+  const nextExpected=dateStr(addDays(parseDate(dateS),step));
+  if((task.completions||[]).some(c=>{const cd=c.slice(0,10);return cd>dateS&&cd<nextExpected;})) return true;
+  // Third check: completion recorded BEFORE dateS but within the same cycle window,
+  // AND nextDueDate has been advanced past dateS (proving this cycle was completed)
+  if(task.nextDueDate&&task.nextDueDate>dateS){
+    const prevExpected=dateStr(addDays(parseDate(dateS),-step));
+    if((task.completions||[]).some(c=>{const cd=c.slice(0,10);return cd>=prevExpected&&cd<dateS;})) return true;
+  }
+  return false;
 }
 
 function isDoneToday(task){
@@ -1051,8 +1056,8 @@ function tasksDueOn(dateS){
       if(!taskIsActive) return false;
       // Skip dates this task was explicitly rescheduled away from
       if(t.rescheduledFrom&&t.rescheduledFrom.indexOf(dateS)!==-1) return false;
-      // Completed on that date counts
-      if(isDoneOn(t,dateS)) return true;
+      // Completed on that date (or early/late within same cycle) counts
+      if(isDoneForDay(t,dateS)) return true;
       // Reconstruct from startDate cycle
       const f=fById(t.freq);
       // A/N and 1X have days:0 — no cycle, only show if completed on this date (handled above)
