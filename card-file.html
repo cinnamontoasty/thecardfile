@@ -1041,9 +1041,9 @@ function tasksDueOn(dateS){
   const isPast=dateS<todayStr();
 
   // For today: use wasPartOfToday so completed/carried/skipped/overdue tasks all appear
-  // Also include tasks completed today even if startDate is in the future (marked done from Browse)
+  // Also include tasks completed today even if not yet active (marked done from Browse/Pending)
   if(isToday){
-    return S.tasks.filter(t=>(isActiveTask(t)&&wasPartOfToday(t))||((t.completions||[]).some(c=>c.startsWith(today))));
+    return S.tasks.filter(t=>(isActiveTask(t)&&wasPartOfToday(t))||((t.completions||[]).some(c=>c.startsWith(dateS))));
   }
 
   return S.tasks.filter(t=>{
