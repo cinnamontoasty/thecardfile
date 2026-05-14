@@ -1004,23 +1004,7 @@ function isDoneOn(task,dateS){
 // Handles cases where completion was recorded on a different date
 // (e.g., "completed today" for yesterday's task records today's date)
 function isDoneForDay(task,dateS){
-  // First check: completion recorded on that exact date
-  if(isDoneOn(task,dateS)) return true;
-  if(dateS>=todayStr()) return false;
-  const f=fById(task.freq);
-  if(!f||!f.days) return false;
-  const step=Math.ceil(f.days);
-  // Second check: completion recorded AFTER dateS but before next expected occurrence
-  // (e.g., "completed today" for a past-day task)
-  const nextExpected=dateStr(addDays(parseDate(dateS),step));
-  if((task.completions||[]).some(c=>{const cd=c.slice(0,10);return cd>dateS&&cd<nextExpected;})) return true;
-  // Third check: completion recorded BEFORE dateS but within the same cycle window,
-  // AND nextDueDate has been advanced past dateS (proving this cycle was completed)
-  if(task.nextDueDate&&task.nextDueDate>dateS){
-    const prevExpected=dateStr(addDays(parseDate(dateS),-step));
-    if((task.completions||[]).some(c=>{const cd=c.slice(0,10);return cd>=prevExpected&&cd<dateS;})) return true;
-  }
-  return false;
+  return isDoneOn(task,dateS);
 }
 
 function isDoneToday(task){
